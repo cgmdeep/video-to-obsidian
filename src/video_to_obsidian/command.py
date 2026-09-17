@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -18,6 +19,11 @@ class CommandResult:
 
 class CommandRunner(Protocol):
     def __call__(self, command: list[str], timeout: int) -> CommandResult: ...
+
+
+def yt_dlp_command(*arguments: str) -> list[str]:
+    """Run the packaged yt-dlp with the same interpreter as the MCP service."""
+    return [sys.executable, "-m", "yt_dlp", *arguments]
 
 
 def run_command(command: list[str], timeout: int) -> CommandResult:
@@ -43,4 +49,3 @@ def run_command(command: list[str], timeout: int) -> CommandResult:
             retryable=True,
         ) from exc
     return CommandResult(process.returncode, process.stdout, process.stderr)
-

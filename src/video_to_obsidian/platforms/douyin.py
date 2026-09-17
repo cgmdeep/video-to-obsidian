@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..command import CommandResult, CommandRunner, run_command
+from ..command import CommandResult, CommandRunner, run_command, yt_dlp_command
 from ..config import Settings
 from ..errors import AppError
 
@@ -109,8 +109,7 @@ def fetch_metadata(
     runner: CommandRunner = run_command,
 ) -> DouyinMetadata:
     result = runner(
-        [
-            "yt-dlp",
+        yt_dlp_command(
             "--ignore-config",
             "--no-warnings",
             "--skip-download",
@@ -118,7 +117,7 @@ def fetch_metadata(
             "--no-playlist",
             *_cookie_args(settings),
             resolved.url,
-        ],
+        ),
         180,
     )
     if result.returncode != 0:
@@ -170,8 +169,7 @@ def download_video(
     output_dir.mkdir(parents=True, exist_ok=True)
     template = output_dir / "source.%(ext)s"
     result = runner(
-        [
-            "yt-dlp",
+        yt_dlp_command(
             "--ignore-config",
             "--no-warnings",
             "--no-playlist",
@@ -185,7 +183,7 @@ def download_video(
             str(template),
             *_cookie_args(settings),
             resolved.url,
-        ],
+        ),
         settings.download_timeout_seconds,
     )
     if result.returncode != 0:
@@ -203,4 +201,3 @@ def download_video(
     if metadata.identity != f"douyin_{metadata.aweme_id}":
         raise AppError("identity_mismatch", "下载前后的稳定身份不一致。")
     return path
-

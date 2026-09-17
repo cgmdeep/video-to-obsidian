@@ -1,5 +1,9 @@
 # douyin&bilibili Video to Obsidian
 
+[![CI](https://github.com/cgmdeep/video-to-obsidian/actions/workflows/ci.yml/badge.svg)](https://github.com/cgmdeep/video-to-obsidian/actions/workflows/ci.yml)
+[![Security](https://github.com/cgmdeep/video-to-obsidian/actions/workflows/security.yml/badge.svg)](https://github.com/cgmdeep/video-to-obsidian/actions/workflows/security.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 把抖音或哔哩哔哩单视频交给 Kimi 分析，并把正式中文笔记写入 Obsidian。
 
 推荐入口是：
@@ -75,15 +79,27 @@ video-to-obsidian clear-summary-preferences
 
 ## Windows alpha 安装
 
-仓库克隆完成后，由 AI 助手在 PowerShell 中运行：
+推荐直接把仓库地址交给 AI 助手，让它先阅读 [AGENTS.md](AGENTS.md)，再执行安装。仓库克隆完成后，在 PowerShell 中运行：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
   -VaultPath "D:\Video Knowledge Base" `
-  -Profile standard
+  -Profile standard `
+  -InstallApps
 ```
 
-脚本只建立隔离 Python 环境、安装本项目、初始化 Vault 配置并在找到 ZCode 配置时增加单一 MCP。它不会静默安装 Obsidian、Firefox、ffmpeg 或 yt-dlp，不会保存 Kimi API Key，也不会替用户完成扫码。
+`-InstallApps` 使用 Windows 官方 `winget` 安装 Firefox、Obsidian 和 ffmpeg；yt-dlp 随 Python 包安装。省略该开关时只检查现有软件。脚本还会建立隔离 Python 环境、初始化 Vault、创建专用 Firefox Profile，并在找到 ZCode 配置时只增加本项目的一个 MCP。
+
+安装脚本不会保存 Kimi API Key、读取日常浏览器 Profile、替用户扫码或操作微信。软件安装完成但 API Key/扫码尚未配置时，脚本会以退出码 `2` 明确报告“尚未完成”，不会假装部署成功。
+
+用户仍需完成四件事：
+
+1. 在专用 Firefox Profile `VideoToObsidian` 中分别打开抖音和B站并用自己的账号扫码；
+2. 在终端运行 `video-to-obsidian set-kimi-key`，无回显输入自己的 Kimi API Key；
+3. 用 Obsidian 打开安装时选择的 Vault；
+4. 使用 ZCode 官方能力连接微信，然后重启 ZCode 并运行 `video-to-obsidian doctor`。
+
+完整步骤、失败恢复和卸载方式见 [Windows 安装与扫码指南](docs/INSTALL_WINDOWS.md)。
 
 当前 alpha 首发以 Windows 11 为优先验证平台。发布门槛见 [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)。
 
@@ -119,6 +135,18 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
 
 不保存原视频时，成功后应删除下载视频、Kimi 临时代理和临时音频，最终通常只留下几 KB 到几十 KB 的 Markdown。
 
+分析过程中仍需预留临时空间。建议至少保留“预计视频大小的 3 倍 + 1 GB”，以容纳下载文件、合并过程和低码率分析代理。失败时会保留必要检查点供人工重试；成功且未要求归档时会清理视频和代理。
+
+## 模型与费用
+
+- 默认档使用 `kimi-k2.7-code`；它价格较低并支持视频输入，但官方定位偏 Coding，因此公开版仍需用固定视频集验证总结质量。
+- 只有同一条消息包含精确短语“使用K3深度分析”才使用 `kimi-k3`。K3 适合更高强度的知识工作和推理，费用通常更高。
+- Kimi 按实际输入与输出 token 计费，视频长度、画面采样、推理量和正文长度都会影响费用；项目不会把“每条视频固定多少钱”写死。
+- 文件上传与保存接口是否免费、模型单价和充值规则可能变化，使用前请查看 [Kimi 官方价格页](https://platform.kimi.com/docs/pricing/chat)。
+- K3 当前需要账户完成充值后才能调用；新用户赠送额度可能不能用于 K3，详见 [K3 官方说明](https://platform.kimi.com/docs/guide/kimi-k3-quickstart)。
+
+公开测试价格必须来自真实 `usage`，不能按时长猜测。验收记录会同时列出视频时长、输入 token、输出 token、模型、当时官方单价和最终扣费；当前公开版尚未完成这组独立设备付费样本，因此仍标记为 Alpha。
+
 ## 安全边界
 
 - Cookie 只能来自用户自己的账号。
@@ -126,5 +154,19 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
 - API Key 优先保存在系统钥匙串；无可用钥匙串的服务器才使用进程环境变量 `KIMI_API_KEY`。
 - 不把密钥、Cookie、Authorization、签名视频地址写入笔记或日志。
 - 不修改用户现有 `.obsidian` 配置、主题和插件。
+
+## 卸载
+
+默认卸载只移除 ZCode 中本项目的 MCP 条目和仓库内虚拟环境，保留 Vault、Firefox Profile、第三方软件及私有运行数据：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1
+```
+
+只有明确确认不再需要失败检查点、候选笔记和视频归档时，才添加 `-RemovePrivateData`。脚本永远不会删除 Obsidian Vault。
+
+## 开源许可与安全报告
+
+本项目使用 [Apache License 2.0](LICENSE)。安全问题请按照 [SECURITY.md](SECURITY.md) 通过 GitHub 私密漏洞报告提交，不要在公开 Issue 中粘贴 Key、Cookie、视频或个人信息。
 
 AI 助手部署要求见 [AGENTS.md](AGENTS.md)。

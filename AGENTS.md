@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-仓库处于 `v0.1.0-alpha` 建设期。配置初始化、环境体检、Vault 安全写入、平台路由、抖音/B站单视频流水线和统一 MCP 已实现并通过模拟测试；真实平台下载与付费 Kimi 验收尚未完成，不得声称生产全链路可用。
+仓库处于 `v0.1.0-alpha` 建设期。配置初始化、环境体检、Vault 安全写入、平台路由、抖音/B站单视频流水线、统一 MCP、CI 和安全扫描已实现；真实平台下载与付费 Kimi 验收尚未完成，不得声称生产全链路可用。
 
 ## 默认配置
 
@@ -49,14 +49,16 @@ Firefox Profile：VideoToObsidian
 ## 安装顺序
 
 1. 只读检测操作系统、Python、ZCode、Obsidian/Vault、Firefox、ffmpeg、ffprobe、yt-dlp、内存和磁盘。
-2. 报告检测结果，再安装缺失依赖。只使用官方渠道或可信系统包管理器。
-3. 创建专用 Firefox Profile `VideoToObsidian`，等待用户分别扫码登录抖音和B站；不得读取日常 Profile。
+2. Windows 优先运行 `scripts/install.ps1 -InstallApps`；该开关只允许通过 winget 安装 Firefox、Obsidian 和 ffmpeg，yt-dlp 随隔离 Python 环境安装。其他系统只使用官方渠道或可信系统包管理器。
+3. 创建专用 Firefox Profile `VideoToObsidian`，等待用户分别扫码登录抖音和B站；不得读取、复制或回退到日常 Profile。
 4. 让用户选择已有 Vault 或新建 `Video Knowledge Base`。
 5. 运行 `video-to-obsidian init --vault <path>`；已存在配置时不得静默覆盖。
 6. 让用户亲自在无回显终端运行 `video-to-obsidian set-kimi-key`，优先写入系统钥匙串。若服务器没有可用钥匙串，才使用只注入服务进程的环境变量；不得把值写入 ZCode 配置。
 7. 运行 `video-to-obsidian doctor --json`，不得用真实视频代替环境体检。
 8. 配置 ZCode 时只新增一个 `video-to-obsidian` MCP，优先使用本地 stdio；写入前备份并原子替换配置。
 9. 免费验收通过后，询问用户是否愿意提供真实视频做付费闭环验收。
+10. 安装脚本退出码为 `2` 表示软件已安装但 API Key、扫码或其他人工配置尚未完成；不得把它报告为完整部署成功。
+11. 真实验收按 `docs/ACCEPTANCE.md` 记录 usage、扣费、路径和清理结果，不得在记录中保存 Cookie 或签名媒体 URL。
 
 ## 验收口径
 
@@ -67,3 +69,4 @@ Firefox Profile：VideoToObsidian
 - 不保存视频时不会留下视频归档；
 - 日志和配置中不存在 Secret 值；
 - 只有真实分析工具返回并验证路径后，才能声称笔记已入库。
+- CI、安全扫描、干净 Windows 安装和真实付费视频验收必须分别提供证据；其中任一项不能由模拟测试替代。

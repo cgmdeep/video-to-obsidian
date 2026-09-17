@@ -33,6 +33,7 @@ def _parser() -> argparse.ArgumentParser:
     init.add_argument("--save-video", action="store_true")
     init.add_argument("--config", type=Path)
     init.add_argument("--overwrite", action="store_true")
+    init.add_argument("--reuse-existing", action="store_true")
 
     doctor = sub.add_parser("doctor", help="免费环境体检")
     doctor.add_argument("--config", type=Path)
@@ -88,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
                 save_video=args.save_video,
                 config_path=args.config,
                 overwrite=args.overwrite,
+                reuse_existing=args.reuse_existing,
             )
             print(f"配置已创建：{path}")
             return 0

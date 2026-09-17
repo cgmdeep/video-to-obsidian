@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
-from ..command import CommandResult, CommandRunner, run_command
+from ..command import CommandResult, CommandRunner, run_command, yt_dlp_command
 from ..config import Settings
 from ..errors import AppError
 
@@ -194,8 +194,7 @@ def fetch_metadata(
     *,
     runner: CommandRunner = run_command,
 ) -> BilibiliMetadata:
-    command = [
-        "yt-dlp",
+    command = yt_dlp_command(
         "--ignore-config",
         "--no-warnings",
         "--skip-download",
@@ -203,7 +202,7 @@ def fetch_metadata(
         "--no-playlist",
         *_cookie_args(settings),
         resolved.canonical_url,
-    ]
+    )
     result = runner(command, 180)
     if result.returncode != 0:
         raise _classify_ytdlp(result)
@@ -267,8 +266,7 @@ def download_video(
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     template = output_dir / "source.%(ext)s"
-    command = [
-        "yt-dlp",
+    command = yt_dlp_command(
         "--ignore-config",
         "--no-warnings",
         "--no-playlist",
@@ -282,7 +280,7 @@ def download_video(
         str(template),
         *_cookie_args(settings),
         resolved.canonical_url,
-    ]
+    )
     result = runner(command, settings.download_timeout_seconds)
     if result.returncode != 0:
         raise _classify_ytdlp(result)
@@ -299,4 +297,3 @@ def download_video(
     if metadata.identity != f"bilibili_{resolved.bvid}_p{metadata.part:02d}":
         raise AppError("identity_mismatch", "下载前后的稳定身份不一致。")
     return path
-

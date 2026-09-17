@@ -31,6 +31,35 @@ def test_existing_config_is_not_overwritten(tmp_path: Path) -> None:
     assert config.read_bytes() == original
 
 
+def test_existing_matching_config_can_be_reused_safely(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    config = tmp_path / "config.toml"
+    initialize_settings(vault, config_path=config, runtime_root=tmp_path / "private")
+    original = config.read_bytes()
+    reused = initialize_settings(
+        vault,
+        config_path=config,
+        runtime_root=tmp_path / "private",
+        reuse_existing=True,
+    )
+    assert reused == config
+    assert config.read_bytes() == original
+
+
+def test_existing_different_config_is_not_reused(tmp_path: Path) -> None:
+    config = tmp_path / "config.toml"
+    initialize_settings(
+        tmp_path / "vault", config_path=config, runtime_root=tmp_path / "private"
+    )
+    with pytest.raises(ConfigError):
+        initialize_settings(
+            tmp_path / "other-vault",
+            config_path=config,
+            runtime_root=tmp_path / "private",
+            reuse_existing=True,
+        )
+
+
 def test_transcript_profile_enables_local_mode(tmp_path: Path) -> None:
     config = initialize_settings(
         tmp_path / "vault",

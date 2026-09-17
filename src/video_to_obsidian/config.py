@@ -159,6 +159,7 @@ def initialize_settings(
     config_path: Path | None = None,
     runtime_root: Path | None = None,
     overwrite: bool = False,
+    reuse_existing: bool = False,
 ) -> Path:
     if profile not in {"standard", "transcript"}:
         raise ConfigError("profile 只能是 standard 或 transcript。")
@@ -175,10 +176,17 @@ def initialize_settings(
         )
     else:
         runtime_paths = defaults
-    if target.exists() and not overwrite:
-        raise ConfigError(f"配置文件已存在，拒绝覆盖：{target}")
-
     vault = vault_path.expanduser().resolve()
+    if target.exists() and not overwrite:
+        if not reuse_existing:
+            raise ConfigError(f"配置文件已存在，拒绝覆盖：{target}")
+        existing = load_settings(target)
+        if existing.vault_path.resolve() != vault or existing.profile != profile:
+            raise ConfigError(
+                "现有配置的 Vault 或档位与本次安装不同，拒绝静默复用。"
+            )
+        return target
+
     vault.mkdir(parents=True, exist_ok=True)
     (vault / "Douyin").mkdir(exist_ok=True)
     (vault / "Bilibili").mkdir(exist_ok=True)

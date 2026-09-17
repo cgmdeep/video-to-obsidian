@@ -16,10 +16,16 @@
 - ZCode 配置备份、幂等更新和局部卸载；
 - 无费用模拟测试；
 - 当前文件树私有路径与常见 Secret 模式扫描无命中。
+- Apache-2.0 开源许可证和包元数据；
+- Windows/Linux、Python 3.11/3.12 CI 与可安装 wheel 构建；
+- 每周依赖漏洞审计、完整 Git 历史 Gitleaks 扫描和 Dependabot；
+- 私密漏洞报告说明（功能需在仓库公开时启用）；
+- Windows 可选 winget 依赖安装、专用 Firefox Profile 检查和安全卸载脚本；
+- 人类安装扫码指南与可复现公开验收记录模板。
 
 ## 公开前必须完成
 
-- [ ] 选择并加入完整开源许可证；当前没有许可证，因此还不能称为已正式开源。
+- [x] 加入 Apache License 2.0，并在 Python 包元数据中声明。
 - [ ] 使用一台不含作者私人配置的 Windows 11 设备跑完整安装。
 - [ ] 核验目标 ZCode 版本的 stdio MCP 配置字段。
 - [ ] 验证 Firefox 专用 Profile 名称能被 yt-dlp 正确读取。
@@ -28,9 +34,10 @@
 - [ ] 验证无逐字稿标准版和远程 SenseVoice 增强版。
 - [ ] 验证Kimi失败后复用检查点，不重复下载。
 - [ ] 验证笔记、缓存、state、candidate和archive物理隔离。
-- [ ] 使用专用 Secret 扫描器检查当前提交和完整 Git 历史。
-- [ ] 增加公开漏洞报告邮箱或 GitHub Security Advisories 说明。
-- [ ] 确认 README 中的模型名称、价格样本和外部安装说明仍然有效。
+- [x] CI 使用 Gitleaks 扫描完整 Git 历史，并使用 pip-audit 审计依赖。
+- [ ] 仓库切换公开时启用 GitHub Private Vulnerability Reporting，并验证匿名访问者能看到报告按钮。
+- [ ] 完成真实付费样本后，在验收记录中填写 usage、当日单价与实际扣费；README 不写死每条价格。
+- [ ] 核验 README 中模型名称、充值规则和外部安装说明在发布当天仍有效。
 
 ## 不进入 v0.1
 
@@ -42,4 +49,3 @@
 - 默认永久保存原视频；
 - 自动安装 Obsidian 社区插件；
 - 面向公网暴露未经鉴权的 MCP。
-
