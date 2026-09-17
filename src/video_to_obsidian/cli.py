@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ from .config import ConfigError, initialize_settings
 from .doctor import doctor_payload
 from .routing import RoutingError, route_share_text
 from .zcode import ZCodeConfigError
+from .secrets import SecretError, delete_kimi_api_key, kimi_key_source, set_kimi_api_key
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -51,6 +53,10 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path.home() / ".zcode" / "cli" / "config.json",
     )
+
+    sub.add_parser("set-kimi-key", help="无回显地把 Kimi API Key 保存到系统钥匙串")
+    sub.add_parser("delete-kimi-key", help="从系统钥匙串删除 Kimi API Key")
+    sub.add_parser("kimi-key-status", help="只显示 Key 来源，不显示值")
     return parser
 
 
@@ -102,7 +108,22 @@ def main(argv: list[str] | None = None) -> int:
             backup = remove_from_file(args.config)
             print(f"已移除本项目 ZCode 条目；恢复副本：{backup}")
             return 0
-    except (ConfigError, RoutingError, ZCodeConfigError) as exc:
+        if args.command == "set-kimi-key":
+            first = getpass.getpass("请输入 Kimi API Key（不会回显）：")
+            second = getpass.getpass("请再次输入：")
+            if first != second:
+                raise SecretError("两次输入不一致，未保存。")
+            set_kimi_api_key(first)
+            print("Kimi API Key 已保存到系统钥匙串（值未显示）。")
+            return 0
+        if args.command == "delete-kimi-key":
+            removed = delete_kimi_api_key()
+            print("已从系统钥匙串删除。" if removed else "系统钥匙串中没有本项目的 Kimi Key。")
+            return 0
+        if args.command == "kimi-key-status":
+            print(f"Kimi API Key 来源：{kimi_key_source()}（值未显示）")
+            return 0
+    except (ConfigError, RoutingError, ZCodeConfigError, SecretError) as exc:
         print(f"错误：{exc}")
         return 2
     return 2

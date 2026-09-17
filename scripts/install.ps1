@@ -62,7 +62,7 @@ Write-Host ''
 Write-Host 'Python 部分安装完成。下一步仍需要用户完成：'
 Write-Host '1. 确认 Obsidian、Firefox、ffmpeg、ffprobe、yt-dlp 已安装。'
 Write-Host '2. 在 Firefox 专用 Profile VideoToObsidian 中扫码登录抖音和B站。'
-Write-Host '3. 通过系统安全方式向 ZCode/MCP 进程提供 KIMI_API_KEY。'
+Write-Host '3. 亲自在终端运行 .venv\Scripts\video-to-obsidian.exe set-kimi-key。'
 Write-Host '4. 运行 doctor；真实视频验收会产生 Kimi 费用，必须另行确认。'
 Write-Host ''
 & $VenvPython -m video_to_obsidian doctor --json

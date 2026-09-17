@@ -26,6 +26,7 @@
 
 ```bash
 video-to-obsidian init --vault "/path/to/Video Knowledge Base"
+video-to-obsidian set-kimi-key
 video-to-obsidian doctor
 video-to-obsidian route "完整的视频分享文本"
 video-to-obsidian mcp
@@ -34,7 +35,9 @@ video-to-obsidian configure-zcode
 
 `init` 会建立公共配置和 `Douyin/`、`Bilibili/` 两个笔记目录，但不会修改 `.obsidian`。
 
-`doctor` 只检查配置、Vault、Kimi Key 是否存在，以及 Firefox、ffmpeg、ffprobe、yt-dlp、Obsidian 是否可用；不会显示密钥值，也不会发起付费视频分析。
+`set-kimi-key` 会在终端无回显地读取两次 Key，并保存到 Windows 凭据库或 macOS 钥匙串。无钥匙串的服务器可以显式向服务进程注入 `KIMI_API_KEY`。
+
+`doctor` 只检查配置、Vault、Kimi Key 是否存在，以及 Firefox、ffmpeg、ffprobe、yt-dlp、Obsidian 是否可用；只显示Key来源，不显示密钥值，也不会发起付费视频分析。
 
 统一 MCP 当前暴露：
 
@@ -95,7 +98,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
 
 - Cookie 只能来自用户自己的账号。
 - 不提供共享 Cookie，不绕过会员、付费内容或 DRM。
-- API Key 优先保存在系统钥匙串；当前 alpha 只读取进程环境变量 `KIMI_API_KEY`。
+- API Key 优先保存在系统钥匙串；无可用钥匙串的服务器才使用进程环境变量 `KIMI_API_KEY`。
 - 不把密钥、Cookie、Authorization、签名视频地址写入笔记或日志。
 - 不修改用户现有 `.obsidian` 配置、主题和插件。
 

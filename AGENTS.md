@@ -46,7 +46,7 @@ Firefox Profile：VideoToObsidian
 3. 创建专用 Firefox Profile `VideoToObsidian`，等待用户分别扫码登录抖音和B站；不得读取日常 Profile。
 4. 让用户选择已有 Vault 或新建 `Video Knowledge Base`。
 5. 运行 `video-to-obsidian init --vault <path>`；已存在配置时不得静默覆盖。
-6. API Key 优先写入系统钥匙串。alpha 阶段若只能使用环境变量，应明确说明其限制，不得把值写入 ZCode 配置。
+6. 让用户亲自在无回显终端运行 `video-to-obsidian set-kimi-key`，优先写入系统钥匙串。若服务器没有可用钥匙串，才使用只注入服务进程的环境变量；不得把值写入 ZCode 配置。
 7. 运行 `video-to-obsidian doctor --json`，不得用真实视频代替环境体检。
 8. 配置 ZCode 时只新增一个 `video-to-obsidian` MCP，优先使用本地 stdio；写入前备份并原子替换配置。
 9. 免费验收通过后，询问用户是否愿意提供真实视频做付费闭环验收。

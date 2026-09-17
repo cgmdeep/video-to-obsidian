@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
-import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -16,6 +15,7 @@ import httpx
 
 from .config import Settings
 from .errors import AppError
+from .secrets import get_kimi_api_key
 
 
 DEFAULT_INSTRUCTION = (
@@ -246,7 +246,7 @@ class KimiVideoClient:
         upload_threshold_bytes: int = 8 * 1024 * 1024,
     ) -> None:
         self.settings = settings
-        self.api_key = (api_key if api_key is not None else os.environ.get("KIMI_API_KEY", "")).strip()
+        self.api_key = (api_key if api_key is not None else get_kimi_api_key()).strip()
         self.upload_threshold_bytes = upload_threshold_bytes
         self.transport = transport or HttpxKimiTransport(
             api_key=self.api_key,

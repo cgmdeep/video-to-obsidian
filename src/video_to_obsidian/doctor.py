@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from .config import ConfigError, Settings, default_paths, load_settings
+from .secrets import kimi_key_source
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ def run_doctor(config_path: Path | None = None) -> list[Check]:
     except ConfigError as exc:
         checks.append(Check("config", False, True, str(exc)))
 
+    key_source = kimi_key_source()
     checks.extend(
         [
             Check("python", True, True, platform.python_version()),
@@ -62,7 +64,14 @@ def run_doctor(config_path: Path | None = None) -> list[Check]:
             Check("yt-dlp", shutil.which("yt-dlp") is not None, True, "已找到" if shutil.which("yt-dlp") else "未找到"),
             Check("firefox", _application_exists("Firefox"), True, "已安装" if _application_exists("Firefox") else "未找到"),
             Check("obsidian", _application_exists("Obsidian"), True, "已安装" if _application_exists("Obsidian") else "未找到"),
-            Check("kimi_key", bool(os.environ.get("KIMI_API_KEY", "").strip()), True, "已配置（值未显示）" if os.environ.get("KIMI_API_KEY", "").strip() else "未配置"),
+            Check(
+                "kimi_key",
+                key_source in {"environment", "keyring"},
+                True,
+                f"已配置（来源：{key_source}，值未显示）"
+                if key_source in {"environment", "keyring"}
+                else "未配置或系统钥匙串不可用",
+            ),
         ]
     )
     if settings is not None:
@@ -87,4 +96,3 @@ def doctor_payload(config_path: Path | None = None) -> dict[str, object]:
         "paid_call_performed": False,
         "checks": [asdict(item) for item in checks],
     }
-
