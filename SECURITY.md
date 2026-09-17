@@ -14,7 +14,7 @@
 
 ## 漏洞报告
 
-仓库公开后，请打开 **Security → Advisories → Report a vulnerability**，通过 GitHub Private Vulnerability Reporting 私密提交。该按钮尚未出现时，说明公开发布配置尚未完成；此时不要创建包含复现细节的公开 Issue。维护者确认问题前，请勿公开复现仓库或粘贴密钥、Cookie、用户视频和个人信息。
+请打开 **Security → Advisories → Report a vulnerability**，通过已启用的 GitHub Private Vulnerability Reporting 私密提交。不要创建包含复现细节的公开 Issue。维护者确认问题前，请勿公开复现仓库或粘贴密钥、Cookie、用户视频和个人信息。
 
 报告最好包含：
 
