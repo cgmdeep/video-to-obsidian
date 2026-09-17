@@ -1,0 +1,18 @@
+schema_version = 1
+vault_path = "/replace/with/your/Video Knowledge Base"
+profile = "standard"
+save_video = false
+default_model = "kimi-k2.7-code"
+deep_model = "kimi-k3"
+firefox_profile = "VideoToObsidian"
+
+[transcript]
+mode = "off"
+required = false
+
+[paths]
+cache = "/replace/with/private/cache"
+state = "/replace/with/private/state"
+candidates = "/replace/with/private/candidates"
+archive = "/replace/with/private/archive"
+

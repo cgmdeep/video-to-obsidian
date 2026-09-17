@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+.DS_Store
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+config.toml
+*.cookie.txt
+*cookies*.txt
+*.pem
+*.key
+
+# Runtime data must never enter Git
+cache/
+state/
+candidates/
+archive/
+logs/
+*.mp4
+*.wav
+*.part
+*.tmp
+
