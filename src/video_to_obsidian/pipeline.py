@@ -25,34 +25,62 @@ from .notes import (
     write_candidate,
     write_note,
 )
-from .platforms.bilibili import (
-    BilibiliMetadata,
-    ResolvedBilibili,
-    download_video,
-    fetch_metadata,
-    resolve_input,
+from .platforms.bilibili import download_video, fetch_metadata, resolve_input
+from .platforms.douyin import (
+    download_video as download_douyin_video,
+    fetch_metadata as fetch_douyin_metadata,
+    resolve_input as resolve_douyin_input,
 )
 from .state import read_json, write_json
 from .transcript import TranscriptResult, transcribe_video
 
 
 @dataclass(frozen=True)
-class BilibiliDependencies:
-    resolve: Callable[[str], ResolvedBilibili]
-    metadata: Callable[[ResolvedBilibili, Settings], BilibiliMetadata]
-    download: Callable[[ResolvedBilibili, BilibiliMetadata, Path, Settings], Path]
+class SingleVideoDependencies:
+    resolve: Callable[[str], Any]
+    metadata: Callable[[Any, Settings], Any]
+    download: Callable[[Any, Any, Path, Settings], Path]
     probe: Callable[[Path], dict[str, Any]]
     prepare: Callable[[Path, float, Path, Settings], PreparedVideo]
     kimi: Callable[[Path, dict[str, Any], str, str, bool], KimiResult]
     transcript: Callable[[Path, Settings], TranscriptResult]
 
 
-def default_bilibili_dependencies(settings: Settings) -> BilibiliDependencies:
+BilibiliDependencies = SingleVideoDependencies
+
+
+def default_bilibili_dependencies(settings: Settings) -> SingleVideoDependencies:
     client = KimiVideoClient(settings)
-    return BilibiliDependencies(
+    return SingleVideoDependencies(
         resolve=resolve_input,
         metadata=lambda resolved, cfg: fetch_metadata(resolved, cfg),
         download=lambda resolved, metadata, output, cfg: download_video(
+            resolved, metadata, output, cfg
+        ),
+        probe=probe_video,
+        prepare=lambda video, duration, checkpoint, cfg: prepare_kimi_video(
+            video,
+            duration_seconds=duration,
+            checkpoint_dir=checkpoint,
+            settings=cfg,
+        ),
+        kimi=lambda video, metadata, mode, instruction, is_proxy: client.analyze(
+            video,
+            metadata,
+            mode=mode,
+            instruction=instruction,
+            is_proxy=is_proxy,
+        ),
+        transcript=lambda video, cfg: transcribe_video(video, cfg),
+    )
+
+
+def default_douyin_dependencies(settings: Settings) -> SingleVideoDependencies:
+    client = KimiVideoClient(settings)
+    return SingleVideoDependencies(
+        resolve=resolve_douyin_input,
+        metadata=lambda resolved, cfg: fetch_douyin_metadata(resolved, cfg),
+        download=lambda resolved, metadata, output, cfg: download_douyin_video(
             resolved, metadata, output, cfg
         ),
         probe=probe_video,
@@ -150,7 +178,7 @@ def _result(manifest: dict[str, Any], *, cached: bool) -> dict[str, Any]:
         "ok": bool(note_path),
         "complete": manifest.get("status") == "completed" and bool(note_path),
         "status": manifest.get("status", "unknown"),
-        "platform": "bilibili",
+        "platform": manifest.get("platform", ""),
         "mode": manifest.get("mode", "vision"),
         "model": manifest.get("model", ""),
         "cached": cached,
@@ -180,25 +208,26 @@ def _result(manifest: dict[str, Any], *, cached: bool) -> dict[str, Any]:
     return result
 
 
-def analyze_bilibili(
+def _analyze_single_video(
     share_text: str,
     *,
+    platform: str,
     settings: Settings,
     mode: str = "vision",
     instruction: str = "",
     save_video: bool | None = None,
-    dependencies: BilibiliDependencies | None = None,
+    dependencies: SingleVideoDependencies,
 ) -> dict[str, Any]:
     mode = (mode or "vision").strip().lower()
     if mode not in {"vision", "deep"}:
-        raise AppError("unsupported_mode", "B站只支持 vision 或 deep 档位。")
+        raise AppError("unsupported_mode", "视频分析只支持 vision 或 deep 档位。")
     keep_video = settings.save_video if save_video is None else bool(save_video)
-    deps = dependencies or default_bilibili_dependencies(settings)
+    deps = dependencies
     resolved = deps.resolve(share_text)
     metadata_object = deps.metadata(resolved, settings)
     metadata = metadata_object.to_dict()
     identity = metadata_object.identity
-    state_dir = settings.paths.state / "bilibili"
+    state_dir = settings.paths.state / platform
     manifest_path = state_dir / (f"{identity}.deep.json" if mode == "deep" else f"{identity}.json")
     prior = read_json(manifest_path)
     request_fingerprint = _fingerprint(mode, instruction, settings)
@@ -231,12 +260,13 @@ def analyze_bilibili(
         ):
             if key in prior:
                 manifest[key] = prior[key]
-    formal_note = find_note_by_identity(settings.vault_path, "bilibili", identity)
+    formal_note = find_note_by_identity(settings.vault_path, platform, identity)
     candidate_output = mode == "deep" and formal_note is not None
     manifest.update(
         {
             "schema_version": 1,
             "identity": identity,
+            "platform": platform,
             "metadata": metadata,
             "mode": mode,
             "model": settings.deep_model if mode == "deep" else settings.default_model,
@@ -384,7 +414,7 @@ def analyze_bilibili(
             if candidate_output:
                 marker = f"deep-{request_fingerprint[:10]}"
                 saved = write_candidate(
-                    settings.paths.candidates / "bilibili",
+                    settings.paths.candidates / platform,
                     title=metadata_object.title,
                     identity=identity,
                     content=note,
@@ -400,7 +430,7 @@ def analyze_bilibili(
                     )
                 saved = write_note(
                     settings.vault_path,
-                    platform="bilibili",
+                    platform=platform,
                     title=metadata_object.title,
                     identity=identity,
                     content=note,
@@ -462,3 +492,42 @@ def analyze_bilibili(
             details=details,
         ) from exc
 
+
+def analyze_bilibili(
+    share_text: str,
+    *,
+    settings: Settings,
+    mode: str = "vision",
+    instruction: str = "",
+    save_video: bool | None = None,
+    dependencies: SingleVideoDependencies | None = None,
+) -> dict[str, Any]:
+    return _analyze_single_video(
+        share_text,
+        platform="bilibili",
+        settings=settings,
+        mode=mode,
+        instruction=instruction,
+        save_video=save_video,
+        dependencies=dependencies or default_bilibili_dependencies(settings),
+    )
+
+
+def analyze_douyin(
+    share_text: str,
+    *,
+    settings: Settings,
+    mode: str = "vision",
+    instruction: str = "",
+    save_video: bool | None = None,
+    dependencies: SingleVideoDependencies | None = None,
+) -> dict[str, Any]:
+    return _analyze_single_video(
+        share_text,
+        platform="douyin",
+        settings=settings,
+        mode=mode,
+        instruction=instruction,
+        save_video=save_video,
+        dependencies=dependencies or default_douyin_dependencies(settings),
+    )

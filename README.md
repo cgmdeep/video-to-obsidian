@@ -10,7 +10,7 @@
 
 也可以直接把完整分享文本粘贴到 ZCode。
 
-> 当前状态：`v0.1.0-alpha` 建设中，尚未发布。当前仓库只完成公共配置、环境体检、安全写入和视频路由骨架；真实抖音/B站下载与 Kimi 分析尚未迁入，不得把它描述为已经完成全链路。
+> 当前状态：`v0.1.0-alpha` 建设中，尚未发布。抖音/B站单视频下载、Kimi一次分析、可选逐字稿、检查点和 Obsidian 入库代码已经接通并通过无费用模拟测试；尚未完成独立设备上的真实平台下载与付费 Kimi 验收，不得描述为生产可用。
 
 ## 设计目标
 
@@ -34,6 +34,15 @@ video-to-obsidian mcp
 `init` 会建立公共配置和 `Douyin/`、`Bilibili/` 两个笔记目录，但不会修改 `.obsidian`。
 
 `doctor` 只检查配置、Vault、Kimi Key 是否存在，以及 Firefox、ffmpeg、ffprobe、yt-dlp、Obsidian 是否可用；不会显示密钥值，也不会发起付费视频分析。
+
+统一 MCP 当前暴露：
+
+- `doctor`：免费环境体检；
+- `route_video`：免费识别平台和 K3 触发词；
+- `analyze_douyin`：抖音普通单视频；
+- `analyze_bilibili`：B站普通单视频，多P必须使用带 `?p=` 的具体链接。
+
+两个分析工具默认 `save_video=false`，每次工具调用最多发起一次 Kimi 分析，不在服务内部自动重试。
 
 ## 两种档位
 
@@ -76,4 +85,3 @@ video-to-obsidian mcp
 - 不修改用户现有 `.obsidian` 配置、主题和插件。
 
 AI 助手部署要求见 [AGENTS.md](AGENTS.md)。
-

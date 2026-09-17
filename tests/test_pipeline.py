@@ -7,8 +7,14 @@ from video_to_obsidian.config import AppPaths, TranscriptSettings, initialize_se
 from video_to_obsidian.errors import AppError
 from video_to_obsidian.kimi import KimiResult
 from video_to_obsidian.media import PreparedVideo
-from video_to_obsidian.pipeline import BilibiliDependencies, analyze_bilibili
+from video_to_obsidian.pipeline import (
+    BilibiliDependencies,
+    SingleVideoDependencies,
+    analyze_bilibili,
+    analyze_douyin,
+)
 from video_to_obsidian.platforms.bilibili import BilibiliMetadata, ResolvedBilibili
+from video_to_obsidian.platforms.douyin import DouyinMetadata, ResolvedDouyin
 from video_to_obsidian.transcript import TranscriptResult
 
 
@@ -180,3 +186,53 @@ def test_deep_analysis_becomes_candidate_when_formal_note_exists(tmp_path: Path)
     assert Path(deep["candidate_saved_to"]).is_file()
     assert settings.paths.candidates in Path(deep["candidate_saved_to"]).parents
 
+
+def test_douyin_uses_same_safe_pipeline(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    calls = {"kimi": 0, "transcript": 0}
+
+    def download(resolved, metadata, output, cfg):
+        path = output / "source.mp4"
+        path.write_bytes(b"douyin-video")
+        return path
+
+    def kimi(video, metadata, mode, instruction, is_proxy):
+        calls["kimi"] += 1
+        return KimiResult(
+            "### 内容速览\n" + "抖音正式笔记。" * 20,
+            ("短视频",),
+            (),
+            {"kimi_attempts": 1, "finish_reason": "stop", "usage": {}},
+        )
+
+    deps = SingleVideoDependencies(
+        resolve=lambda text: ResolvedDouyin("https://v.douyin.com/abc123/", "short_url"),
+        metadata=lambda resolved, cfg: DouyinMetadata(
+            identity="douyin_1234567890123456789",
+            aweme_id="1234567890123456789",
+            url=resolved.url,
+            title="测试抖音标题",
+            uploader="作者",
+            uploader_id="1",
+            duration=30,
+            upload_date="20260917",
+            description="",
+            tags=("知识",),
+            download_auth="firefox_profile",
+        ),
+        download=download,
+        probe=lambda path: {"has_video": True, "has_audio": True},
+        prepare=lambda video, duration, checkpoint, cfg: PreparedVideo(video, False),
+        kimi=kimi,
+        transcript=lambda video, cfg: (_ for _ in ()).throw(AssertionError("standard must skip ASR")),
+    )
+    result = analyze_douyin(
+        "https://v.douyin.com/abc123/",
+        settings=settings,
+        dependencies=deps,
+    )
+    assert result["platform"] == "douyin"
+    assert result["saved_to"].endswith("测试抖音标题 douyin_1234567890123456789.md")
+    assert calls["kimi"] == 1
+    note = Path(result["saved_to"]).read_text(encoding="utf-8")
+    assert "platform/douyin" in note
