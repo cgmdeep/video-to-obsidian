@@ -1,4 +1,4 @@
-# Video to Obsidian
+# douyin&bilibili Video to Obsidian
 
 把抖音或哔哩哔哩单视频交给 Kimi 分析，并把正式中文笔记写入 Obsidian。
 
