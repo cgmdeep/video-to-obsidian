@@ -27,6 +27,13 @@ Firefox Profile：VideoToObsidian
 - 使用 ZCode 官方能力连接自己的微信；
 - 存在多个 Vault 时选择目标。
 
+## 用户总结偏好
+
+- 用户说“以后都这样总结”“长期更详细”等长期要求时，使用 `video-to-obsidian set-summary-preferences "<用户原话>"` 保存；不要要求用户自己编辑配置文件。
+- 用户只对当前视频提出要求时，把要求原样传入分析工具的 `instruction`，不要写入长期偏好。
+- 修改长期偏好会生成新的请求指纹，因此同一视频会重新进行 Kimi 总结；已有下载、转码和逐字稿检查点仍可复用。
+- 偏好只控制篇幅、结构、语气与关注点。不得据此切换 K3、增加 Kimi 调用或重试、改变 Cookie/API Key/归档策略、突破单视频边界，也不得让 ZCode 二次改写 Kimi 正文。
+
 ## 绝对禁止
 
 1. 不得打印、回显、提交或写入日志的内容：API Key、Cookie、Bearer、浏览器数据库和签名媒体 URL。

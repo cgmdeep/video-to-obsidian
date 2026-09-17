@@ -31,6 +31,7 @@ from .platforms.douyin import (
     fetch_metadata as fetch_douyin_metadata,
     resolve_input as resolve_douyin_input,
 )
+from .preferences import effective_instruction
 from .state import read_json, write_json
 from .transcript import TranscriptResult, transcribe_video
 
@@ -198,6 +199,8 @@ def _result(manifest: dict[str, Any], *, cached: bool) -> dict[str, Any]:
         "note_bytes": note_path.stat().st_size if note_path else 0,
         "kimi_diagnostics": manifest.get("kimi_diagnostics") or {},
         "usage": (manifest.get("kimi_diagnostics") or {}).get("usage") or {},
+        "preferences_applied": bool(manifest.get("preferences_applied", False)),
+        "preference_chars": int(manifest.get("preference_chars") or 0),
         "source_checkpoint_exists": _checkpoint_source(manifest) is not None,
         "checkpoint_reusable": _checkpoint_source(manifest) is not None,
     }
@@ -222,6 +225,7 @@ def _analyze_single_video(
     if mode not in {"vision", "deep"}:
         raise AppError("unsupported_mode", "视频分析只支持 vision 或 deep 档位。")
     keep_video = settings.save_video if save_video is None else bool(save_video)
+    effective_request, preference_chars = effective_instruction(settings, instruction)
     deps = dependencies
     resolved = deps.resolve(share_text)
     metadata_object = deps.metadata(resolved, settings)
@@ -230,7 +234,7 @@ def _analyze_single_video(
     state_dir = settings.paths.state / platform
     manifest_path = state_dir / (f"{identity}.deep.json" if mode == "deep" else f"{identity}.json")
     prior = read_json(manifest_path)
-    request_fingerprint = _fingerprint(mode, instruction, settings)
+    request_fingerprint = _fingerprint(mode, effective_request, settings)
 
     output_key = "candidate_saved_to" if prior.get("candidate_output") else "saved_to"
     existing_output = str(prior.get(output_key) or "")
@@ -271,6 +275,8 @@ def _analyze_single_video(
             "mode": mode,
             "model": settings.deep_model if mode == "deep" else settings.default_model,
             "request_fingerprint": request_fingerprint,
+            "preferences_applied": preference_chars > 0,
+            "preference_chars": preference_chars,
             "candidate_output": candidate_output,
             "status": "running",
             "stage": manifest.get("stage", "metadata"),
@@ -382,7 +388,7 @@ def _analyze_single_video(
                 prepared.path,
                 metadata,
                 mode,
-                instruction,
+                effective_request,
                 prepared.is_proxy,
             )
             manifest.update(

@@ -48,6 +48,31 @@ video-to-obsidian configure-zcode
 
 两个分析工具默认 `save_video=false`，每次工具调用最多发起一次 Kimi 分析，不在服务内部自动重试。
 
+## 总结不合口味怎么办
+
+总结强度和写法不是固定死的。直接告诉 AI 助手你的偏好即可，例如：
+
+```text
+以后总结更详细，按时间线展开，所有数据和例子都保留，特别注意区分反讽和作者真实观点。
+
+以后少写背景铺垫，重点提炼方法、操作步骤、参数和失败原因。
+```
+
+AI 助手会把长期偏好保存到 Vault 外的私有配置文件：
+
+```bash
+video-to-obsidian set-summary-preferences "按时间线详细总结，保留数据、例子和反讽语境"
+```
+
+查看偏好或恢复默认：
+
+```bash
+video-to-obsidian show-summary-preferences
+video-to-obsidian clear-summary-preferences
+```
+
+只想调整某一条视频时，把要求和链接写在同一条消息中即可，不会改变长期偏好。偏好可以调整篇幅、结构、语气和关注点，但不会自动切换 K3、增加重试、改变是否保存视频，也不能绕过单视频、隐私和安全边界。
+
 ## Windows alpha 安装
 
 仓库克隆完成后，由 AI 助手在 PowerShell 中运行：

@@ -1,5 +1,6 @@
 schema_version = 1
 vault_path = "/replace/with/your/Video Knowledge Base"
+preferences_file = "/replace/with/private/config/summary-preferences.txt"
 profile = "standard"
 save_video = false
 default_model = "kimi-k2.7-code"

@@ -34,6 +34,7 @@ class TranscriptSettings:
 @dataclass(frozen=True)
 class Settings:
     vault_path: Path
+    preferences_file: Path
     profile: str
     save_video: bool
     default_model: str
@@ -125,6 +126,9 @@ def load_settings(config_path: Path | None = None) -> Settings:
     )
     return Settings(
         vault_path=Path(_required_string(data, "vault_path")).expanduser(),
+        preferences_file=Path(
+            str(data.get("preferences_file") or (path.parent / "summary-preferences.txt"))
+        ).expanduser(),
         profile=profile,
         save_video=bool(data.get("save_video", False)),
         default_model=_required_string(data, "default_model"),
@@ -191,6 +195,7 @@ def initialize_settings(
         [
             "schema_version = 1",
             f"vault_path = {_toml_string(vault)}",
+            f"preferences_file = {_toml_string(target.parent / 'summary-preferences.txt')}",
             f"profile = {_toml_string(profile)}",
             f"save_video = {'true' if save_video else 'false'}",
             'default_model = "kimi-k2.7-code"',

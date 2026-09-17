@@ -15,6 +15,7 @@ from video_to_obsidian.pipeline import (
 )
 from video_to_obsidian.platforms.bilibili import BilibiliMetadata, ResolvedBilibili
 from video_to_obsidian.platforms.douyin import DouyinMetadata, ResolvedDouyin
+from video_to_obsidian.preferences import write_preferences
 from video_to_obsidian.transcript import TranscriptResult
 
 
@@ -63,6 +64,7 @@ class FakePipeline:
         self.kimi_calls = 0
         self.transcript_calls = 0
         self.download_calls = 0
+        self.last_instruction = ""
         self.kimi_error = kimi_error
         self.transcript_error = transcript_error
 
@@ -75,6 +77,7 @@ class FakePipeline:
 
         def kimi(video, metadata, mode, instruction, is_proxy):
             self.kimi_calls += 1
+            self.last_instruction = instruction
             if self.kimi_error:
                 raise self.kimi_error
             return KimiResult(
@@ -143,6 +146,22 @@ def test_completed_request_is_cached_without_second_kimi_call(tmp_path: Path) ->
     assert second["cached"] is True
     assert fake.kimi_calls == 1
     assert fake.download_calls == 1
+
+
+def test_long_term_and_one_time_preferences_reach_kimi(tmp_path: Path) -> None:
+    fake = FakePipeline()
+    settings = _settings(tmp_path)
+    write_preferences(settings, "长期更详细，保留数据和反讽语境")
+    result = analyze_bilibili(
+        "BV1Uw826pE7J",
+        settings=settings,
+        instruction="本次重点看图表",
+        dependencies=fake.deps(),
+    )
+    assert "长期更详细，保留数据和反讽语境" in fake.last_instruction
+    assert "本次重点看图表" in fake.last_instruction
+    assert result["preferences_applied"] is True
+    assert result["preference_chars"] > 0
 
 
 def test_kimi_failure_preserves_source_checkpoint(tmp_path: Path) -> None:

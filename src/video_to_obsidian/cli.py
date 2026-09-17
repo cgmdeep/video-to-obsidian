@@ -9,8 +9,14 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .config import ConfigError, initialize_settings
+from .config import ConfigError, initialize_settings, load_settings
 from .doctor import doctor_payload
+from .preferences import (
+    PreferenceError,
+    clear_preferences,
+    read_preferences,
+    write_preferences,
+)
 from .routing import RoutingError, route_share_text
 from .zcode import ZCodeConfigError
 from .secrets import SecretError, delete_kimi_api_key, kimi_key_source, set_kimi_api_key
@@ -57,6 +63,18 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("set-kimi-key", help="无回显地把 Kimi API Key 保存到系统钥匙串")
     sub.add_parser("delete-kimi-key", help="从系统钥匙串删除 Kimi API Key")
     sub.add_parser("kimi-key-status", help="只显示 Key 来源，不显示值")
+
+    set_preferences = sub.add_parser("set-summary-preferences", help="保存长期总结偏好")
+    set_preferences.add_argument("text", nargs="+")
+    set_preferences.add_argument("--config", type=Path)
+
+    show_preferences = sub.add_parser("show-summary-preferences", help="查看长期总结偏好")
+    show_preferences.add_argument("--config", type=Path)
+
+    clear_preferences_parser = sub.add_parser(
+        "clear-summary-preferences", help="清除长期总结偏好"
+    )
+    clear_preferences_parser.add_argument("--config", type=Path)
     return parser
 
 
@@ -123,7 +141,22 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "kimi-key-status":
             print(f"Kimi API Key 来源：{kimi_key_source()}（值未显示）")
             return 0
-    except (ConfigError, RoutingError, ZCodeConfigError, SecretError) as exc:
+        if args.command == "set-summary-preferences":
+            settings = load_settings(args.config)
+            path = write_preferences(settings, " ".join(args.text))
+            print(f"长期总结偏好已保存：{path}")
+            return 0
+        if args.command == "show-summary-preferences":
+            settings = load_settings(args.config)
+            preferences = read_preferences(settings)
+            print(preferences if preferences else "当前未设置长期总结偏好。")
+            return 0
+        if args.command == "clear-summary-preferences":
+            settings = load_settings(args.config)
+            removed = clear_preferences(settings)
+            print("长期总结偏好已清除。" if removed else "当前没有长期总结偏好。")
+            return 0
+    except (ConfigError, RoutingError, ZCodeConfigError, SecretError, PreferenceError) as exc:
         print(f"错误：{exc}")
         return 2
     return 2
