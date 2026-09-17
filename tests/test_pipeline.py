@@ -19,7 +19,11 @@ from video_to_obsidian.transcript import TranscriptResult
 
 
 def _settings(tmp_path: Path, *, transcript: bool = False):
-    config = initialize_settings(tmp_path / "vault", config_path=tmp_path / "config.toml")
+    config = initialize_settings(
+        tmp_path / "vault",
+        config_path=tmp_path / "config.toml",
+        runtime_root=tmp_path / "private",
+    )
     settings = load_settings(config)
     paths = AppPaths(
         config_file=config,

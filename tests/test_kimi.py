@@ -30,7 +30,11 @@ class FakeTransport:
 
 
 def _settings(tmp_path: Path):
-    config = initialize_settings(tmp_path / "vault", config_path=tmp_path / "config.toml")
+    config = initialize_settings(
+        tmp_path / "vault",
+        config_path=tmp_path / "config.toml",
+        runtime_root=tmp_path / "private",
+    )
     return load_settings(config)
 
 
@@ -126,4 +130,3 @@ def test_prompt_contains_irony_guard(tmp_path: Path) -> None:
     prompt = transport.payload["messages"][0]["content"][1]["text"]
     assert "反讽" in prompt
     assert "疑似反讽" in prompt
-

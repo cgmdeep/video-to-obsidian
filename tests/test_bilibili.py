@@ -14,7 +14,11 @@ from video_to_obsidian.platforms.bilibili import (
 
 
 def _settings(tmp_path: Path):
-    config = initialize_settings(tmp_path / "vault", config_path=tmp_path / "config.toml")
+    config = initialize_settings(
+        tmp_path / "vault",
+        config_path=tmp_path / "config.toml",
+        runtime_root=tmp_path / "private",
+    )
     return load_settings(config)
 
 
@@ -99,4 +103,3 @@ def test_http_412_is_retryable(tmp_path: Path) -> None:
         )
     assert caught.value.code == "bilibili_request_blocked"
     assert caught.value.retryable is True
-

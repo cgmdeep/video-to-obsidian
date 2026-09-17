@@ -8,7 +8,7 @@ from video_to_obsidian.config import ConfigError, initialize_settings, load_sett
 def test_initialize_standard_profile(tmp_path: Path) -> None:
     vault = tmp_path / "Video Knowledge Base"
     config = tmp_path / "private" / "config.toml"
-    created = initialize_settings(vault, config_path=config)
+    created = initialize_settings(vault, config_path=config, runtime_root=tmp_path / "private")
     settings = load_settings(created)
     assert settings.profile == "standard"
     assert settings.transcript.mode == "off"
@@ -20,10 +20,14 @@ def test_initialize_standard_profile(tmp_path: Path) -> None:
 
 def test_existing_config_is_not_overwritten(tmp_path: Path) -> None:
     config = tmp_path / "config.toml"
-    initialize_settings(tmp_path / "vault", config_path=config)
+    initialize_settings(
+        tmp_path / "vault", config_path=config, runtime_root=tmp_path / "private"
+    )
     original = config.read_bytes()
     with pytest.raises(ConfigError):
-        initialize_settings(tmp_path / "other", config_path=config)
+        initialize_settings(
+            tmp_path / "other", config_path=config, runtime_root=tmp_path / "private"
+        )
     assert config.read_bytes() == original
 
 
@@ -32,6 +36,6 @@ def test_transcript_profile_enables_local_mode(tmp_path: Path) -> None:
         tmp_path / "vault",
         profile="transcript",
         config_path=tmp_path / "config.toml",
+        runtime_root=tmp_path / "private",
     )
     assert load_settings(config).transcript.mode == "local"
-

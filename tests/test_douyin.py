@@ -10,7 +10,11 @@ from video_to_obsidian.platforms.douyin import download_video, fetch_metadata, r
 
 
 def _settings(tmp_path: Path):
-    config = initialize_settings(tmp_path / "vault", config_path=tmp_path / "config.toml")
+    config = initialize_settings(
+        tmp_path / "vault",
+        config_path=tmp_path / "config.toml",
+        runtime_root=tmp_path / "private",
+    )
     return load_settings(config)
 
 
@@ -91,4 +95,3 @@ def test_download_zero_files_is_stopped(tmp_path: Path) -> None:
             runner=lambda command, timeout: CommandResult(0, "", ""),
         )
     assert caught.value.code == "download_boundary_violation"
-

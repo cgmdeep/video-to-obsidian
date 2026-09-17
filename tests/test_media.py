@@ -10,7 +10,11 @@ from video_to_obsidian.media import prepare_kimi_video, probe_video
 
 
 def _settings(tmp_path: Path):
-    config = initialize_settings(tmp_path / "vault", config_path=tmp_path / "config.toml")
+    config = initialize_settings(
+        tmp_path / "vault",
+        config_path=tmp_path / "config.toml",
+        runtime_root=tmp_path / "private",
+    )
     return load_settings(config)
 
 
@@ -87,4 +91,3 @@ def test_large_video_proxy_covers_full_timeline(tmp_path: Path) -> None:
     assert prepared.path.stat().st_size == 90
     assert "-t" not in commands[0]
     assert "-ss" not in commands[0]
-

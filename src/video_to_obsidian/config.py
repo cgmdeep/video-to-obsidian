@@ -153,12 +153,24 @@ def initialize_settings(
     profile: str = "standard",
     save_video: bool = False,
     config_path: Path | None = None,
+    runtime_root: Path | None = None,
     overwrite: bool = False,
 ) -> Path:
     if profile not in {"standard", "transcript"}:
         raise ConfigError("profile 只能是 standard 或 transcript。")
     defaults = default_paths()
     target = (config_path or defaults.config_file).expanduser()
+    if runtime_root is not None:
+        private_root = runtime_root.expanduser().resolve()
+        runtime_paths = AppPaths(
+            config_file=target,
+            cache=private_root / "cache",
+            state=private_root / "state",
+            candidates=private_root / "candidates",
+            archive=private_root / "archive",
+        )
+    else:
+        runtime_paths = defaults
     if target.exists() and not overwrite:
         raise ConfigError(f"配置文件已存在，拒绝覆盖：{target}")
 
@@ -166,7 +178,12 @@ def initialize_settings(
     vault.mkdir(parents=True, exist_ok=True)
     (vault / "Douyin").mkdir(exist_ok=True)
     (vault / "Bilibili").mkdir(exist_ok=True)
-    for directory in (defaults.cache, defaults.state, defaults.candidates, defaults.archive):
+    for directory in (
+        runtime_paths.cache,
+        runtime_paths.state,
+        runtime_paths.candidates,
+        runtime_paths.archive,
+    ):
         directory.mkdir(parents=True, exist_ok=True)
 
     transcript_mode = "off" if profile == "standard" else "local"
@@ -190,10 +207,10 @@ def initialize_settings(
             "required = false",
             "",
             "[paths]",
-            f"cache = {_toml_string(defaults.cache)}",
-            f"state = {_toml_string(defaults.state)}",
-            f"candidates = {_toml_string(defaults.candidates)}",
-            f"archive = {_toml_string(defaults.archive)}",
+            f"cache = {_toml_string(runtime_paths.cache)}",
+            f"state = {_toml_string(runtime_paths.state)}",
+            f"candidates = {_toml_string(runtime_paths.candidates)}",
+            f"archive = {_toml_string(runtime_paths.archive)}",
             "",
         ]
     )
