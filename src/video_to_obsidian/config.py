@@ -38,6 +38,11 @@ class Settings:
     save_video: bool
     default_model: str
     deep_model: str
+    kimi_base_url: str
+    vision_max_tokens: int
+    deep_max_tokens: int
+    download_timeout_seconds: int
+    kimi_timeout_seconds: int
     firefox_profile: str
     transcript: TranscriptSettings
     paths: AppPaths
@@ -124,6 +129,11 @@ def load_settings(config_path: Path | None = None) -> Settings:
         save_video=bool(data.get("save_video", False)),
         default_model=_required_string(data, "default_model"),
         deep_model=_required_string(data, "deep_model"),
+        kimi_base_url=str(data.get("kimi_base_url", "https://api.moonshot.cn/v1")).strip().rstrip("/"),
+        vision_max_tokens=int(data.get("vision_max_tokens", 16384)),
+        deep_max_tokens=int(data.get("deep_max_tokens", 16000)),
+        download_timeout_seconds=int(data.get("download_timeout_seconds", 1800)),
+        kimi_timeout_seconds=int(data.get("kimi_timeout_seconds", 1200)),
         firefox_profile=_required_string(data, "firefox_profile"),
         transcript=TranscriptSettings(
             mode=transcript_mode,
@@ -168,6 +178,11 @@ def initialize_settings(
             f"save_video = {'true' if save_video else 'false'}",
             'default_model = "kimi-k2.7-code"',
             'deep_model = "kimi-k3"',
+            'kimi_base_url = "https://api.moonshot.cn/v1"',
+            "vision_max_tokens = 16384",
+            "deep_max_tokens = 16000",
+            "download_timeout_seconds = 1800",
+            "kimi_timeout_seconds = 1200",
             'firefox_profile = "VideoToObsidian"',
             "",
             "[transcript]",
@@ -194,4 +209,3 @@ def initialize_settings(
     finally:
         temp_path.unlink(missing_ok=True)
     return target
-

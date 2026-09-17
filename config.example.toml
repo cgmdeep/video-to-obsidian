@@ -4,6 +4,11 @@ profile = "standard"
 save_video = false
 default_model = "kimi-k2.7-code"
 deep_model = "kimi-k3"
+kimi_base_url = "https://api.moonshot.cn/v1"
+vision_max_tokens = 16384
+deep_max_tokens = 16000
+download_timeout_seconds = 1800
+kimi_timeout_seconds = 1200
 firefox_profile = "VideoToObsidian"
 
 [transcript]
@@ -15,4 +20,3 @@ cache = "/replace/with/private/cache"
 state = "/replace/with/private/state"
 candidates = "/replace/with/private/candidates"
 archive = "/replace/with/private/archive"
-
