@@ -81,3 +81,51 @@ def write_note(
         temp_path.unlink(missing_ok=True)
     return target
 
+
+def find_note_by_identity(vault_path: Path, platform: str, identity: str) -> Path | None:
+    folder_name = {"douyin": "Douyin", "bilibili": "Bilibili"}.get(platform)
+    if folder_name is None:
+        raise NoteWriteError(f"不支持的平台：{platform}")
+    folder = vault_path.expanduser().resolve() / folder_name
+    if not folder.is_dir():
+        return None
+    suffix = f" {safe_identity(identity)}.md"
+    matches = [path for path in folder.iterdir() if path.is_file() and path.name.endswith(suffix)]
+    if len(matches) > 1:
+        raise NoteWriteError(f"发现多个相同稳定身份的笔记：{identity}")
+    return matches[0] if matches else None
+
+
+def write_candidate(
+    candidates_dir: Path,
+    *,
+    title: str,
+    identity: str,
+    content: str,
+    marker: str,
+) -> Path:
+    if not content.strip():
+        raise NoteWriteError("拒绝写入空候选笔记。")
+    folder = candidates_dir.expanduser().resolve()
+    folder.mkdir(parents=True, exist_ok=True)
+    name = f"{safe_title(title)} {safe_identity(identity)}.{safe_identity(marker)}.md"
+    target = folder / name
+    if target.exists():
+        raise NoteWriteError(f"同名候选已存在，拒绝覆盖：{target.name}")
+    fd, temporary = tempfile.mkstemp(prefix=".candidate-", suffix=".tmp", dir=folder)
+    temp_path = Path(temporary)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+            if not content.endswith("\n"):
+                handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        try:
+            os.link(temp_path, target)
+        except FileExistsError as exc:
+            raise NoteWriteError(f"同名候选已存在，拒绝覆盖：{target.name}") from exc
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return target
+
