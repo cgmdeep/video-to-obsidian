@@ -29,6 +29,7 @@ video-to-obsidian init --vault "/path/to/Video Knowledge Base"
 video-to-obsidian doctor
 video-to-obsidian route "完整的视频分享文本"
 video-to-obsidian mcp
+video-to-obsidian configure-zcode
 ```
 
 `init` 会建立公共配置和 `Douyin/`、`Bilibili/` 两个笔记目录，但不会修改 `.obsidian`。
@@ -43,6 +44,20 @@ video-to-obsidian mcp
 - `analyze_bilibili`：B站普通单视频，多P必须使用带 `?p=` 的具体链接。
 
 两个分析工具默认 `save_video=false`，每次工具调用最多发起一次 Kimi 分析，不在服务内部自动重试。
+
+## Windows alpha 安装
+
+仓库克隆完成后，由 AI 助手在 PowerShell 中运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
+  -VaultPath "D:\Video Knowledge Base" `
+  -Profile standard
+```
+
+脚本只建立隔离 Python 环境、安装本项目、初始化 Vault 配置并在找到 ZCode 配置时增加单一 MCP。它不会静默安装 Obsidian、Firefox、ffmpeg 或 yt-dlp，不会保存 Kimi API Key，也不会替用户完成扫码。
+
+当前 alpha 首发以 Windows 11 为优先验证平台。发布门槛见 [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)。
 
 ## 两种档位
 

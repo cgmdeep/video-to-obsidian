@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from . import __version__
 from .config import ConfigError, initialize_settings
 from .doctor import doctor_payload
 from .routing import RoutingError, route_share_text
+from .zcode import ZCodeConfigError
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -33,6 +35,22 @@ def _parser() -> argparse.ArgumentParser:
     route.add_argument("--save-video", action="store_true")
 
     sub.add_parser("mcp", help="以 stdio 启动统一 MCP")
+
+    zcode = sub.add_parser("configure-zcode", help="安全增量配置 ZCode stdio MCP")
+    zcode.add_argument(
+        "--config",
+        type=Path,
+        default=Path.home() / ".zcode" / "cli" / "config.json",
+    )
+    zcode.add_argument("--timeout-ms", type=int, default=1_200_000)
+    zcode.add_argument("--replace-existing", action="store_true")
+
+    remove = sub.add_parser("unconfigure-zcode", help="只删除本项目的 ZCode MCP 条目")
+    remove.add_argument(
+        "--config",
+        type=Path,
+        default=Path.home() / ".zcode" / "cli" / "config.json",
+    )
     return parser
 
 
@@ -66,8 +84,25 @@ def main(argv: list[str] | None = None) -> int:
 
             run()
             return 0
-    except (ConfigError, RoutingError) as exc:
+        if args.command == "configure-zcode":
+            from .zcode import update_file
+
+            backup = update_file(
+                args.config,
+                command=sys.executable,
+                args=["-m", "video_to_obsidian", "mcp"],
+                timeout_ms=args.timeout_ms,
+                replace_existing=args.replace_existing,
+            )
+            print(f"ZCode 已配置；恢复副本：{backup}")
+            return 0
+        if args.command == "unconfigure-zcode":
+            from .zcode import remove_from_file
+
+            backup = remove_from_file(args.config)
+            print(f"已移除本项目 ZCode 条目；恢复副本：{backup}")
+            return 0
+    except (ConfigError, RoutingError, ZCodeConfigError) as exc:
         print(f"错误：{exc}")
         return 2
     return 2
-
