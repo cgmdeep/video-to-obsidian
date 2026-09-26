@@ -444,3 +444,36 @@ def configure_zcode_moonshot(
         "secret_displayed": False,
         "paid_call_performed": False,
     }
+
+
+def ensure_zcode_model(
+    path: Path,
+    *,
+    api_key: str,
+) -> dict[str, Any]:
+    """Preserve any usable provider; add Moonshot only when ZCode has none."""
+
+    status = inspect_zcode_models(path)
+    if status["ok"]:
+        return {
+            "ok": True,
+            "changed": False,
+            "reason": "existing_provider_preserved",
+            "usable_provider_count": status["usable_provider_count"],
+            "secret_displayed": False,
+            "paid_call_performed": False,
+        }
+    if not status["config_exists"]:
+        return {
+            "ok": False,
+            "changed": False,
+            "reason": "zcode_not_initialized",
+            "secret_displayed": False,
+            "paid_call_performed": False,
+        }
+    configured = configure_zcode_moonshot(path, api_key=api_key)
+    return {
+        **configured,
+        "changed": True,
+        "reason": "moonshot_added",
+    }

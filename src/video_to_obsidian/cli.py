@@ -15,6 +15,7 @@ from .onboarding import (
     OnboardingError,
     bootstrap_workspace,
     configure_zcode_moonshot,
+    ensure_zcode_model,
     inspect_zcode_models,
     inspect_workspace,
     onboarding_status,
@@ -96,6 +97,17 @@ def _parser() -> argparse.ArgumentParser:
     )
     moonshot.add_argument("--replace-existing", action="store_true")
     moonshot.add_argument("--json", action="store_true")
+
+    ensure_model = sub.add_parser(
+        "ensure-zcode-model",
+        help="已有模型时保留，无模型时复用 Kimi Key",
+    )
+    ensure_model.add_argument(
+        "--config",
+        type=Path,
+        default=Path.home() / ".zcode" / "v2" / "config.json",
+    )
+    ensure_model.add_argument("--json", action="store_true")
 
     onboarding = sub.add_parser(
         "onboarding-status", help="为安装向导输出统一免费状态"
@@ -221,6 +233,21 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print("ZCode 已配置 Moonshot 模型通道（Key 未显示）。")
             return 0
+        if args.command == "ensure-zcode-model":
+            api_key = get_kimi_api_key()
+            if not api_key:
+                raise SecretError("未找到 Kimi API Key；请先运行 set-kimi-key。")
+            payload = ensure_zcode_model(args.config, api_key=api_key)
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                messages = {
+                    "existing_provider_preserved": "ZCode 已有可用模型，已保留原配置。",
+                    "moonshot_added": "ZCode 暂无模型，已复用 Kimi Key 补齐。",
+                    "zcode_not_initialized": "ZCode 尚未初始化；启动一次后可自动补齐。",
+                }
+                print(messages[payload["reason"]])
+            return 0
         if args.command == "onboarding-status":
             payload = onboarding_status(
                 doctor=doctor_payload(args.config),
@@ -233,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
                 state = "可进行免费 Bot 验收" if payload["ok"] else "尚需完成安装步骤"
                 print(f"安装向导状态：{state}")
                 print("下一步：" + ", ".join(payload["next_actions"]))
-            return 0 if payload["ok"] else 1
+            return 0
         if args.command == "unconfigure-zcode":
             from .zcode import remove_from_file
 

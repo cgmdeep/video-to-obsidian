@@ -12,6 +12,7 @@ from video_to_obsidian.onboarding import (
     bootstrap_workspace,
     build_moonshot_model_config,
     configure_zcode_moonshot,
+    ensure_zcode_model,
     inspect_zcode_models,
     inspect_workspace,
     onboarding_status,
@@ -151,6 +152,46 @@ def test_model_status_reports_private_permissions(tmp_path: Path) -> None:
     payload = inspect_zcode_models(path)
     if os.name != "nt":
         assert payload["permissions_private"] is False
+
+
+def test_ensure_model_preserves_existing_provider(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    original = {
+        "provider": {
+            "existing": {
+                "name": "Existing",
+                "kind": "openai-compatible",
+                "options": {"apiKey": "already-set"},
+                "models": {"router": {}},
+            }
+        }
+    }
+    path.write_text(json.dumps(original), encoding="utf-8")
+    result = ensure_zcode_model(path, api_key="secret-value-123")
+    assert result["ok"] is True
+    assert result["changed"] is False
+    assert result["reason"] == "existing_provider_preserved"
+    assert json.loads(path.read_text(encoding="utf-8")) == original
+
+
+def test_ensure_model_adds_moonshot_only_when_no_provider(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"provider": {}}), encoding="utf-8")
+    result = ensure_zcode_model(path, api_key="secret-value-123")
+    assert result["ok"] is True
+    assert result["changed"] is True
+    assert result["reason"] == "moonshot_added"
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert MOONSHOT_PROVIDER_ID in stored["provider"]
+
+
+def test_ensure_model_waits_for_zcode_initialization(tmp_path: Path) -> None:
+    path = tmp_path / "missing.json"
+    result = ensure_zcode_model(path, api_key="secret-value-123")
+    assert result["ok"] is False
+    assert result["changed"] is False
+    assert result["reason"] == "zcode_not_initialized"
+    assert not path.exists()
 
 
 def test_onboarding_status_returns_stable_next_actions() -> None:

@@ -52,16 +52,8 @@ public partial class MainWindow : Window
                 new[] { "set-kimi-key", "--stdin", "--json" },
                 secret
             );
+            await _backend.RunJsonAsync(new[] { "ensure-zcode-model", "--json" });
             KimiKeyBox.Clear();
-            await RefreshStatusAsync();
-        });
-    }
-
-    private async void ConfigureMoonshotButton_Click(object sender, RoutedEventArgs e)
-    {
-        await GuardedAsync(async () =>
-        {
-            await _backend.RunJsonAsync(new[] { "configure-zcode-moonshot", "--json" });
             await RefreshStatusAsync();
         });
     }
@@ -70,6 +62,16 @@ public partial class MainWindow : Window
     {
         Process.Start(
             new ProcessStartInfo("https://zcode.z.ai/cn/docs/bot-channel")
+            {
+                UseShellExecute = true,
+            }
+        );
+    }
+
+    private void OpenZCodeInstallButton_Click(object sender, RoutedEventArgs e)
+    {
+        Process.Start(
+            new ProcessStartInfo("https://zcode.z.ai/cn/docs/install")
             {
                 UseShellExecute = true,
             }

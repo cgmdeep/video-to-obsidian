@@ -56,6 +56,7 @@ internal sealed class InstallationClient
         await EnsureWingetPackageAsync("Mozilla.Firefox", "Firefox", report);
         await EnsureWingetPackageAsync("Obsidian.Obsidian", "Obsidian", report);
         await EnsureWingetPackageAsync("Gyan.FFmpeg", "ffmpeg", report);
+        await EnsureFirefoxProfileAsync(report);
     }
 
     private async Task<string> EnsurePythonAsync(Action<string> report)
@@ -168,6 +169,46 @@ internal sealed class InstallationClient
                 "--accept-source-agreements",
             }
         );
+    }
+
+    private static async Task EnsureFirefoxProfileAsync(Action<string> report)
+    {
+        var profiles = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Mozilla",
+            "Firefox",
+            "profiles.ini"
+        );
+        if (File.Exists(profiles)
+            && File.ReadAllText(profiles).Contains("Name=VideoToObsidian", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        var candidates = new[]
+        {
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "Mozilla Firefox",
+                "firefox.exe"
+            ),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                "Mozilla Firefox",
+                "firefox.exe"
+            ),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Mozilla Firefox",
+                "firefox.exe"
+            ),
+        };
+        var firefox = candidates.FirstOrDefault(File.Exists);
+        if (firefox is null)
+        {
+            throw new InvalidOperationException("Firefox 已安装但未找到可执行文件。");
+        }
+        report("正在创建视知库专用登录空间…");
+        await RunCheckedAsync(firefox, new[] { "-CreateProfile", "VideoToObsidian" });
     }
 
     private static async Task RunCheckedAsync(string executable, IEnumerable<string> arguments)

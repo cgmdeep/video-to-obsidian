@@ -47,12 +47,10 @@
                 <Border Background="{StaticResource CardBrush}" CornerRadius="14" Padding="20" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock Text="2. 连接 Kimi" FontSize="20" FontWeight="SemiBold" />
-                        <TextBlock Text="Key 只保存到系统安全存储，不会显示在日志里。" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
+                        <TextBlock Text="Key 只保存到系统安全存储。如果 ZCode 还没有模型，会自动复用这个 Key；已有配置完全保留。"
+                                   TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
                         <PasswordBox x:Name="KimiKeyBox" Margin="0,6,0,8" />
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="保存 Key" Click="SaveKeyButton_Click" />
-                            <Button Content="无 Coding Plan：复用该 Key" Click="ConfigureMoonshotButton_Click" Background="#353948" />
-                        </StackPanel>
+                        <Button Content="安全保存并自动补齐" Click="SaveKeyButton_Click" HorizontalAlignment="Left" />
                     </StackPanel>
                 </Border>
 
@@ -62,6 +60,7 @@
                         <TextBlock Text="使用专用 Firefox 登录抖音和B站，然后在 ZCode 工作区中连接官方微信 Bot Channel。"
                                    TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
                         <StackPanel Orientation="Horizontal">
+                            <Button Content="安装 / 打开 ZCode" Click="OpenZCodeInstallButton_Click" />
                             <Button Content="打开 ZCode Bot Channel 教程" Click="OpenBotGuideButton_Click" />
                             <Button Content="打开专用工作区" Click="OpenWorkspaceButton_Click" Background="#353948" />
                         </StackPanel>

@@ -73,6 +73,18 @@ internal sealed class BackendClient
         {
             start.ArgumentList.Add(argument);
         }
+        var machinePath = Environment.GetEnvironmentVariable(
+            "Path",
+            EnvironmentVariableTarget.Machine
+        );
+        var userPath = Environment.GetEnvironmentVariable(
+            "Path",
+            EnvironmentVariableTarget.User
+        );
+        start.Environment["PATH"] = string.Join(
+            ";",
+            new[] { machinePath, userPath }.Where(value => !string.IsNullOrWhiteSpace(value))
+        );
         using var process = new Process { StartInfo = start };
         try
         {
