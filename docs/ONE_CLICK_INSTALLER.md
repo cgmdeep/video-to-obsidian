@@ -53,13 +53,14 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] `zcode-model-status --json`；
 - [x] `bootstrap-workspace --json`；
 - [x] `configure-zcode-moonshot --json`；
+- [x] `set-kimi-key --stdin --json` 仅通过标准输入接收安装器密钥；
 - [x] 统一 `onboarding-status --json`；
 - [ ] 安装、修复、卸载均返回稳定错误码；
 - [ ] Windows ACL 实机验证。
 
 ### P3：Windows 图形向导
 
-- [ ] .NET 8 WPF 安装与连接向导；
+- [x] .NET 8 WPF 安装与连接向导骨架，并由 Windows CI 编译；
 - [ ] 通过官方渠道安装或打开 ZCode、Obsidian、Firefox 和 ffmpeg；
 - [ ] 默认创建 `文档\视知库` Vault；
 - [ ] 集成扫码引导和免费体检；

@@ -120,7 +120,13 @@ def _parser() -> argparse.ArgumentParser:
         default=Path.home() / ".zcode" / "cli" / "config.json",
     )
 
-    sub.add_parser("set-kimi-key", help="无回显地把 Kimi API Key 保存到系统钥匙串")
+    set_key = sub.add_parser("set-kimi-key", help="无回显地把 Kimi API Key 保存到系统钥匙串")
+    set_key.add_argument(
+        "--stdin",
+        action="store_true",
+        help="仅供本机安装向导通过标准输入传入 Key",
+    )
+    set_key.add_argument("--json", action="store_true")
     sub.add_parser("delete-kimi-key", help="从系统钥匙串删除 Kimi API Key")
     sub.add_parser("kimi-key-status", help="只显示 Key 来源，不显示值")
 
@@ -235,12 +241,29 @@ def main(argv: list[str] | None = None) -> int:
             print(f"已移除本项目 ZCode 条目；恢复副本：{backup}")
             return 0
         if args.command == "set-kimi-key":
-            first = getpass.getpass("请输入 Kimi API Key（不会回显）：")
-            second = getpass.getpass("请再次输入：")
-            if first != second:
-                raise SecretError("两次输入不一致，未保存。")
+            if args.stdin:
+                first = sys.stdin.readline().rstrip("\r\n")
+                if not first:
+                    raise SecretError("标准输入中没有 Kimi API Key。")
+            else:
+                first = getpass.getpass("请输入 Kimi API Key（不会回显）：")
+                second = getpass.getpass("请再次输入：")
+                if first != second:
+                    raise SecretError("两次输入不一致，未保存。")
             set_kimi_api_key(first)
-            print("Kimi API Key 已保存到系统钥匙串（值未显示）。")
+            if args.json:
+                print(
+                    json.dumps(
+                        {
+                            "ok": True,
+                            "secret_displayed": False,
+                            "paid_call_performed": False,
+                        },
+                        ensure_ascii=False,
+                    )
+                )
+            else:
+                print("Kimi API Key 已保存到系统钥匙串（值未显示）。")
             return 0
         if args.command == "delete-kimi-key":
             removed = delete_kimi_api_key()
