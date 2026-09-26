@@ -6,20 +6,37 @@ namespace VideoToObsidian.Setup;
 
 internal sealed class BackendClient
 {
-    private readonly string _executable;
+    private readonly string? _configuredExecutable;
 
     public BackendClient()
     {
-        var configured = Environment.GetEnvironmentVariable("VTO_CLI_PATH");
-        var bundled = Path.Combine(
+        _configuredExecutable = Environment.GetEnvironmentVariable("VTO_CLI_PATH");
+    }
+
+    private string ResolveExecutable()
+    {
+        var installed = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "VideoToObsidian",
+            "runtime",
+            "Scripts",
+            "video-to-obsidian.exe"
+        );
+        var besideSetup = Path.Combine(
             AppContext.BaseDirectory,
             "runtime",
             "Scripts",
             "video-to-obsidian.exe"
         );
-        _executable = !string.IsNullOrWhiteSpace(configured)
-            ? configured
-            : File.Exists(bundled) ? bundled : "video-to-obsidian";
+        if (!string.IsNullOrWhiteSpace(_configuredExecutable))
+        {
+            return _configuredExecutable;
+        }
+        if (File.Exists(installed))
+        {
+            return installed;
+        }
+        return File.Exists(besideSetup) ? besideSetup : "video-to-obsidian";
     }
 
     public async Task<JsonDocument> RunJsonAsync(
@@ -45,7 +62,7 @@ internal sealed class BackendClient
     {
         var start = new ProcessStartInfo
         {
-            FileName = _executable,
+            FileName = ResolveExecutable(),
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,

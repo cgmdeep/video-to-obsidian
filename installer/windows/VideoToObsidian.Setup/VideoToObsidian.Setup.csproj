@@ -7,5 +7,12 @@
     <Nullable>enable</Nullable>
     <AssemblyName>VideoToObsidian.Setup</AssemblyName>
     <RootNamespace>VideoToObsidian.Setup</RootNamespace>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Payload\*.whl" LogicalName="Payload/%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@ namespace VideoToObsidian.Setup;
 public partial class MainWindow : Window
 {
     private readonly BackendClient _backend = new();
+    private readonly InstallationClient _installation = new();
     private readonly string _workspacePath;
 
     public MainWindow()
@@ -23,6 +24,10 @@ public partial class MainWindow : Window
     {
         await GuardedAsync(async () =>
         {
+            await _installation.EnsureInstalledAsync(message =>
+            {
+                Dispatcher.Invoke(() => StatusText.Text = message);
+            });
             await _backend.RunAsync(
                 new[] { "init", "--vault", VaultPathBox.Text, "--reuse-existing" }
             );

@@ -64,5 +64,30 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Build WPF onboarding
-        run: dotnet build installer/windows/VideoToObsidian.Setup/VideoToObsidian.Setup.csproj --configuration Release
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Build embedded core wheel
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip "build>=1,<2"
+          python -m build --wheel
+          New-Item -ItemType Directory -Force installer/windows/VideoToObsidian.Setup/Payload | Out-Null
+          Copy-Item dist/*.whl installer/windows/VideoToObsidian.Setup/Payload/
+      - name: Publish single-file Windows onboarding
+        run: dotnet publish installer/windows/VideoToObsidian.Setup/VideoToObsidian.Setup.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/windows-x64
+      - name: Verify single-file payload
+        shell: pwsh
+        run: |
+          $Files = Get-ChildItem artifacts/windows-x64 -File
+          if ($Files.Count -ne 1 -or $Files[0].Name -ne 'VideoToObsidian.Setup.exe') {
+            throw "Expected exactly one VideoToObsidian.Setup.exe, found: $($Files.Name -join ', ')"
+          }
+      - name: Upload Windows onboarding
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: VideoToObsidian-Setup-win-x64
+          path: artifacts/windows-x64/VideoToObsidian.Setup.exe
+          if-no-files-found: error

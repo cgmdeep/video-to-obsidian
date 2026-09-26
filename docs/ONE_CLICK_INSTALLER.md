@@ -60,8 +60,10 @@ Bot Channel 必须在这个专用工作区中创建。
 
 ### P3：Windows 图形向导
 
-- [x] .NET 8 WPF 安装与连接向导骨架，并由 Windows CI 编译；
-- [ ] 通过官方渠道安装或打开 ZCode、Obsidian、Firefox 和 ffmpeg；
+- [x] .NET 8 WPF 安装与连接向导，并由 Windows CI 编译；
+- [x] 将当前 Python wheel 内嵌进自包含的 Windows x64 单文件 EXE；
+- [x] 通过 winget 安装或检查 Python、Obsidian、Firefox 和 ffmpeg；
+- [ ] 用官方下载页安装或打开 ZCode；
 - [ ] 默认创建 `文档\视知库` Vault；
 - [ ] 集成扫码引导和免费体检；
 - [ ] 高级页才显示逐字稿、原视频归档和自定义目录。
