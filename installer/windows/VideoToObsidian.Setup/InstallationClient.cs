@@ -18,6 +18,8 @@ internal sealed class InstallationClient
         "video-to-obsidian.exe"
     );
 
+    public bool IsInstalled => File.Exists(CoreExecutable);
+
     public async Task EnsureInstalledAsync(Action<string> report)
     {
         if (File.Exists(CoreExecutable))

@@ -190,6 +190,11 @@ public partial class MainWindow : Window
 
     private async Task RefreshStatusAsync()
     {
+        if (!_installation.IsInstalled)
+        {
+            StatusText.Text = "尚未安装视知库核心。请先点击“一键准备本机”。";
+            return;
+        }
         await GuardedAsync(async () =>
         {
             await _backend.RunJsonAsync(new[] { "ensure-zcode-model", "--json" });
