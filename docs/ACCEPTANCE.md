@@ -21,6 +21,7 @@
 - [ ] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
 - [ ] 无 Coding Plan 时，用户自有 Kimi Key 可以提供 ZCode 路由模型；
 - [ ] 微信发送“检查系统”能获得免费诊断回复；
+- [ ] “导出脱敏诊断报告”在桌面生成 JSON，且报告不含 Key、Cookie、Bearer 或签名 URL；
 - [ ] 安装器给出的下一步不要求用户理解 Python、MCP、Cookie 文件或终端命令。
 
 ## 免费检查

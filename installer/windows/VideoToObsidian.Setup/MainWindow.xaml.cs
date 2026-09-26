@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Windows;
 
@@ -151,6 +152,40 @@ public partial class MainWindow : Window
     private async void RefreshButton_Click(object sender, RoutedEventArgs e)
     {
         await RefreshStatusAsync();
+    }
+
+    private async void ExportDiagnosticsButton_Click(object sender, RoutedEventArgs e)
+    {
+        await GuardedAsync(async () =>
+        {
+            using var status = await _backend.RunJsonAsync(
+                new[] { "onboarding-status", "--workspace", _workspacePath, "--json" }
+            );
+            var report = new Dictionary<string, object?>
+            {
+                ["schema_version"] = 1,
+                ["generated_at_utc"] = DateTimeOffset.UtcNow,
+                ["installer_version"] = typeof(MainWindow).Assembly.GetName().Version?.ToString(),
+                ["contains_secrets"] = false,
+                ["paid_call_performed"] = false,
+                ["onboarding_status"] = status.RootElement.Clone(),
+            };
+            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            var path = Path.Combine(desktop, "视知库诊断报告.json");
+            var json = JsonSerializer.Serialize(
+                report,
+                new JsonSerializerOptions { WriteIndented = true }
+            );
+            await File.WriteAllTextAsync(path, json, new UTF8Encoding(false));
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"")
+            {
+                UseShellExecute = true,
+            });
+            MessageBox.Show(
+                "脱敏诊断报告已保存到桌面。报告不包含 API Key、Cookie，也不会调用付费模型。",
+                "视知库"
+            );
+        }, showSuccess: false);
     }
 
     private async Task RefreshStatusAsync()
