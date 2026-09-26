@@ -35,6 +35,9 @@ video-to-obsidian doctor
 video-to-obsidian route "完整的视频分享文本"
 video-to-obsidian mcp
 video-to-obsidian configure-zcode
+video-to-obsidian bootstrap-workspace --workspace "/path/to/视知库助手"
+video-to-obsidian zcode-model-status --json
+video-to-obsidian configure-zcode-moonshot --json
 ```
 
 `init` 会建立公共配置和 `Douyin/`、`Bilibili/` 两个笔记目录，但不会修改 `.obsidian`。
@@ -51,6 +54,17 @@ video-to-obsidian configure-zcode
 - `analyze_bilibili`：B站普通单视频，多P必须使用带 `?p=` 的具体链接。
 
 两个分析工具默认 `save_video=false`，每次工具调用最多发起一次 Kimi 分析，不在服务内部自动重试。
+
+`bootstrap-workspace` 为 ZCode Bot Channel 创建一个独立的“视知库助手”工作区，只在
+该工作区内添加 MCP 和视频路由规则，不修改用户的其他编程项目。
+`zcode-model-status` 只读检查 ZCode 是否已有可用模型通道，只返回密钥“是否存在”，
+不返回 API Key 或接口地址，也不发起模型调用。Coding Plan 不是必需条件；用户可在
+ZCode 中使用自己的 Moonshot 或其他兼容模型通道。
+
+当用户没有 Coding Plan，且 ZCode 也没有其他可用模型通道时，安装向导可在获得明确选择后
+调用 `configure-zcode-moonshot`，复用已安全保存的 Kimi Key 增量添加 Moonshot 通道。
+该操作会保留 ZCode 其他供应商，创建权限受限的恢复副本，不在终端显示 Key，
+也不发起模型调用。
 
 ## 总结不合口味怎么办
 

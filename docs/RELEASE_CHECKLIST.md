@@ -28,6 +28,8 @@
 - [x] 加入 Apache License 2.0，并在 Python 包元数据中声明。
 - [ ] 使用一台不含作者私人配置的 Windows 11 设备跑完整安装。
 - [ ] 核验目标 ZCode 版本的 stdio MCP 配置字段。
+- [ ] 在无 Coding Plan 的干净 ZCode 中，用用户自有 Moonshot Key 调用免费 `doctor`。
+- [ ] 微信 Bot Channel 绑定到专用“视知库助手”工作区，不影响其他 ZCode 项目。
 - [ ] 验证 Firefox 专用 Profile 名称能被 yt-dlp 正确读取。
 - [ ] 分别用一条小型抖音和B站公开视频完成真实下载。
 - [ ] 经用户明确同意后，分别完成一次真实 K2.7 付费分析。

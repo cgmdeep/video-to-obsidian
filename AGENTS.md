@@ -41,7 +41,9 @@ Firefox Profile：VideoToObsidian
 3. 不得把配置密钥、运行状态、缓存或视频写入 Vault。
 4. 不得编辑用户现有 `.obsidian`。
 5. 不得覆盖没有本项目稳定身份标记的 Markdown。
-6. 不得修改 ZCode 中无关的 MCP 配置。
+6. 不得修改 ZCode 中无关的 MCP 或模型供应商配置。只有用户明确选择“无 Coding Plan，
+   复用 Kimi Key”时，才可通过 `configure-zcode-moonshot` 增量添加受管 Moonshot 供应商；
+   必须先备份、不显示 Key，并收紧含密钥配置的文件权限。
 7. 不得为了安装验收调用付费视频分析。
 8. 不得安装个人微信号 Hook、注入器或来源不明的机器人。
 9. 不得把尚未实现的命令或平台线路报告为可用。

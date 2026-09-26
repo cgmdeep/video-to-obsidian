@@ -11,6 +11,14 @@ from pathlib import Path
 from . import __version__
 from .config import ConfigError, initialize_settings, load_settings
 from .doctor import doctor_payload
+from .onboarding import (
+    OnboardingError,
+    bootstrap_workspace,
+    configure_zcode_moonshot,
+    inspect_zcode_models,
+    inspect_workspace,
+    onboarding_status,
+)
 from .preferences import (
     PreferenceError,
     clear_preferences,
@@ -19,7 +27,13 @@ from .preferences import (
 )
 from .routing import RoutingError, route_share_text
 from .zcode import ZCodeConfigError
-from .secrets import SecretError, delete_kimi_api_key, kimi_key_source, set_kimi_api_key
+from .secrets import (
+    SecretError,
+    delete_kimi_api_key,
+    get_kimi_api_key,
+    kimi_key_source,
+    set_kimi_api_key,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -53,6 +67,51 @@ def _parser() -> argparse.ArgumentParser:
     )
     zcode.add_argument("--timeout-ms", type=int, default=1_200_000)
     zcode.add_argument("--replace-existing", action="store_true")
+
+    workspace = sub.add_parser(
+        "bootstrap-workspace", help="创建专用视知库 ZCode 工作区"
+    )
+    workspace.add_argument("--workspace", type=Path, required=True)
+    workspace.add_argument("--timeout-ms", type=int, default=1_200_000)
+    workspace.add_argument("--json", action="store_true")
+
+    model_status = sub.add_parser(
+        "zcode-model-status", help="只读检查 ZCode 是否已有可用模型通道"
+    )
+    model_status.add_argument(
+        "--config",
+        type=Path,
+        default=Path.home() / ".zcode" / "v2" / "config.json",
+    )
+    model_status.add_argument("--json", action="store_true")
+
+    moonshot = sub.add_parser(
+        "configure-zcode-moonshot",
+        help="无 Coding Plan 时用已保存的 Kimi Key 配置 ZCode",
+    )
+    moonshot.add_argument(
+        "--config",
+        type=Path,
+        default=Path.home() / ".zcode" / "v2" / "config.json",
+    )
+    moonshot.add_argument("--replace-existing", action="store_true")
+    moonshot.add_argument("--json", action="store_true")
+
+    onboarding = sub.add_parser(
+        "onboarding-status", help="为安装向导输出统一免费状态"
+    )
+    onboarding.add_argument("--config", type=Path)
+    onboarding.add_argument(
+        "--workspace",
+        type=Path,
+        default=Path.home() / "Documents" / "视知库助手",
+    )
+    onboarding.add_argument(
+        "--zcode-model-config",
+        type=Path,
+        default=Path.home() / ".zcode" / "v2" / "config.json",
+    )
+    onboarding.add_argument("--json", action="store_true")
 
     remove = sub.add_parser("unconfigure-zcode", help="只删除本项目的 ZCode MCP 条目")
     remove.add_argument(
@@ -122,6 +181,53 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(f"ZCode 已配置；恢复副本：{backup}")
             return 0
+        if args.command == "bootstrap-workspace":
+            payload = bootstrap_workspace(
+                args.workspace,
+                command=sys.executable,
+                args=["-m", "video_to_obsidian", "mcp"],
+                timeout_ms=args.timeout_ms,
+            )
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print(f"视知库 ZCode 工作区已就绪：{payload['workspace']}")
+            return 0
+        if args.command == "zcode-model-status":
+            payload = inspect_zcode_models(args.config)
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                state = "可用" if payload["ok"] else "未就绪"
+                print(f"ZCode 模型通道：{state}（未发起模型调用）")
+            return 0 if payload["ok"] else 1
+        if args.command == "configure-zcode-moonshot":
+            api_key = get_kimi_api_key()
+            if not api_key:
+                raise SecretError("未找到 Kimi API Key；请先运行 set-kimi-key。")
+            payload = configure_zcode_moonshot(
+                args.config,
+                api_key=api_key,
+                replace_existing=args.replace_existing,
+            )
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print("ZCode 已配置 Moonshot 模型通道（Key 未显示）。")
+            return 0
+        if args.command == "onboarding-status":
+            payload = onboarding_status(
+                doctor=doctor_payload(args.config),
+                workspace=inspect_workspace(args.workspace),
+                zcode_models=inspect_zcode_models(args.zcode_model_config),
+            )
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                state = "可进行免费 Bot 验收" if payload["ok"] else "尚需完成安装步骤"
+                print(f"安装向导状态：{state}")
+                print("下一步：" + ", ".join(payload["next_actions"]))
+            return 0 if payload["ok"] else 1
         if args.command == "unconfigure-zcode":
             from .zcode import remove_from_file
 
@@ -158,7 +264,14 @@ def main(argv: list[str] | None = None) -> int:
             removed = clear_preferences(settings)
             print("长期总结偏好已清除。" if removed else "当前没有长期总结偏好。")
             return 0
-    except (ConfigError, RoutingError, ZCodeConfigError, SecretError, PreferenceError) as exc:
+    except (
+        ConfigError,
+        RoutingError,
+        ZCodeConfigError,
+        SecretError,
+        PreferenceError,
+        OnboardingError,
+    ) as exc:
         print(f"错误：{exc}")
         return 2
     return 2

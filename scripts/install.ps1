@@ -8,7 +8,7 @@ param(
 
     [string]$PythonCommand = 'py',
 
-    [string]$ZCodeConfig = "$HOME\.zcode\cli\config.json",
+    [string]$WorkspacePath = '',
 
     [switch]$SkipZCode,
 
@@ -21,6 +21,10 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $VenvRoot = Join-Path $RepoRoot '.venv'
 $VenvPython = Join-Path $VenvRoot 'Scripts\python.exe'
+if (-not $WorkspacePath) {
+    $Documents = [Environment]::GetFolderPath('MyDocuments')
+    $WorkspacePath = Join-Path $Documents '视知库助手'
+}
 
 function Refresh-ProcessPath {
     $MachinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
@@ -107,13 +111,8 @@ $InitArgs = @('-m', 'video_to_obsidian', 'init', '--vault', $VaultPath, '--profi
 if ($LASTEXITCODE -ne 0) { throw '公共配置初始化失败。已有配置时请先核对，不要直接覆盖。' }
 
 if (-not $SkipZCode) {
-    if (Test-Path $ZCodeConfig -PathType Leaf) {
-        & $VenvPython -m video_to_obsidian configure-zcode --config $ZCodeConfig
-        if ($LASTEXITCODE -ne 0) { throw 'ZCode MCP 配置失败。' }
-    }
-    else {
-        Write-Warning "未找到 ZCode 配置：$ZCodeConfig；已跳过，安装 ZCode 后可单独运行 configure-zcode。"
-    }
+    & $VenvPython -m video_to_obsidian bootstrap-workspace --workspace $WorkspacePath --json
+    if ($LASTEXITCODE -ne 0) { throw '视知库 ZCode 专用工作区创建失败。' }
 }
 
 Write-Host ''
@@ -121,8 +120,10 @@ Write-Host 'Python 部分安装完成。下一步仍需要用户完成：'
 Write-Host '1. 确认 Obsidian、Firefox、ffmpeg 和 ffprobe 已安装；yt-dlp 已随本项目安装。'
 Write-Host '2. 在 Firefox 专用 Profile VideoToObsidian 中分别扫码登录抖音和B站。'
 Write-Host '3. 亲自在终端运行 .venv\Scripts\video-to-obsidian.exe set-kimi-key。'
-Write-Host '4. 用 Obsidian 打开所选 Vault，并按官方流程让 ZCode 连接微信。'
-Write-Host '5. 重新运行 doctor；真实视频验收会产生 Kimi 费用，必须另行确认。'
+Write-Host "4. 用 ZCode 打开专用工作区：$WorkspacePath"
+Write-Host '5. 如没有 Coding Plan 或其他可用模型，可复用 Kimi Key 配置 Moonshot。'
+Write-Host '6. 用 Obsidian 打开所选 Vault，并在该 ZCode 工作区按官方流程连接微信。'
+Write-Host '7. 重新运行 doctor；真实视频验收会产生 Kimi 费用，必须另行确认。'
 Write-Host ''
 & $VenvPython -m video_to_obsidian doctor --json
 if ($LASTEXITCODE -ne 0) {
