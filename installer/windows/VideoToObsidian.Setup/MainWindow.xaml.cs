@@ -93,6 +93,7 @@ public partial class MainWindow : Window
     {
         await GuardedAsync(async () =>
         {
+            await _backend.RunJsonAsync(new[] { "ensure-zcode-model", "--json" });
             using var document = await _backend.RunJsonAsync(
                 new[] { "onboarding-status", "--workspace", _workspacePath, "--json" }
             );

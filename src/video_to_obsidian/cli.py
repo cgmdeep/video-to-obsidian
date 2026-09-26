@@ -236,8 +236,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "ensure-zcode-model":
             api_key = get_kimi_api_key()
             if not api_key:
-                raise SecretError("未找到 Kimi API Key；请先运行 set-kimi-key。")
-            payload = ensure_zcode_model(args.config, api_key=api_key)
+                payload = {
+                    "ok": False,
+                    "changed": False,
+                    "reason": "kimi_key_missing",
+                    "secret_displayed": False,
+                    "paid_call_performed": False,
+                }
+            else:
+                payload = ensure_zcode_model(args.config, api_key=api_key)
             if args.json:
                 print(json.dumps(payload, ensure_ascii=False, indent=2))
             else:
@@ -245,6 +252,7 @@ def main(argv: list[str] | None = None) -> int:
                     "existing_provider_preserved": "ZCode 已有可用模型，已保留原配置。",
                     "moonshot_added": "ZCode 暂无模型，已复用 Kimi Key 补齐。",
                     "zcode_not_initialized": "ZCode 尚未初始化；启动一次后可自动补齐。",
+                    "kimi_key_missing": "尚未保存 Kimi API Key。",
                 }
                 print(messages[payload["reason"]])
             return 0
