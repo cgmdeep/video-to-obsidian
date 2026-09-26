@@ -69,6 +69,19 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $Errors = $null
+          $Tokens = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path scripts/uninstall.ps1),
+            [ref]$Tokens,
+            [ref]$Errors
+          ) | Out-Null
+          if ($Errors.Count -gt 0) {
+            throw ($Errors | ForEach-Object Message) -join "`n"
+          }
       - name: Build embedded core wheel
         shell: pwsh
         run: |

@@ -5,21 +5,41 @@
 ## 环境
 
 - [ ] 干净 Windows 11 设备或全新虚拟机；
-- [ ] Python 3.11；
-- [ ] Python 3.12；
+- [ ] 只下载一个 `VideoToObsidian.Setup.exe`，不预装 Python；
+- [ ] 记录安装器来源 commit、文件字节数和 SHA256；
 - [ ] 当前目标 ZCode 版本及版本号；
 - [ ] 全新 Firefox `VideoToObsidian` Profile；
 - [ ] 全新 Obsidian Vault；
 - [ ] 标准版安装、重装和卸载。
 
+## 普通用户路径
+
+- [ ] 双击安装器后，不克隆仓库、不打开 PowerShell 也能完成准备；
+- [ ] “登录抖音”“登录B站”均打开隔离的 `VideoToObsidian` Profile；
+- [ ] “用 Obsidian 打开”能打开本次选择的 Vault；
+- [ ] 用户能从界面复制 `文档\视知库助手` 路径并在 ZCode 打开；
+- [ ] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
+- [ ] 无 Coding Plan 时，用户自有 Kimi Key 可以提供 ZCode 路由模型；
+- [ ] 微信发送“检查系统”能获得免费诊断回复；
+- [ ] 安装器给出的下一步不要求用户理解 Python、MCP、Cookie 文件或终端命令。
+
 ## 免费检查
 
 - [ ] `doctor --json` 不调用 Kimi；
 - [ ] `route_video` 正确区分抖音、B站和“使用K3深度分析”；
+- [ ] 安装、启动、重新检查阶段账户无 token 扣费；
 - [ ] ZCode 只发现一个 `video-to-obsidian` MCP；
 - [ ] 原有 ZCode MCP 配置未变化；
 - [ ] 日志、配置和 Vault 不出现 Key、Cookie、签名 URL；
 - [ ] 默认不创建 `.obsidian` 或安装社区插件。
+
+## 卸载与恢复
+
+- [ ] 重复点击“一键准备本机”不会重复创建环境或破坏配置；
+- [ ] 源码中的 `scripts/uninstall.ps1` 能移除安装器核心和本项目 MCP；
+- [ ] 默认卸载保留 Vault、专用工作区、Firefox Profile、Kimi Key 和检查点；
+- [ ] `-RemovePrivateData` 会删除 Kimi Key 和私有运行数据，但仍不删除 Vault；
+- [ ] 卸载后不触碰其他 ZCode 工作区、模型供应商和 MCP。
 
 ## 真实视频闭环
 
@@ -55,4 +75,3 @@
 - [ ] 失败状态不会被报告为已保存或已归档；
 - [ ] 标准版成功后不残留视频、代理或临时音频；
 - [ ] 增强版 ASR 失败时按配置正确降级或停止。
-

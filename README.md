@@ -93,25 +93,22 @@ video-to-obsidian clear-summary-preferences
 
 ## Windows alpha 安装
 
-推荐直接把仓库地址交给 AI 助手，让它先阅读 [AGENTS.md](AGENTS.md)，再执行安装。仓库克隆完成后，在 PowerShell 中运行：
+普通用户的目标入口是单个 `VideoToObsidian.Setup.exe`，不需要克隆仓库、安装 Coding Plan、理解 Python、PowerShell 或 MCP。当前尚未发布稳定 Release；测试版由 GitHub Actions 在每次通过 CI 后生成，正式下载链接必须等干净 Windows 验收通过后再发布。
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
-  -VaultPath "D:\Video Knowledge Base" `
-  -Profile standard `
-  -InstallApps
-```
+安装向导会：
 
-`-InstallApps` 使用 Windows 官方 `winget` 安装 Firefox、Obsidian 和 ffmpeg；yt-dlp 随 Python 包安装。省略该开关时只检查现有软件。脚本还会建立隔离 Python 环境、初始化 Vault、创建专用 Firefox Profile，并在找到 ZCode 配置时只增加本项目的一个 MCP。
+- 通过 Windows `winget` 检查或安装 Python、Firefox、Obsidian 和 ffmpeg；
+- 在 `%LOCALAPPDATA%\VideoToObsidian\runtime` 创建隔离核心；
+- 新建 Obsidian Vault 和 `文档\视知库助手` ZCode 专用工作区；
+- 创建隔离的 Firefox `VideoToObsidian` 登录空间；
+- 让用户在不回显密钥的界面中保存自己的 Kimi API Key；
+- 提供抖音、B站、ZCode 官方微信 Bot Channel 的扫码入口与免费状态检查。
 
-安装脚本不会保存 Kimi API Key、读取日常浏览器 Profile、替用户扫码或操作微信。软件安装完成但 API Key/扫码尚未配置时，脚本会以退出码 `2` 明确报告“尚未完成”，不会假装部署成功。
+用户只需完成三类私密动作：输入自己的 Kimi Key、扫码登录自己的视频平台账号、在 ZCode 官方 Bot Channel 中扫码连接自己的微信。项目不使用企业微信机器人，也不会读取用户的日常 Firefox Profile。
 
-用户仍需完成四件事：
+没有 Coding Plan 也可以使用：安装器会优先保留 ZCode 已有模型；确实没有可用模型时，待 ZCode 首次初始化后，可复用同一把 Kimi Key 增量配置 Moonshot 路由模型。该检查不发起付费调用。
 
-1. 在专用 Firefox Profile `VideoToObsidian` 中分别打开抖音和B站并用自己的账号扫码；
-2. 在终端运行 `video-to-obsidian set-kimi-key`，无回显输入自己的 Kimi API Key；
-3. 用 Obsidian 打开安装时选择的 Vault；
-4. 使用 ZCode 官方能力连接微信，然后重启 ZCode 并运行 `video-to-obsidian doctor`。
+仓库中的 `scripts/install.ps1` 仅作为开发者、AI 助手和故障恢复的高级入口，不是普通用户主流程。
 
 完整步骤、失败恢复和卸载方式见 [Windows 安装与扫码指南](docs/INSTALL_WINDOWS.md)。
 
@@ -171,7 +168,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
 
 ## 卸载
 
-默认卸载只移除 ZCode 中本项目的 MCP 条目和仓库内虚拟环境，保留 Vault、Firefox Profile、第三方软件及私有运行数据：
+当前 Alpha 尚未注册到 Windows“已安装的应用”。开发者脚本会删除图形安装器部署的核心和本项目的 ZCode MCP 条目，保留 Vault、专用工作区、Firefox Profile、第三方软件及私有运行数据：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1

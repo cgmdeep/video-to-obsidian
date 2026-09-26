@@ -68,6 +68,51 @@ public partial class MainWindow : Window
         );
     }
 
+    private void OpenDouyinLoginButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFirefoxProfile("https://www.douyin.com/");
+    }
+
+    private void OpenBilibiliLoginButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenFirefoxProfile("https://www.bilibili.com/");
+    }
+
+    private static void OpenFirefoxProfile(string url)
+    {
+        var candidates = new[]
+        {
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "Mozilla Firefox",
+                "firefox.exe"
+            ),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                "Mozilla Firefox",
+                "firefox.exe"
+            ),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Mozilla Firefox",
+                "firefox.exe"
+            ),
+        };
+        var firefox = candidates.FirstOrDefault(File.Exists);
+        if (firefox is null)
+        {
+            MessageBox.Show("请先点击“一键准备本机”，安装并创建专用 Firefox 登录空间。", "视知库");
+            return;
+        }
+        Process.Start(
+            new ProcessStartInfo(firefox)
+            {
+                UseShellExecute = true,
+                Arguments = $"-P VideoToObsidian -no-remote \"{url}\"",
+            }
+        );
+    }
+
     private void OpenZCodeInstallButton_Click(object sender, RoutedEventArgs e)
     {
         Process.Start(
@@ -82,6 +127,25 @@ public partial class MainWindow : Window
     {
         Directory.CreateDirectory(_workspacePath);
         Process.Start(new ProcessStartInfo(_workspacePath) { UseShellExecute = true });
+    }
+
+    private void CopyWorkspacePathButton_Click(object sender, RoutedEventArgs e)
+    {
+        Directory.CreateDirectory(_workspacePath);
+        Clipboard.SetText(_workspacePath);
+        MessageBox.Show("工作区路径已复制。请在 ZCode 的“打开工作区”中选择该目录。", "视知库");
+    }
+
+    private void OpenVaultButton_Click(object sender, RoutedEventArgs e)
+    {
+        var vaultPath = VaultPathBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(vaultPath) || !Directory.Exists(vaultPath))
+        {
+            MessageBox.Show("请先点击“一键准备本机”创建知识库。", "视知库");
+            return;
+        }
+        var uri = "obsidian://open?path=" + Uri.EscapeDataString(vaultPath);
+        Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
     }
 
     private async void RefreshButton_Click(object sender, RoutedEventArgs e)

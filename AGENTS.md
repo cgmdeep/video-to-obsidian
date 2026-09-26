@@ -50,14 +50,14 @@ Firefox Profile：VideoToObsidian
 
 ## 安装顺序
 
-1. 只读检测操作系统、Python、ZCode、Obsidian/Vault、Firefox、ffmpeg、ffprobe、yt-dlp、内存和磁盘。
-2. Windows 优先运行 `scripts/install.ps1 -InstallApps`；该开关只允许通过 winget 安装 Firefox、Obsidian 和 ffmpeg，yt-dlp 随隔离 Python 环境安装。其他系统只使用官方渠道或可信系统包管理器。
+1. 普通 Windows 用户优先使用发布页中的单文件 `VideoToObsidian.Setup.exe`；源码脚本仅用于开发、自动化或安装器故障恢复。
+2. 安装器只读检测操作系统、Python、ZCode、Obsidian/Vault、Firefox、ffmpeg、ffprobe、yt-dlp、内存和磁盘；缺少依赖时只允许通过 winget 安装 Python、Firefox、Obsidian 和 ffmpeg，yt-dlp 随隔离 Python 环境安装。
 3. 创建专用 Firefox Profile `VideoToObsidian`，等待用户分别扫码登录抖音和B站；不得读取、复制或回退到日常 Profile。
 4. 让用户选择已有 Vault 或新建 `Video Knowledge Base`。
 5. 运行 `video-to-obsidian init --vault <path>`；已存在配置时不得静默覆盖。
-6. 让用户亲自在无回显终端运行 `video-to-obsidian set-kimi-key`，优先写入系统钥匙串。若服务器没有可用钥匙串，才使用只注入服务进程的环境变量；不得把值写入 ZCode 配置。
+6. 让用户亲自在安装器密钥框或无回显终端输入 Kimi Key，优先写入系统钥匙串。若服务器没有可用钥匙串，才使用只注入服务进程的环境变量；不得在回复、日志或诊断中显示值。
 7. 运行 `video-to-obsidian doctor --json`，不得用真实视频代替环境体检。
-8. 配置 ZCode 时只新增一个 `video-to-obsidian` MCP，优先使用本地 stdio；写入前备份并原子替换配置。
+8. 配置 ZCode 时只在 `文档\视知库助手` 专用工作区新增一个 `video-to-obsidian` stdio MCP；不得把 MCP 注入用户的其他工作区。微信入口只使用 ZCode 官方 Bot Channel，不使用企业微信或非官方个人微信 Hook。
 9. 免费验收通过后，询问用户是否愿意提供真实视频做付费闭环验收。
 10. 安装脚本退出码为 `2` 表示软件已安装但 API Key、扫码或其他人工配置尚未完成；不得把它报告为完整部署成功。
 11. 真实验收按 `docs/ACCEPTANCE.md` 记录 usage、扣费、路径和清理结果，不得在记录中保存 Cookie 或签名媒体 URL。

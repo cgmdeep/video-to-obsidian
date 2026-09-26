@@ -18,8 +18,8 @@
                 <TextBlock Text="Video to Obsidian" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,30" />
                 <TextBlock Text="1  准备本机" FontSize="17" Margin="0,10" />
                 <TextBlock Text="2  Kimi 连接" FontSize="17" Margin="0,10" />
-                <TextBlock Text="3  ZCode 工作区" FontSize="17" Margin="0,10" />
-                <TextBlock Text="4  扫码连接" FontSize="17" Margin="0,10" />
+                <TextBlock Text="3  视频平台登录" FontSize="17" Margin="0,10" />
+                <TextBlock Text="4  微信连接" FontSize="17" Margin="0,10" />
                 <TextBlock Text="5  免费检查" FontSize="17" Margin="0,10" />
                 <Border Background="#222532" CornerRadius="12" Padding="14" Margin="0,28,0,0">
                     <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}"
@@ -40,7 +40,10 @@
                         <TextBlock Text="自动创建 Obsidian 知识库和专用 ZCode 工作区。" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
                         <TextBlock Text="Obsidian 知识库" />
                         <TextBox x:Name="VaultPathBox" Margin="0,6,0,8" />
-                        <Button x:Name="PrepareButton" Content="准备本机" Click="PrepareButton_Click" HorizontalAlignment="Left" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="PrepareButton" Content="一键准备本机" Click="PrepareButton_Click" />
+                            <Button Content="用 Obsidian 打开" Click="OpenVaultButton_Click" Background="#353948" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -56,20 +59,33 @@
 
                 <Border Background="{StaticResource CardBrush}" CornerRadius="14" Padding="20" Margin="0,0,0,14">
                     <StackPanel>
-                        <TextBlock Text="3. 扫码连接" FontSize="20" FontWeight="SemiBold" />
-                        <TextBlock Text="使用专用 Firefox 登录抖音和B站，然后在 ZCode 工作区中连接官方微信 Bot Channel。"
+                        <TextBlock Text="3. 登录视频平台" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="两个按钮只会打开隔离的 VideoToObsidian Firefox 登录空间；请用自己的账号扫码。"
                                    TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
                         <StackPanel Orientation="Horizontal">
-                            <Button Content="安装 / 打开 ZCode" Click="OpenZCodeInstallButton_Click" />
-                            <Button Content="打开 ZCode Bot Channel 教程" Click="OpenBotGuideButton_Click" />
-                            <Button Content="打开专用工作区" Click="OpenWorkspaceButton_Click" Background="#353948" />
+                            <Button Content="登录抖音" Click="OpenDouyinLoginButton_Click" />
+                            <Button Content="登录B站" Click="OpenBilibiliLoginButton_Click" />
                         </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{StaticResource CardBrush}" CornerRadius="14" Padding="20" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="4. 连接 ZCode 官方微信 Bot" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="不用企业微信。安装 ZCode 后选择“视知库助手”目录作为工作区，再按官方教程扫码绑定微信。"
+                                   TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
+                        <WrapPanel>
+                            <Button Content="安装 / 打开 ZCode" Click="OpenZCodeInstallButton_Click" />
+                            <Button Content="官方微信连接教程" Click="OpenBotGuideButton_Click" />
+                            <Button Content="打开工作区文件夹" Click="OpenWorkspaceButton_Click" Background="#353948" />
+                            <Button Content="复制工作区路径" Click="CopyWorkspacePathButton_Click" Background="#353948" />
+                        </WrapPanel>
                     </StackPanel>
                 </Border>
 
                 <Border Background="{StaticResource CardBrush}" CornerRadius="14" Padding="20">
                     <StackPanel>
-                        <TextBlock Text="4. 免费检查" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="5. 免费检查" FontSize="20" FontWeight="SemiBold" />
                         <TextBlock x:Name="StatusText" Text="正在检查…" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,8" />
                         <Button Content="重新检查" Click="RefreshButton_Click" HorizontalAlignment="Left" />
                     </StackPanel>

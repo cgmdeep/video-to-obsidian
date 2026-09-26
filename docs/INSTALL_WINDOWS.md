@@ -1,70 +1,50 @@
 # Windows 安装与扫码指南
 
-本指南面向普通使用者。推荐把仓库地址交给可信的 AI 助手，让它先阅读根目录 `AGENTS.md` 再操作；用户本人只处理账号、扫码、API Key 和付费确认。
+本指南面向普通使用者。目标流程是双击一个安装器，用户本人只处理账号、扫码、API Key 和真实视频分析前的付费确认。仓库命令只放在文末的高级恢复部分。
 
 ## 安装前准备
 
 - Windows 11；
-- Python 3.11 或 3.12；
-- ZCode；
 - 至少 5 GB 可用空间，处理长视频时建议更多；
 - 用户自己的 Kimi、抖音和B站账号；
-- 一个已有或准备新建的 Obsidian Vault。
+- 能接收 ZCode 官方微信 Bot Channel 消息的个人微信。
 
-不要把 API Key、Cookie、验证码或微信登录信息发给 AI 助手。API Key 应在无回显终端中由用户亲自输入。
+Python、Firefox、Obsidian 和 ffmpeg 可以由安装器通过 `winget` 补齐。ZCode 仍需按其官方页面安装。不要把 API Key、Cookie、验证码或微信登录信息发给 AI 助手；只在安装器的密钥框或官方扫码页面中亲自输入。
 
-## 1. 安装程序
+## 1. 运行安装器
 
-在仓库根目录打开 PowerShell：
+下载正式 Release 中的 `VideoToObsidian.Setup.exe`，核对发布页 SHA256 后双击运行。当前 Alpha 未签名，Windows SmartScreen 可能提示风险；正式 Release 出现前，不要从群聊、网盘或第三方网站下载安装包。
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1 `
-  -VaultPath "D:\Video Knowledge Base" `
-  -Profile standard `
-  -InstallApps
-```
-
-`-InstallApps` 只通过 Windows `winget` 安装 Firefox、Obsidian 和 ffmpeg。yt-dlp 会安装在项目自己的 Python 虚拟环境中。已有软件会由 winget 检查或更新，不会安装浏览器扩展和 Obsidian 社区插件。
-
-标准版不需要本地显卡和 SenseVoice。只有明确需要原始逐字稿时才把 `-Profile standard` 改为 `-Profile transcript`；增强版还需要单独部署或连接 SenseVoice 服务。
+点击“一键准备本机”，接受默认路径或选择新的 Obsidian Vault。安装器会使用官方 `winget` 来源补齐依赖，并把自身核心放在 `%LOCALAPPDATA%\VideoToObsidian\runtime`。默认标准版不需要显卡、NAS、Tailscale 或 SenseVoice。
 
 ## 2. 输入 Kimi API Key
 
-安装脚本结束后，在同一仓库运行：
-
-```powershell
-.\.venv\Scripts\video-to-obsidian.exe set-kimi-key
-```
-
-终端会要求输入两次且不回显，Key 保存到 Windows 凭据库。不要把 Key 写进 `config.toml`、ZCode 配置、`.env`、聊天消息或截图。
+在“连接 Kimi”中输入自己的 Kimi API Key，点击“安全保存并自动补齐”。Key 保存到 Windows 凭据库，界面和日志不会显示其值。不要把 Key 写进聊天消息、截图或普通文本文件。
 
 ## 3. 扫码登录视频平台
 
-打开 Firefox 的 Profile 管理器：
-
-```powershell
-& "$env:PROGRAMFILES\Mozilla Firefox\firefox.exe" -P
-```
-
-选择安装器创建的 `VideoToObsidian` Profile，再分别打开抖音和B站官网，用用户自己的账号扫码登录。不要导入日常浏览器 Profile，也不要使用网上共享 Cookie。
+点击安装器中的“登录抖音”和“登录B站”。两个按钮会打开安装器创建的 `VideoToObsidian` Firefox Profile。用自己的账号扫码，不要导入日常浏览器 Profile，也不要使用网上共享 Cookie。
 
 扫码完成后可以关闭 Firefox。以后 Cookie 失效或平台要求重新验证时，再用同一个 Profile 扫码。
 
 ## 4. 打开 Obsidian Vault
 
-启动 Obsidian，选择“打开本地仓库”，选择安装命令中传入的 `VaultPath`。程序不会修改现有 `.obsidian`、主题或插件。
+点击“用 Obsidian 打开”，或启动 Obsidian 后选择安装器中显示的 Vault。程序不会修改用户已有 `.obsidian`、主题或插件，也不要求安装社区插件。
 
 Obsidian 不需要一直运行；MCP 可以在应用关闭时写入 Markdown。
 
 ## 5. 连接 ZCode 和微信
 
-安装器只会在 ZCode 配置中增加名为 `video-to-obsidian` 的本地 stdio MCP，并在修改前创建恢复副本。它不会安装个人微信 Hook、注入器或非官方机器人。
+安装器会新建 `文档\视知库助手`，其中只有本工作区的路由规则和 `video-to-obsidian` 本地 MCP。它不会接入企业微信，也不会安装个人微信 Hook、注入器或非官方机器人。
 
-1. 使用 ZCode 官方入口连接自己的微信；
-2. 按 ZCode 界面提示由用户本人扫码；
-3. 重启 ZCode，让新的本地 MCP 生效；
-4. 在 ZCode 中先让 AI 助手调用 `doctor`，确认所有必需检查通过；
-5. 先调用免费的 `route_video` 检查平台路由，再由用户确认是否进行会产生 Kimi 费用的真实分析。
+1. 点击“安装 / 打开 ZCode”，完成 ZCode 官方安装和首次启动；
+2. 点击“复制工作区路径”，在 ZCode 的“打开工作区”中选择这个目录；
+3. 打开 ZCode 左下角“移动端远程控制”，在右侧 Bot Channel 选择“微信”；
+4. 按 ZCode 官方界面由用户本人扫码并确认；
+5. 回到安装器点击“重新检查”，再在微信发送“检查系统”；
+6. 免费检查通过后，再发送真实视频链接。
+
+微信 Bot Channel 是 ZCode 官方能力，操作的是电脑上已打开的工作区；因此电脑和 ZCode 需要保持运行。没有 Coding Plan 时，可以使用自己的 Kimi/Moonshot API 通道。安装器优先保留已有模型配置，不会覆盖其他供应商。
 
 若目标 ZCode 版本的配置结构与当前仓库不同，AI 助手必须停止，不得猜测字段或覆盖其他 MCP。
 
@@ -86,12 +66,14 @@ Obsidian 不需要一直运行；MCP 可以在应用关闭时写入 Markdown。
 
 价格以 [Kimi 官方页面](https://platform.kimi.com/docs/pricing/chat) 为准。真实测试必须记录 API 返回的 `usage` 和账户扣费，不能只根据视频时长估算。
 
-## 8. 诊断和卸载
+## 8. 高级诊断和卸载
+
+普通用户优先看安装器底部“免费检查”。以下命令只供开发者、AI 助手或故障恢复使用，需要先获取源码：
 
 免费诊断：
 
 ```powershell
-.\.venv\Scripts\video-to-obsidian.exe doctor --json
+& "$env:LOCALAPPDATA\VideoToObsidian\runtime\Scripts\video-to-obsidian.exe" doctor --json
 ```
 
 安全卸载：
@@ -100,5 +82,4 @@ Obsidian 不需要一直运行；MCP 可以在应用关闭时写入 Markdown。
 powershell -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1
 ```
 
-这会移除本项目的 ZCode MCP 条目和 `.venv`，但保留 Vault、Firefox Profile、第三方软件和私有运行数据。只有确认不再需要检查点、候选笔记和视频归档时，才显式添加 `-RemovePrivateData`。
-
+这会移除本项目的 ZCode MCP 条目、安装器核心和源码虚拟环境，但保留 Vault、专用工作区、Firefox Profile、第三方软件和私有运行数据。只有确认不再需要 Kimi Key、检查点、候选笔记和视频归档时，才显式添加 `-RemovePrivateData`。

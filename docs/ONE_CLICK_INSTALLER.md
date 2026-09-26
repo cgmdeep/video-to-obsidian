@@ -3,7 +3,7 @@
 ## 产品边界
 
 普通用户不需要 Codex、Coding Plan、Python、PowerShell 或 MCP 知识。唯一公开入口是
-`VideoToObsidian-Setup.exe`。
+`VideoToObsidian.Setup.exe`。
 
 用户只处理：
 
@@ -19,11 +19,11 @@ ZCode 仍然需要一个可用模型通道，但 Coding Plan 不是必需条件�
 
 ## 安装界面
 
-安装器只保留五页：
+安装器只保留五个可见步骤：
 
 1. 欢迎与一键安装；
 2. 自动安装进度；
-3. Kimi Key 无回显输入与验证；
+3. Kimi Key 无回显输入与安全保存；
 4. 抖音、B站、ZCode 微信三步扫码；
 5. 免费体检、打开 Obsidian 与完成。
 
@@ -63,9 +63,9 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] .NET 8 WPF 安装与连接向导，并由 Windows CI 编译；
 - [x] 将当前 Python wheel 内嵌进自包含的 Windows x64 单文件 EXE；
 - [x] 通过 winget 安装或检查 Python、Obsidian、Firefox 和 ffmpeg；
-- [ ] 用官方下载页安装或打开 ZCode；
-- [ ] 默认创建 `文档\视知库` Vault；
-- [ ] 集成扫码引导和免费体检；
+- [x] 提供 ZCode 官方下载页和 Bot Channel 官方教程入口；
+- [x] 默认创建 `文档\视知库` Vault；
+- [x] 提供隔离 Firefox 抖音/B站登录按钮、微信扫码引导和免费体检；
 - [ ] 高级页才显示逐字稿、原视频归档和自定义目录。
 
 ### P4：干净机器和真实视频
@@ -79,7 +79,8 @@ Bot Channel 必须在这个专用工作区中创建。
 
 ### P5：发布
 
-- [ ] `VideoToObsidian-Setup.exe`；
+- [x] CI 生成单文件 `VideoToObsidian.Setup.exe`；
+- [ ] 干净 Windows 验收后创建稳定 GitHub Release；
 - [ ] 代码签名或明确的 Alpha 未签名风险提示；
 - [ ] SHA256、SBOM、版本说明与卸载说明；
 - [ ] 真实 usage 与费用拆分：ZCode 路由和视频分析分开记录。

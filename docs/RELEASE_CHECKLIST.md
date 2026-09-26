@@ -18,6 +18,7 @@
 - 当前文件树私有路径与常见 Secret 模式扫描无命中。
 - Apache-2.0 开源许可证和包元数据；
 - Windows/Linux、Python 3.11/3.12 CI 与可安装 wheel 构建；
+- Windows x64 自包含单文件安装向导由 CI 构建，普通用户无需预装 .NET；
 - 每周依赖漏洞审计、完整 Git 历史 Gitleaks 扫描和 Dependabot；
 - 私密漏洞报告说明与 GitHub Private Vulnerability Reporting；
 - Windows 可选 winget 依赖安装、专用 Firefox Profile 检查和安全卸载脚本；
@@ -27,6 +28,7 @@
 
 - [x] 加入 Apache License 2.0，并在 Python 包元数据中声明。
 - [ ] 使用一台不含作者私人配置的 Windows 11 设备跑完整安装。
+- [ ] 记录该安装器的 commit、字节数、SHA256 和 CI 链接。
 - [ ] 核验目标 ZCode 版本的 stdio MCP 配置字段。
 - [ ] 在无 Coding Plan 的干净 ZCode 中，用用户自有 Moonshot Key 调用免费 `doctor`。
 - [ ] 微信 Bot Channel 绑定到专用“视知库助手”工作区，不影响其他 ZCode 项目。
@@ -43,7 +45,7 @@
 
 ## 不进入 v0.1
 
-- 公共微信机器人；
+- 项目方托管的公共微信机器人（用户自己连接的 ZCode 官方 Bot Channel 属于 v0.1 主流程）；
 - 支付、余额、订单和退款；
 - 多P批量、合集、直播、番剧与互动视频；
 - 公共 Cookie；
