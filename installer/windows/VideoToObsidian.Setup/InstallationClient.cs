@@ -58,7 +58,8 @@ internal sealed class InstallationClient
                     "--upgrade",
                     "--force-reinstall",
                     wheel,
-                }
+                },
+                TimeSpan.FromMinutes(10)
             );
             await File.WriteAllTextAsync(marker, wheelHash + Environment.NewLine);
         }
@@ -131,7 +132,8 @@ internal sealed class InstallationClient
         {
             var result = await TryCaptureAsync(
                 "py",
-                new[] { version, "-c", "import sys; print(sys.executable)" }
+                new[] { version, "-c", "import sys; print(sys.executable)" },
+                TimeSpan.FromSeconds(30)
             );
             if (result.ExitCode == 0)
             {
@@ -231,7 +233,11 @@ internal sealed class InstallationClient
     )
     {
         report($"正在检查 {displayName}…");
-        var list = await TryCaptureAsync("winget", new[] { "list", "--id", id, "--exact" });
+        var list = await TryCaptureAsync(
+            "winget",
+            new[] { "list", "--id", id, "--exact" },
+            TimeSpan.FromMinutes(2)
+        );
         if (list.ExitCode == 0 && list.Stdout.Contains(id, StringComparison.OrdinalIgnoreCase))
         {
             return;
@@ -248,7 +254,8 @@ internal sealed class InstallationClient
                 "--silent",
                 "--accept-package-agreements",
                 "--accept-source-agreements",
-            }
+            },
+            TimeSpan.FromMinutes(10)
         );
     }
 
@@ -289,12 +296,26 @@ internal sealed class InstallationClient
             throw new InvalidOperationException("Firefox 已安装但未找到可执行文件。");
         }
         report("正在创建视知库专用登录空间…");
-        await RunCheckedAsync(firefox, new[] { "-CreateProfile", "VideoToObsidian" });
+        await RunCheckedAsync(
+            firefox,
+            new[] { "-CreateProfile", "VideoToObsidian" },
+            TimeSpan.FromMinutes(2)
+        );
     }
 
-    private static async Task RunCheckedAsync(string executable, IEnumerable<string> arguments)
+    private static async Task RunCheckedAsync(
+        string executable,
+        IEnumerable<string> arguments,
+        TimeSpan? timeout = null
+    )
     {
-        var result = await TryCaptureAsync(executable, arguments);
+        var result = await TryCaptureAsync(executable, arguments, timeout);
+        if (result.TimedOut)
+        {
+            throw new InvalidOperationException(
+                $"运行 {executable} 超时，已停止该安装步骤。"
+            );
+        }
         if (result.ExitCode != 0)
         {
             var detail = string.IsNullOrWhiteSpace(result.Stderr)
@@ -310,7 +331,8 @@ internal sealed class InstallationClient
 
     private static async Task<ProcessResult> TryCaptureAsync(
         string executable,
-        IEnumerable<string> arguments
+        IEnumerable<string> arguments,
+        TimeSpan? timeout = null
     )
     {
         var start = new ProcessStartInfo
@@ -336,9 +358,33 @@ internal sealed class InstallationClient
         }
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        return new ProcessResult(process.ExitCode, await stdout, await stderr);
+        using var cancellation = new CancellationTokenSource(
+            timeout ?? TimeSpan.FromMinutes(10)
+        );
+        try
+        {
+            await process.WaitForExitAsync(cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+            }
+            catch (InvalidOperationException)
+            {
+                // The process exited between cancellation and termination.
+            }
+            await process.WaitForExitAsync();
+            return new ProcessResult(-1, await stdout, await stderr, true);
+        }
+        return new ProcessResult(process.ExitCode, await stdout, await stderr, false);
     }
 
-    private sealed record ProcessResult(int ExitCode, string Stdout, string Stderr);
+    private sealed record ProcessResult(
+        int ExitCode,
+        string Stdout,
+        string Stderr,
+        bool TimedOut = false
+    );
 }

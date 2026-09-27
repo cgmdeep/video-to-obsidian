@@ -25,17 +25,34 @@ public partial class App : Application
         {
             var exitCode = 0;
             object report;
+            var resultPath = e.Args[1];
             try
             {
+                WritePreparationReport(resultPath, new
+                {
+                    schema_version = 1,
+                    status = "running",
+                    phase = "正在开始首次准备…",
+                    contains_secrets = false,
+                    paid_call_performed = false,
+                });
                 await new MachinePreparationClient().PrepareAsync(
                     MachinePreparationClient.DefaultVaultPath,
                     MachinePreparationClient.DefaultWorkspacePath,
-                    _ => { }
+                    phase => WritePreparationReport(resultPath, new
+                    {
+                        schema_version = 1,
+                        status = "running",
+                        phase,
+                        contains_secrets = false,
+                        paid_call_performed = false,
+                    })
                 );
                 report = new
                 {
                     schema_version = 1,
                     ok = true,
+                    status = "complete",
                     vault_created = Directory.Exists(MachinePreparationClient.DefaultVaultPath),
                     workspace_created = Directory.Exists(MachinePreparationClient.DefaultWorkspacePath),
                     contains_secrets = false,
@@ -49,24 +66,33 @@ public partial class App : Application
                 {
                     schema_version = 1,
                     ok = false,
+                    status = "failed",
                     error_type = exception.GetType().Name,
                     error = exception.Message,
                     contains_secrets = false,
                     paid_call_performed = false,
                 };
             }
-            var parent = Path.GetDirectoryName(Path.GetFullPath(e.Args[1]));
-            if (!string.IsNullOrWhiteSpace(parent))
-            {
-                Directory.CreateDirectory(parent);
-            }
-            await File.WriteAllTextAsync(
-                e.Args[1],
-                JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true })
-            );
+            WritePreparationReport(resultPath, report);
             Shutdown(exitCode);
             return;
         }
         base.OnStartup(e);
+    }
+
+    private static void WritePreparationReport(string destination, object report)
+    {
+        var fullPath = Path.GetFullPath(destination);
+        var parent = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(parent))
+        {
+            Directory.CreateDirectory(parent);
+        }
+        var temporary = fullPath + ".tmp";
+        File.WriteAllText(
+            temporary,
+            JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true })
+        );
+        File.Move(temporary, fullPath, overwrite: true);
     }
 }

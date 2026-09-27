@@ -40,11 +40,33 @@ jobs:
             --self-contained true `
             --output artifacts/windows-x64
       - name: Run full first-time preparation
+        timeout-minutes: 16
         shell: pwsh
         run: |
           $Setup = Resolve-Path artifacts/windows-x64/VideoToObsidian.Setup.exe
           $Report = Join-Path $env:RUNNER_TEMP 'clean-prepare.json'
-          $Process = Start-Process -FilePath $Setup -ArgumentList @('--prepare-machine', $Report) -Wait -PassThru
+          $Process = Start-Process -FilePath $Setup -ArgumentList @('--prepare-machine', $Report) -PassThru
+          $Deadline = (Get-Date).AddMinutes(15)
+          $LastPhase = ''
+          while (-not $Process.HasExited -and (Get-Date) -lt $Deadline) {
+            Start-Sleep -Seconds 10
+            $Process.Refresh()
+            if (Test-Path $Report) {
+              try {
+                $Progress = Get-Content $Report -Raw | ConvertFrom-Json
+                if ($Progress.phase -and $Progress.phase -ne $LastPhase) {
+                  Write-Host "Installer phase: $($Progress.phase)"
+                  $LastPhase = $Progress.phase
+                }
+              } catch {
+                Write-Host 'Installer progress report is being updated.'
+              }
+            }
+          }
+          if (-not $Process.HasExited) {
+            Stop-Process -Id $Process.Id -Force
+            throw "Installer exceeded the 15-minute clean preparation limit. Last phase: $LastPhase"
+          }
           if (-not (Test-Path $Report)) {
             throw "Installer did not produce a preparation report (exit $($Process.ExitCode))."
           }
