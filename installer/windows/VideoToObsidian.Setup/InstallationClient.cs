@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace VideoToObsidian.Setup;
 
@@ -22,23 +25,30 @@ internal sealed class InstallationClient
 
     public async Task EnsureInstalledAsync(Action<string> report)
     {
-        if (File.Exists(CoreExecutable))
-        {
-            report("视知库核心已安装，正在检查应用。");
-        }
-        else
+        Directory.CreateDirectory(_appRoot);
+        var runtimePython = Path.Combine(_appRoot, "runtime", "Scripts", "python.exe");
+        if (!File.Exists(runtimePython))
         {
             var python = await EnsurePythonAsync(report);
             report("正在创建独立运行环境…");
-            Directory.CreateDirectory(_appRoot);
             await RunCheckedAsync(
                 python,
                 new[] { "-m", "venv", Path.Combine(_appRoot, "runtime") }
             );
-            var wheel = ExtractEmbeddedWheel();
-            report("正在安装视知库核心及下载组件…");
+        }
+
+        var wheel = ExtractEmbeddedWheel();
+        var wheelHash = ComputeSha256(wheel);
+        var marker = Path.Combine(_appRoot, "runtime", ".embedded-wheel.sha256");
+        var installedHash = File.Exists(marker) ? File.ReadAllText(marker).Trim() : "";
+        if (!File.Exists(CoreExecutable)
+            || !string.Equals(installedHash, wheelHash, StringComparison.OrdinalIgnoreCase))
+        {
+            report(File.Exists(CoreExecutable)
+                ? "正在升级视知库核心及下载组件…"
+                : "正在安装视知库核心及下载组件…");
             await RunCheckedAsync(
-                Path.Combine(_appRoot, "runtime", "Scripts", "python.exe"),
+                runtimePython,
                 new[]
                 {
                     "-m",
@@ -46,14 +56,26 @@ internal sealed class InstallationClient
                     "install",
                     "--disable-pip-version-check",
                     "--upgrade",
+                    "--force-reinstall",
                     wheel,
                 }
             );
-            if (!File.Exists(CoreExecutable))
-            {
-                throw new InvalidOperationException("核心组件安装后未找到可执行文件。");
-            }
+            await File.WriteAllTextAsync(marker, wheelHash + Environment.NewLine);
         }
+        else
+        {
+            report("视知库核心已是当前版本，正在校验完整性。");
+        }
+
+        if (!File.Exists(CoreExecutable))
+        {
+            throw new InvalidOperationException("核心组件安装后未找到可执行文件。");
+        }
+        await RunCheckedAsync(
+            runtimePython,
+            new[] { "-c", "import video_to_obsidian, selenium" }
+        );
+        await RunCheckedAsync(runtimePython, new[] { "-m", "pip", "check" });
 
         await EnsureWingetPackageAsync("Mozilla.Firefox", "Firefox", report);
         await EnsureWingetPackageAsync("Obsidian.Obsidian", "Obsidian", report);
@@ -143,6 +165,63 @@ internal sealed class InstallationClient
         using var target = File.Create(destination);
         source.CopyTo(target);
         return destination;
+    }
+
+    internal static void WriteEmbeddedWheelVerification(string destination)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var resources = assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith("Payload/", StringComparison.Ordinal)
+                && name.EndsWith(".whl", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (resources.Length != 1)
+        {
+            throw new InvalidOperationException(
+                $"安装包应内嵌 1 个 wheel，实际为 {resources.Length} 个。"
+            );
+        }
+        using var stream = assembly.GetManifestResourceStream(resources[0])
+            ?? throw new InvalidOperationException("无法读取内嵌的核心 wheel。");
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        var bytes = memory.ToArray();
+        memory.Position = 0;
+        using var archive = new ZipArchive(memory, ZipArchiveMode.Read, leaveOpen: true);
+        var metadataEntry = archive.Entries.SingleOrDefault(entry =>
+            entry.FullName.EndsWith(".dist-info/METADATA", StringComparison.OrdinalIgnoreCase)
+        ) ?? throw new InvalidOperationException("wheel 缺少 METADATA。");
+        using var reader = new StreamReader(metadataEntry.Open());
+        var metadata = reader.ReadToEnd();
+        var hasSelenium = metadata.Split('\n').Any(line =>
+            line.StartsWith("Requires-Dist: selenium", StringComparison.OrdinalIgnoreCase)
+        );
+        if (!hasSelenium)
+        {
+            throw new InvalidOperationException("内嵌 wheel 缺少 Selenium 依赖。");
+        }
+        var report = new
+        {
+            schema_version = 1,
+            resource = resources[0],
+            sha256 = Convert.ToHexString(SHA256.HashData(bytes)),
+            has_selenium = true,
+            contains_secrets = false,
+        };
+        var parent = Path.GetDirectoryName(Path.GetFullPath(destination));
+        if (!string.IsNullOrWhiteSpace(parent))
+        {
+            Directory.CreateDirectory(parent);
+        }
+        File.WriteAllText(
+            destination,
+            JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true })
+        );
+    }
+
+    private static string ComputeSha256(string path)
+    {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream));
     }
 
     private static async Task EnsureWingetPackageAsync(

@@ -85,10 +85,34 @@ jobs:
       - name: Build embedded core wheel
         shell: pwsh
         run: |
+          Remove-Item -Recurse -Force dist, build, installer/windows/VideoToObsidian.Setup/Payload, installer/windows/VideoToObsidian.Setup/bin, installer/windows/VideoToObsidian.Setup/obj -ErrorAction SilentlyContinue
           python -m pip install --upgrade pip "build>=1,<2"
-          python -m build --wheel
+          python -m build --wheel --outdir artifacts/core-wheel
+          $Wheels = @(Get-ChildItem artifacts/core-wheel/*.whl -File)
+          if ($Wheels.Count -ne 1) {
+            throw "Expected exactly one core wheel, found: $($Wheels.Name -join ', ')"
+          }
+          @'
+          import pathlib
+          import sys
+          import zipfile
+
+          wheel = pathlib.Path(sys.argv[1])
+          with zipfile.ZipFile(wheel) as archive:
+              names = archive.namelist()
+              metadata_names = [name for name in names if name.endswith(".dist-info/METADATA")]
+              assert len(metadata_names) == 1, metadata_names
+              metadata = archive.read(metadata_names[0]).decode("utf-8")
+              assert any(
+                  line.lower().startswith("requires-dist: selenium")
+                  for line in metadata.splitlines()
+              ), "wheel is missing the Selenium runtime dependency"
+              assert any(name.endswith("/download/firefox.py") for name in names), (
+                  "wheel is missing the Firefox download adapter"
+              )
+          '@ | python - $Wheels[0].FullName
           New-Item -ItemType Directory -Force installer/windows/VideoToObsidian.Setup/Payload | Out-Null
-          Copy-Item dist/*.whl installer/windows/VideoToObsidian.Setup/Payload/
+          Copy-Item $Wheels[0].FullName installer/windows/VideoToObsidian.Setup/Payload/
       - name: Publish single-file Windows onboarding
         run: dotnet publish installer/windows/VideoToObsidian.Setup/VideoToObsidian.Setup.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/windows-x64
       - name: Verify single-file payload
@@ -97,6 +121,15 @@ jobs:
           $Files = Get-ChildItem artifacts/windows-x64 -File
           if ($Files.Count -ne 1 -or $Files[0].Name -ne 'VideoToObsidian.Setup.exe') {
             throw "Expected exactly one VideoToObsidian.Setup.exe, found: $($Files.Name -join ', ')"
+          }
+          $Verification = Join-Path $env:RUNNER_TEMP 'embedded-payload.json'
+          $Process = Start-Process -FilePath $Files[0].FullName -ArgumentList @('--verify-payload', $Verification) -Wait -PassThru
+          if ($Process.ExitCode -ne 0 -or -not (Test-Path $Verification)) {
+            throw "Published setup failed embedded payload verification (exit $($Process.ExitCode))."
+          }
+          $Report = Get-Content $Verification -Raw | ConvertFrom-Json
+          if (-not $Report.has_selenium -or -not $Report.sha256) {
+            throw "Published setup contains an invalid embedded wheel."
           }
       - name: Upload Windows onboarding
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
