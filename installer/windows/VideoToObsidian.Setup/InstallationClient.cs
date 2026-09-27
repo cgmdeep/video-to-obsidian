@@ -341,8 +341,12 @@ internal sealed class InstallationClient
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8,
             CreateNoWindow = true,
         };
+        start.Environment["PYTHONUTF8"] = "1";
+        start.Environment["PYTHONIOENCODING"] = "utf-8";
         foreach (var argument in arguments)
         {
             start.ArgumentList.Add(argument);

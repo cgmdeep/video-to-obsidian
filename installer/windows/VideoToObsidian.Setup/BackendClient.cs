@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 
 namespace VideoToObsidian.Setup;
@@ -67,6 +68,8 @@ internal sealed class BackendClient
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = secretStandardInput is not null,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
             CreateNoWindow = true,
         };
         foreach (var argument in arguments)
@@ -85,6 +88,8 @@ internal sealed class BackendClient
             ";",
             new[] { machinePath, userPath }.Where(value => !string.IsNullOrWhiteSpace(value))
         );
+        start.Environment["PYTHONUTF8"] = "1";
+        start.Environment["PYTHONIOENCODING"] = "utf-8";
         using var process = new Process { StartInfo = start };
         try
         {
