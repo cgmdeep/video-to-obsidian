@@ -15,6 +15,18 @@ def test_keyring_is_used_without_environment(monkeypatch) -> None:
     assert secrets.kimi_key_source() == "keyring"
 
 
+def test_native_keyring_backend_failure_is_treated_as_unavailable(monkeypatch) -> None:
+    monkeypatch.delenv("KIMI_API_KEY", raising=False)
+
+    def fail_read(service: str, account: str) -> str:
+        raise RuntimeError("native credential backend has no logon session")
+
+    monkeypatch.setattr(secrets.keyring, "get_password", fail_read)
+
+    assert secrets.get_kimi_api_key() == ""
+    assert secrets.kimi_key_source() == "unavailable"
+
+
 def test_set_key_never_returns_or_prints_value(monkeypatch) -> None:
     captured = {}
     monkeypatch.setattr(
@@ -28,4 +40,3 @@ def test_set_key_never_returns_or_prints_value(monkeypatch) -> None:
     assert captured["service"] == secrets.SERVICE_NAME
     assert captured["account"] == secrets.KIMI_ACCOUNT
     assert captured["value"] == "secret-value-123"
-

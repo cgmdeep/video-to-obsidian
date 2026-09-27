@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 
 import keyring
-from keyring.errors import KeyringError
 
 
 SERVICE_NAME = "video-to-obsidian"
@@ -22,7 +21,11 @@ def get_kimi_api_key() -> str:
         return environment
     try:
         return (keyring.get_password(SERVICE_NAME, KIMI_ACCOUNT) or "").strip()
-    except KeyringError:
+    except Exception:
+        # Some Windows keyring backends surface native pywintypes errors
+        # directly instead of wrapping them in KeyringError.  A missing
+        # interactive logon session (for example over SSH) must behave like
+        # an unavailable keyring, not crash read-only diagnostics.
         return ""
 
 
@@ -32,7 +35,7 @@ def kimi_key_source() -> str:
     try:
         if (keyring.get_password(SERVICE_NAME, KIMI_ACCOUNT) or "").strip():
             return "keyring"
-    except KeyringError:
+    except Exception:
         return "unavailable"
     return "missing"
 
@@ -43,7 +46,7 @@ def set_kimi_api_key(value: str) -> None:
         raise SecretError("Kimi API Key 格式无效。")
     try:
         keyring.set_password(SERVICE_NAME, KIMI_ACCOUNT, secret)
-    except KeyringError as exc:
+    except Exception as exc:
         raise SecretError("系统钥匙串不可用；请改用仅注入当前服务进程的环境变量。") from exc
 
 
@@ -54,6 +57,5 @@ def delete_kimi_api_key() -> bool:
             return False
         keyring.delete_password(SERVICE_NAME, KIMI_ACCOUNT)
         return True
-    except KeyringError as exc:
+    except Exception as exc:
         raise SecretError("无法从系统钥匙串删除 Kimi API Key。") from exc
-
