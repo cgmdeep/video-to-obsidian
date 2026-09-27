@@ -107,7 +107,7 @@ jobs:
                   line.lower().startswith("requires-dist: selenium")
                   for line in metadata.splitlines()
               ), "wheel is missing the Selenium runtime dependency"
-              assert any(name.endswith("/download/firefox.py") for name in names), (
+              assert any(name.endswith("/firefox.py") for name in names), (
                   "wheel is missing the Firefox download adapter"
               )
           '@ | python - $Wheels[0].FullName
