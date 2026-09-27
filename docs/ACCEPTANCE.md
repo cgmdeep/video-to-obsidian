@@ -27,7 +27,7 @@
 ## 免费检查
 
 - [x] `doctor --json` 不调用 Kimi；
-- [ ] `route_video` 正确区分抖音、B站和“使用K3深度分析”；
+- [x] `route_video` 正确区分抖音、B站和“使用K3深度分析”；
 - [x] 安装、启动、重新检查阶段账户无 token 扣费（自动准备与 `doctor` 均无付费调用）；
 - [x] ZCode 只发现一个 `video-to-obsidian` MCP；
 - [ ] 原有 ZCode MCP 配置未变化；
@@ -43,9 +43,18 @@
 - 结果 JSON：`ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`；另验证专用 Firefox Profile、单一 MCP、无 `.obsidian`、配置无疑似 Key/Cookie 字段和免费 `doctor`；
 - 不据此勾选 Windows 11 图形点击、扫码、ZCode 微信、卸载或真实视频项目。
 
+### 2026-09-27 ROG 重装与远程维护边界
+
+- 修复 commit：`6a5291c491e4c43db9fe0b54fa4863f48716268f`；干净 Windows 验收 [#36311305132](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36311305132) 通过；
+- 新安装包 71,663,166 字节，SHA256 `916a5b563d1305a94b6170188a75454ac959d87a6bc4003690b9a632d65b4a47`；已部署到 ROG，旧包保留为 `VideoToObsidian.Setup.previous.exe`；
+- ROG 重复执行与图形按钮同一个准备协调器，结果 `ok=true`、Vault/工作区存在、无敏感信息、无付费调用；
+- 暴露的 Windows 边界：SSH 非交互登录会话不能读 Credential Manager，底层返回非 `KeyringError` 的 `pywintypes.error` 并导致旧版 `doctor` 崩溃；
+- 修复后 SSH 体检会如实报告“系统钥匙串不可用”而不崩溃，其余依赖全部通过，`paid_call_performed=false`；
+- 同一机器的交互用户会话体检 `doctor_ok=true`，Kimi Key 可从 keyring 读取，未显示密钥、未触发付费调用。
+
 ## 卸载与恢复
 
-- [ ] 重复点击“一键准备本机”不会重复创建环境或破坏配置；
+- [x] 重复执行“一键准备本机”的共享准备协调器不会重复创建环境或破坏配置；
 - [ ] 源码中的 `scripts/uninstall.ps1` 能移除安装器核心和本项目 MCP；
 - [ ] 默认卸载保留 Vault、专用工作区、Firefox Profile、Kimi Key 和检查点；
 - [ ] `-RemovePrivateData` 会删除 Kimi Key 和私有运行数据，但仍不删除 Vault；
