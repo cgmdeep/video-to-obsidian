@@ -14,6 +14,7 @@ import httpx
 from ..command import CommandResult, CommandRunner, run_command, yt_dlp_command
 from ..config import Settings
 from ..errors import AppError
+from ..firefox import yt_dlp_cookie_spec
 
 
 _SHORT_URL = re.compile(r"https://b23\.tv/[A-Za-z0-9]+", re.IGNORECASE)
@@ -158,7 +159,7 @@ def resolve_short_link(url: str) -> str:
 
 
 def _cookie_args(settings: Settings) -> list[str]:
-    return ["--cookies-from-browser", f"firefox:{settings.firefox_profile}"]
+    return ["--cookies-from-browser", yt_dlp_cookie_spec(settings.firefox_profile)]
 
 
 def _classify_ytdlp(result: CommandResult) -> AppError:

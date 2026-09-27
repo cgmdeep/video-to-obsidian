@@ -38,8 +38,14 @@ def test_resolve_b23_with_injected_redirect() -> None:
     assert resolved.input_kind == "b23"
 
 
-def test_metadata_uses_dedicated_firefox_profile(tmp_path: Path) -> None:
+def test_metadata_uses_resolved_dedicated_firefox_profile(tmp_path: Path, monkeypatch) -> None:
     settings = _settings(tmp_path)
+    profile = tmp_path / "real-profile"
+    profile.mkdir()
+    monkeypatch.setattr(
+        "video_to_obsidian.platforms.bilibili.yt_dlp_cookie_spec",
+        lambda _: f"firefox:{profile}",
+    )
     captured = {}
 
     def runner(command: list[str], timeout: int) -> CommandResult:
@@ -58,7 +64,7 @@ def test_metadata_uses_dedicated_firefox_profile(tmp_path: Path) -> None:
 
     metadata = fetch_metadata(resolve_input("BV1Uw826pE7J"), settings, runner=runner)
     assert metadata.identity == "bilibili_BV1Uw826pE7J_p01"
-    assert "firefox:VideoToObsidian" in captured["command"]
+    assert f"firefox:{profile}" in captured["command"]
 
 
 def test_metadata_requires_explicit_part(tmp_path: Path) -> None:

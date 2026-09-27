@@ -27,8 +27,7 @@ from .notes import (
 )
 from .platforms.bilibili import download_video, fetch_metadata, resolve_input
 from .platforms.douyin import (
-    download_video as download_douyin_video,
-    fetch_metadata as fetch_douyin_metadata,
+    DouyinDownloadAdapter,
     resolve_input as resolve_douyin_input,
 )
 from .preferences import effective_instruction
@@ -78,12 +77,11 @@ def default_bilibili_dependencies(settings: Settings) -> SingleVideoDependencies
 
 def default_douyin_dependencies(settings: Settings) -> SingleVideoDependencies:
     client = KimiVideoClient(settings)
+    adapter = DouyinDownloadAdapter()
     return SingleVideoDependencies(
         resolve=resolve_douyin_input,
-        metadata=lambda resolved, cfg: fetch_douyin_metadata(resolved, cfg),
-        download=lambda resolved, metadata, output, cfg: download_douyin_video(
-            resolved, metadata, output, cfg
-        ),
+        metadata=adapter.metadata,
+        download=adapter.download,
         probe=probe_video,
         prepare=lambda video, duration, checkpoint, cfg: prepare_kimi_video(
             video,
@@ -297,6 +295,9 @@ def _analyze_single_video(
             with tempfile.TemporaryDirectory(prefix=f"{identity}-download-") as temporary:
                 downloaded = deps.download(resolved, metadata_object, Path(temporary), settings)
                 probe = deps.probe(downloaded)
+                probe_duration = float(probe.get("duration") or 0)
+                if probe_duration > 0:
+                    metadata["duration"] = probe_duration
                 source_hash = hash_file(downloaded)
                 source_bytes = downloaded.stat().st_size
                 suffix = downloaded.suffix.lower() or ".mp4"
@@ -358,7 +359,12 @@ def _analyze_single_video(
             and proxy_path.stat().st_size <= KIMI_FILE_LIMIT_BYTES
             and manifest.get("kimi_proxy_source_sha256") == source_hash
         ):
-            prepared = deps.prepare(source, metadata_object.duration, checkpoint_dir, settings)
+            prepared = deps.prepare(
+                source,
+                float(metadata.get("duration") or metadata_object.duration),
+                checkpoint_dir,
+                settings,
+            )
             proxy_path = prepared.path
             manifest["kimi_proxy_path"] = str(proxy_path) if prepared.is_proxy else ""
             manifest["kimi_proxy_bytes"] = proxy_path.stat().st_size if prepared.is_proxy else 0

@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from video_to_obsidian.config import initialize_settings
-from video_to_obsidian.doctor import _firefox_profile_exists, doctor_payload
+from video_to_obsidian.doctor import doctor_payload
+from video_to_obsidian.firefox import profile_exists, resolve_profile_directory
 
 
 def test_doctor_never_performs_paid_call(tmp_path: Path, monkeypatch) -> None:
@@ -21,10 +22,14 @@ def test_doctor_never_performs_paid_call(tmp_path: Path, monkeypatch) -> None:
 
 def test_firefox_profile_is_matched_by_name(tmp_path: Path) -> None:
     profiles = tmp_path / "profiles.ini"
+    (tmp_path / "Profiles/video").mkdir(parents=True)
     profiles.write_text(
         "[Profile0]\nName=default-release\nPath=Profiles/default\n\n"
         "[Profile1]\nName=VideoToObsidian\nPath=Profiles/video\n",
         encoding="utf-8",
     )
-    assert _firefox_profile_exists("VideoToObsidian", profiles_file=profiles) is True
-    assert _firefox_profile_exists("missing", profiles_file=profiles) is False
+    assert profile_exists("VideoToObsidian", profiles_ini=profiles) is True
+    assert profile_exists("missing", profiles_ini=profiles) is False
+    assert resolve_profile_directory("VideoToObsidian", profiles_ini=profiles) == (
+        tmp_path / "Profiles/video"
+    ).resolve()

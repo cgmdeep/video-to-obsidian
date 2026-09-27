@@ -74,6 +74,7 @@ def probe_video(
         "video_codec": str(video.get("codec_name") or ""),
         "width": int(video.get("width") or 0),
         "height": int(video.get("height") or 0),
+        "duration": float((payload.get("format") or {}).get("duration") or 0),
     }
 
 
@@ -161,4 +162,3 @@ def prepare_kimi_video(
         "kimi_proxy_failed",
         "无法把完整视频压缩到 Kimi 单文件上限以内；原视频未被修改。",
     )
-

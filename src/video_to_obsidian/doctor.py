@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import configparser
 import importlib.util
 import os
 import platform
@@ -12,6 +11,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from .config import ConfigError, Settings, default_paths, load_settings
+from .firefox import profile_exists
 from .secrets import kimi_key_source
 
 
@@ -40,34 +40,6 @@ def _application_exists(name: str) -> bool:
         }
         return any(path.is_file() for path in candidates.get(name, []))
     return False
-
-
-def _firefox_profiles_file() -> Path:
-    system = platform.system()
-    home = Path.home()
-    if system == "Windows":
-        root = Path(os.environ.get("APPDATA", home / "AppData/Roaming"))
-        return root / "Mozilla/Firefox/profiles.ini"
-    if system == "Darwin":
-        return home / "Library/Application Support/Firefox/profiles.ini"
-    return home / ".mozilla/firefox/profiles.ini"
-
-
-def _firefox_profile_exists(name: str, *, profiles_file: Path | None = None) -> bool:
-    path = profiles_file or _firefox_profiles_file()
-    if not path.is_file():
-        return False
-    parser = configparser.ConfigParser(interpolation=None)
-    try:
-        parser.read(path, encoding="utf-8")
-    except (OSError, configparser.Error):
-        return False
-    expected = name.strip().casefold()
-    return any(
-        parser.get(section, "Name", fallback="").strip().casefold() == expected
-        for section in parser.sections()
-        if section.casefold().startswith("profile")
-    )
 
 
 def _vault_writable(settings: Settings) -> Check:
@@ -114,7 +86,7 @@ def run_doctor(config_path: Path | None = None) -> list[Check]:
     )
     if settings is not None:
         checks.append(_vault_writable(settings))
-        profile_ok = _firefox_profile_exists(settings.firefox_profile)
+        profile_ok = profile_exists(settings.firefox_profile)
         checks.append(
             Check(
                 "firefox_profile",

@@ -40,6 +40,7 @@ def test_probe_reports_audio_and_dimensions(tmp_path: Path) -> None:
             0,
             json.dumps(
                 {
+                    "format": {"duration": "123.5"},
                     "streams": [
                         {"codec_type": "video", "codec_name": "h264", "width": 1280, "height": 720},
                         {"codec_type": "audio", "codec_name": "aac"},
@@ -51,6 +52,7 @@ def test_probe_reports_audio_and_dimensions(tmp_path: Path) -> None:
     )
     assert result["has_audio"] is True
     assert result["width"] == 1280
+    assert result["duration"] == 123.5
 
 
 def test_small_video_is_used_directly(tmp_path: Path) -> None:

@@ -6,7 +6,14 @@ import pytest
 from video_to_obsidian.command import CommandResult
 from video_to_obsidian.config import initialize_settings, load_settings
 from video_to_obsidian.errors import AppError
-from video_to_obsidian.platforms.douyin import download_video, fetch_metadata, resolve_input
+from video_to_obsidian.platforms.douyin import (
+    DouyinDownloadAdapter,
+    _BrowserCapture,
+    _allowed_media_url,
+    download_video,
+    fetch_metadata,
+    resolve_input,
+)
 
 
 def _settings(tmp_path: Path):
@@ -47,8 +54,14 @@ def test_metadata_requires_stable_video_id_and_duration(tmp_path: Path) -> None:
     assert metadata.duration == 30
 
 
-def test_metadata_uses_dedicated_firefox_profile(tmp_path: Path) -> None:
+def test_metadata_uses_resolved_dedicated_firefox_profile(tmp_path: Path, monkeypatch) -> None:
     settings = _settings(tmp_path)
+    profile = tmp_path / "real-profile"
+    profile.mkdir()
+    monkeypatch.setattr(
+        "video_to_obsidian.platforms.douyin.yt_dlp_cookie_spec",
+        lambda _: f"firefox:{profile}",
+    )
     captured = {}
 
     def runner(command: list[str], timeout: int) -> CommandResult:
@@ -60,7 +73,7 @@ def test_metadata_uses_dedicated_firefox_profile(tmp_path: Path) -> None:
         )
 
     fetch_metadata(resolve_input("https://v.douyin.com/abc123/"), settings, runner=runner)
-    assert "firefox:VideoToObsidian" in captured["command"]
+    assert f"firefox:{profile}" in captured["command"]
 
 
 def test_rejects_non_video_item(tmp_path: Path) -> None:
@@ -95,3 +108,40 @@ def test_download_zero_files_is_stopped(tmp_path: Path) -> None:
             runner=lambda command, timeout: CommandResult(0, "", ""),
         )
     assert caught.value.code == "download_boundary_violation"
+
+
+def test_browser_media_allowlist_rejects_lookalike_hosts() -> None:
+    assert _allowed_media_url("https://v26-webf.douyinvod.com/path") is True
+    assert _allowed_media_url("http://v26-webf.douyinvod.com/path") is False
+    assert _allowed_media_url("https://douyinvod.com.evil.example/path") is False
+
+
+def test_adapter_falls_back_to_browser_without_persisting_media_url(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    settings = _settings(tmp_path)
+    adapter = DouyinDownloadAdapter()
+    resolved = resolve_input("https://v.douyin.com/abc123/")
+    capture = _BrowserCapture(
+        source_url=resolved.url,
+        page_url="https://www.douyin.com/video/1234567890123456789",
+        media_urls=("https://v26-webf.douyinvod.com/signed",),
+        user_agent="Mozilla/5.0",
+        title="测试标题 - 抖音",
+        description="测试描述",
+        uploader="测试作者",
+    )
+
+    def fail_ytdlp(*args, **kwargs):
+        raise AppError("douyin_login_required", "fresh cookies")
+
+    monkeypatch.setattr("video_to_obsidian.platforms.douyin.fetch_metadata", fail_ytdlp)
+    monkeypatch.setattr(adapter, "_capture_browser", lambda *_: capture)
+    metadata = adapter.metadata(resolved, settings)
+
+    assert metadata.identity == "douyin_1234567890123456789"
+    assert metadata.url == "https://www.douyin.com/video/1234567890123456789"
+    assert metadata.title == "测试标题"
+    assert metadata.download_auth == "firefox_browser"
+    assert "signed" not in json.dumps(metadata.to_dict(), ensure_ascii=False)

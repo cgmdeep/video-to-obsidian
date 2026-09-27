@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
+
+import httpx
 
 from ..command import CommandResult, CommandRunner, run_command, yt_dlp_command
 from ..config import Settings
 from ..errors import AppError
+from ..firefox import yt_dlp_cookie_spec
 
 
 _URL = re.compile(
@@ -58,6 +65,17 @@ class DouyinMetadata:
         }
 
 
+@dataclass(frozen=True)
+class _BrowserCapture:
+    source_url: str
+    page_url: str
+    media_urls: tuple[str, ...]
+    user_agent: str
+    title: str
+    description: str
+    uploader: str
+
+
 def resolve_input(share_text: str) -> ResolvedDouyin:
     match = _URL.search(share_text or "")
     if not match:
@@ -71,7 +89,7 @@ def resolve_input(share_text: str) -> ResolvedDouyin:
 
 
 def _cookie_args(settings: Settings) -> list[str]:
-    return ["--cookies-from-browser", f"firefox:{settings.firefox_profile}"]
+    return ["--cookies-from-browser", yt_dlp_cookie_spec(settings.firefox_profile)]
 
 
 def _classify_ytdlp(result: CommandResult) -> AppError:
@@ -201,3 +219,308 @@ def download_video(
     if metadata.identity != f"douyin_{metadata.aweme_id}":
         raise AppError("identity_mismatch", "下载前后的稳定身份不一致。")
     return path
+
+
+def _allowed_media_url(url: str) -> bool:
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        return False
+    host = parsed.hostname.lower()
+    return any(
+        host == suffix or host.endswith(f".{suffix}")
+        for suffix in ("douyinvod.com", "bytecdn.cn", "bytecdn.com")
+    )
+
+
+def _probe_streams(path: Path, *, runner: CommandRunner = run_command) -> dict[str, Any]:
+    result = runner(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_streams",
+            "-show_format",
+            "-of",
+            "json",
+            str(path),
+        ],
+        120,
+    )
+    if result.returncode != 0:
+        return {}
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {}
+    streams = payload.get("streams") if isinstance(payload, dict) else None
+    if not isinstance(streams, list):
+        return {}
+    return {
+        "has_video": any(
+            isinstance(item, dict) and item.get("codec_type") == "video"
+            for item in streams
+        ),
+        "has_audio": any(
+            isinstance(item, dict) and item.get("codec_type") == "audio"
+            for item in streams
+        ),
+    }
+
+
+class DouyinDownloadAdapter:
+    """Use yt-dlp when possible, then fall back to the user's real Firefox session."""
+
+    def __init__(self) -> None:
+        self._capture: _BrowserCapture | None = None
+        self._use_ytdlp = False
+
+    def metadata(self, resolved: ResolvedDouyin, settings: Settings) -> DouyinMetadata:
+        try:
+            metadata = fetch_metadata(resolved, settings)
+        except AppError as exc:
+            if exc.code not in {"douyin_login_required", "yt_dlp_failed"}:
+                raise
+            capture = self._capture_browser(resolved, settings)
+            self._capture = capture
+            self._use_ytdlp = False
+            match = re.search(r"/video/(\d{8,30})", capture.page_url)
+            if not match:
+                raise AppError("invalid_metadata", "无法从抖音链接取得稳定作品 ID。")
+            aweme_id = match.group(1)
+            title = re.sub(r"\s*[-|_]\s*抖音.*$", "", capture.title).strip()
+            if not title:
+                title = capture.description.strip()[:120] or aweme_id
+            return DouyinMetadata(
+                identity=f"douyin_{aweme_id}",
+                aweme_id=aweme_id,
+                url=f"https://www.douyin.com/video/{aweme_id}",
+                title=title,
+                uploader=capture.uploader,
+                uploader_id="",
+                duration=0,
+                upload_date="",
+                description=capture.description,
+                tags=(),
+                download_auth="firefox_browser",
+            )
+        self._capture = None
+        self._use_ytdlp = True
+        return metadata
+
+    def download(
+        self,
+        resolved: ResolvedDouyin,
+        metadata: DouyinMetadata,
+        output_dir: Path,
+        settings: Settings,
+    ) -> Path:
+        if self._use_ytdlp:
+            return download_video(resolved, metadata, output_dir, settings)
+        capture = self._capture
+        self._capture = None
+        if capture is None or capture.source_url != resolved.url:
+            raise AppError(
+                "douyin_browser_capture_missing",
+                "抖音浏览器下载上下文已失效，请重新提交该视频。",
+            )
+        return self._download_browser_capture(capture, output_dir, settings)
+
+    def _capture_browser(
+        self,
+        resolved: ResolvedDouyin,
+        settings: Settings,
+    ) -> _BrowserCapture:
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.firefox.options import Options
+        except ImportError as exc:
+            raise AppError(
+                "missing_dependency",
+                "抖音浏览器下载需要 Selenium；请重新运行安装器修复运行环境。",
+            ) from exc
+
+        from ..firefox import resolve_profile_directory
+
+        profile = resolve_profile_directory(settings.firefox_profile)
+        if profile is None or not profile.is_dir():
+            raise AppError(
+                "douyin_login_required",
+                "找不到专用 Firefox Profile，请重新运行安装器并扫码登录抖音。",
+            )
+
+        options = Options()
+        options.add_argument("-headless")
+        options.profile = str(profile)
+        options.set_preference("media.autoplay.default", 0)
+        options.set_preference("media.autoplay.blocking_policy", 0)
+        driver = None
+        try:
+            driver = webdriver.Firefox(options=options)
+            driver.set_page_load_timeout(90)
+            driver.get(resolved.url)
+            deadline = time.monotonic() + 45
+            first_media_at: float | None = None
+            resources: list[dict[str, Any]] = []
+            while time.monotonic() < deadline:
+                raw = driver.execute_script(
+                    """
+                    return performance.getEntriesByType('resource').map(r => ({
+                      name: r.name || '',
+                      transferSize: r.transferSize || 0
+                    }));
+                    """
+                )
+                resources = raw if isinstance(raw, list) else []
+                captured_urls = {
+                    str(item.get("name") or "")
+                    for item in resources
+                    if _allowed_media_url(str(item.get("name") or ""))
+                }
+                if captured_urls and first_media_at is None:
+                    first_media_at = time.monotonic()
+                if len(captured_urls) >= 2:
+                    break
+                if first_media_at is not None and time.monotonic() - first_media_at >= 15:
+                    break
+                time.sleep(1)
+
+            ranked = sorted(
+                (
+                    (int(item.get("transferSize") or 0), str(item.get("name") or ""))
+                    for item in resources
+                    if _allowed_media_url(str(item.get("name") or ""))
+                ),
+                reverse=True,
+            )
+            media_urls = tuple(dict.fromkeys(url for _, url in ranked if url))
+            if not media_urls:
+                raise AppError(
+                    "douyin_browser_capture_failed",
+                    "Firefox 已打开抖音页面，但没有捕获到单视频媒体请求。",
+                )
+            metadata = driver.execute_script(
+                """
+                const pick = (...selectors) => {
+                  for (const selector of selectors) {
+                    const node = document.querySelector(selector);
+                    if (node && node.content) return node.content;
+                  }
+                  return '';
+                };
+                return {
+                  title: document.title || pick('meta[property="og:title"]'),
+                  description: pick('meta[name="description"]', 'meta[property="og:description"]'),
+                  uploader: pick('meta[name="author"]')
+                };
+                """
+            )
+            return _BrowserCapture(
+                source_url=resolved.url,
+                page_url=str(driver.current_url),
+                media_urls=media_urls,
+                user_agent=str(driver.execute_script("return navigator.userAgent") or ""),
+                title=str((metadata or {}).get("title") or ""),
+                description=str((metadata or {}).get("description") or ""),
+                uploader=str((metadata or {}).get("uploader") or ""),
+            )
+        except AppError:
+            raise
+        except Exception as exc:
+            raise AppError(
+                "douyin_browser_failed",
+                "Firefox 自动读取抖音视频失败；请关闭专用 Firefox 后重试。",
+            ) from exc
+        finally:
+            if driver is not None:
+                driver.quit()
+
+    def _download_browser_capture(
+        self,
+        capture: _BrowserCapture,
+        output_dir: Path,
+        settings: Settings,
+    ) -> Path:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        destination = output_dir / "source.mp4"
+        with tempfile.TemporaryDirectory(prefix="douyin-browser-", dir=output_dir) as temporary:
+            temp_dir = Path(temporary)
+            video_source: Path | None = None
+            audio_source: Path | None = None
+            combined_source: Path | None = None
+            timeout = httpx.Timeout(float(settings.download_timeout_seconds))
+            with httpx.Client(follow_redirects=True, timeout=timeout) as client:
+                for index, media_url in enumerate(capture.media_urls[:8]):
+                    if not _allowed_media_url(media_url):
+                        continue
+                    candidate = temp_dir / f"candidate-{index}.media"
+                    try:
+                        with client.stream(
+                            "GET",
+                            media_url,
+                            headers={
+                                "User-Agent": capture.user_agent,
+                                "Referer": capture.page_url,
+                            },
+                        ) as response:
+                            if response.status_code not in {200, 206}:
+                                continue
+                            with candidate.open("wb") as handle:
+                                for chunk in response.iter_bytes():
+                                    handle.write(chunk)
+                        if candidate.stat().st_size < 100_000:
+                            continue
+                        probe = _probe_streams(candidate)
+                        if probe.get("has_video") and probe.get("has_audio"):
+                            combined_source = candidate
+                            break
+                        if probe.get("has_video") and (
+                            video_source is None
+                            or candidate.stat().st_size > video_source.stat().st_size
+                        ):
+                            video_source = candidate
+                        if probe.get("has_audio") and (
+                            audio_source is None
+                            or candidate.stat().st_size > audio_source.stat().st_size
+                        ):
+                            audio_source = candidate
+                    except (OSError, httpx.HTTPError):
+                        candidate.unlink(missing_ok=True)
+
+            if combined_source is not None:
+                os.replace(combined_source, destination)
+            elif video_source is not None and audio_source is not None:
+                result = run_command(
+                    [
+                        "ffmpeg",
+                        "-y",
+                        "-hide_banner",
+                        "-loglevel",
+                        "error",
+                        "-i",
+                        str(video_source),
+                        "-i",
+                        str(audio_source),
+                        "-map",
+                        "0:v:0",
+                        "-map",
+                        "1:a:0",
+                        "-c",
+                        "copy",
+                        str(destination),
+                    ],
+                    settings.download_timeout_seconds,
+                )
+                if result.returncode != 0:
+                    destination.unlink(missing_ok=True)
+                    raise AppError(
+                        "douyin_media_merge_failed",
+                        "抖音音视频流下载成功，但 ffmpeg 合并失败。",
+                    )
+            else:
+                raise AppError(
+                    "douyin_media_incomplete",
+                    "浏览器已捕获抖音媒体，但未同时取得完整画面和声音。",
+                )
+        if not destination.is_file() or destination.stat().st_size <= 0:
+            raise AppError("download_boundary_violation", "抖音浏览器下载没有产生单个媒体文件。")
+        return destination
