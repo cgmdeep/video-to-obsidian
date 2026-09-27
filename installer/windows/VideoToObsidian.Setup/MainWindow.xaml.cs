@@ -9,15 +9,14 @@ namespace VideoToObsidian.Setup;
 public partial class MainWindow : Window
 {
     private readonly BackendClient _backend = new();
-    private readonly InstallationClient _installation = new();
+    private readonly MachinePreparationClient _preparation = new();
     private readonly string _workspacePath;
 
     public MainWindow()
     {
         InitializeComponent();
-        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        _workspacePath = Path.Combine(documents, "视知库助手");
-        VaultPathBox.Text = Path.Combine(documents, "视知库");
+        _workspacePath = MachinePreparationClient.DefaultWorkspacePath;
+        VaultPathBox.Text = MachinePreparationClient.DefaultVaultPath;
         Loaded += async (_, _) => await RefreshStatusAsync();
     }
 
@@ -25,16 +24,13 @@ public partial class MainWindow : Window
     {
         await GuardedAsync(async () =>
         {
-            await _installation.EnsureInstalledAsync(message =>
+            await _preparation.PrepareAsync(
+                VaultPathBox.Text,
+                _workspacePath,
+                message =>
             {
                 Dispatcher.Invoke(() => StatusText.Text = message);
             });
-            await _backend.RunAsync(
-                new[] { "init", "--vault", VaultPathBox.Text, "--reuse-existing" }
-            );
-            await _backend.RunJsonAsync(
-                new[] { "bootstrap-workspace", "--workspace", _workspacePath, "--json" }
-            );
             await RefreshStatusAsync();
         });
     }
@@ -190,7 +186,7 @@ public partial class MainWindow : Window
 
     private async Task RefreshStatusAsync()
     {
-        if (!_installation.IsInstalled)
+        if (!_preparation.IsInstalled)
         {
             StatusText.Text = "尚未安装视知库核心。请先点击“一键准备本机”。";
             return;

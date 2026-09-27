@@ -27,11 +27,17 @@ public partial class App : Application
             object report;
             try
             {
-                await new InstallationClient().EnsureInstalledAsync(_ => { });
+                await new MachinePreparationClient().PrepareAsync(
+                    MachinePreparationClient.DefaultVaultPath,
+                    MachinePreparationClient.DefaultWorkspacePath,
+                    _ => { }
+                );
                 report = new
                 {
                     schema_version = 1,
                     ok = true,
+                    vault_created = Directory.Exists(MachinePreparationClient.DefaultVaultPath),
+                    workspace_created = Directory.Exists(MachinePreparationClient.DefaultWorkspacePath),
                     contains_secrets = false,
                     paid_call_performed = false,
                 };
