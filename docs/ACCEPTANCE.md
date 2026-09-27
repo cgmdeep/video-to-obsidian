@@ -8,8 +8,8 @@
 - [ ] 只下载一个 `VideoToObsidian.Setup.exe`，不预装 Python；
 - [x] 记录安装器来源 commit、文件字节数和 SHA256；
 - [ ] 当前目标 ZCode 版本及版本号；
-- [ ] 全新 Firefox `VideoToObsidian` Profile；
-- [ ] 全新 Obsidian Vault；
+- [x] 全新 Firefox `VideoToObsidian` Profile（干净 Runner 自动验收）；
+- [x] 全新 Obsidian Vault（干净 Runner 自动验收）；
 - [ ] 标准版安装、重装和卸载。
 
 ## 普通用户路径
@@ -28,19 +28,19 @@
 
 - [x] `doctor --json` 不调用 Kimi；
 - [ ] `route_video` 正确区分抖音、B站和“使用K3深度分析”；
-- [ ] 安装、启动、重新检查阶段账户无 token 扣费；
-- [ ] ZCode 只发现一个 `video-to-obsidian` MCP；
+- [x] 安装、启动、重新检查阶段账户无 token 扣费（自动准备与 `doctor` 均无付费调用）；
+- [x] ZCode 只发现一个 `video-to-obsidian` MCP；
 - [ ] 原有 ZCode MCP 配置未变化；
-- [ ] 日志、配置和 Vault 不出现 Key、Cookie、签名 URL；
-- [ ] 默认不创建 `.obsidian` 或安装社区插件。
+- [x] 首次准备的进度、配置和空 Vault 不出现 Key、Cookie、签名 URL；
+- [x] 默认不创建 `.obsidian` 或安装社区插件。
 
 ### 2026-09-27 干净 Runner 首次准备
 
-- workflow：[`Windows clean acceptance #36307530529`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36307530529)；
-- commit：`f25a67055b02330c177a5a2396a4fecdc0541d09`；安装包 71,663,005 字节；SHA256 `72f5b81927eb3469dd7da6ea09b6e890c3a971fed1190d525532eaa23651f736`；
+- workflow：[`Windows clean acceptance #36308011099`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36308011099)；
+- commit：`9b0a4206608a34c1210444f675e1d0566fb91127`；安装包 71,663,006 字节；SHA256 `e9f8eda8f8bf35b764ed1936ec791f4dc02772192eb850fcbe0cac44409692f6`；
 - 安装器通过与图形按钮相同的准备协调器完成运行时、Firefox、Obsidian、ffmpeg、中文 Vault 和专用工作区；
 - 首轮验收暴露后台命令无超时，第二轮暴露英文 Windows `cp1252` 无法输出中文；均已修复后通过；
-- 结果 JSON：`ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`；
+- 结果 JSON：`ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`；另验证专用 Firefox Profile、单一 MCP、无 `.obsidian`、配置无疑似 Key/Cookie 字段和免费 `doctor`；
 - 不据此勾选 Windows 11 图形点击、扫码、ZCode 微信、卸载或真实视频项目。
 
 ## 卸载与恢复

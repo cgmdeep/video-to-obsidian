@@ -45,11 +45,11 @@
 
 ### 2026-09-27 干净 Windows Runner 证据
 
-- commit：`f25a67055b02330c177a5a2396a4fecdc0541d09`；
-- 工作流：[Windows clean acceptance #36307530529](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36307530529)；
-- `VideoToObsidian.Setup.exe`：71,663,005 字节；
-- SHA256：`72f5b81927eb3469dd7da6ea09b6e890c3a971fed1190d525532eaa23651f736`；
-- 结果：临时英文 Windows Runner 完成核心、Firefox、Obsidian、ffmpeg、默认中文 Vault 和专用 ZCode 工作区准备；`contains_secrets=false`、`paid_call_performed=false`；
+- commit：`9b0a4206608a34c1210444f675e1d0566fb91127`；
+- 工作流：[Windows clean acceptance #36308011099](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36308011099)；
+- `VideoToObsidian.Setup.exe`：71,663,006 字节；
+- SHA256：`e9f8eda8f8bf35b764ed1936ec791f4dc02772192eb850fcbe0cac44409692f6`；
+- 结果：临时英文 Windows Runner 完成核心、Firefox、Obsidian、ffmpeg、默认中文 Vault 和专用 ZCode 工作区准备；确认专用 Firefox Profile、单一 MCP、无 `.obsidian`、脱敏配置和免费 `doctor`；`contains_secrets=false`、`paid_call_performed=false`；
 - 边界：这是无人值守准备验收，不替代 Windows 11 图形点击、用户扫码、ZCode 微信 Bot、卸载和真实视频验收。
 
 ## 不进入 v0.1
