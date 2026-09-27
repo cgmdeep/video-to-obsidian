@@ -6,7 +6,7 @@
 
 - [ ] 干净 Windows 11 设备或全新虚拟机；
 - [ ] 只下载一个 `VideoToObsidian.Setup.exe`，不预装 Python；
-- [ ] 记录安装器来源 commit、文件字节数和 SHA256；
+- [x] 记录安装器来源 commit、文件字节数和 SHA256；
 - [ ] 当前目标 ZCode 版本及版本号；
 - [ ] 全新 Firefox `VideoToObsidian` Profile；
 - [ ] 全新 Obsidian Vault；
@@ -26,13 +26,22 @@
 
 ## 免费检查
 
-- [ ] `doctor --json` 不调用 Kimi；
+- [x] `doctor --json` 不调用 Kimi；
 - [ ] `route_video` 正确区分抖音、B站和“使用K3深度分析”；
 - [ ] 安装、启动、重新检查阶段账户无 token 扣费；
 - [ ] ZCode 只发现一个 `video-to-obsidian` MCP；
 - [ ] 原有 ZCode MCP 配置未变化；
 - [ ] 日志、配置和 Vault 不出现 Key、Cookie、签名 URL；
 - [ ] 默认不创建 `.obsidian` 或安装社区插件。
+
+### 2026-09-27 干净 Runner 首次准备
+
+- workflow：[`Windows clean acceptance #36307530529`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36307530529)；
+- commit：`f25a67055b02330c177a5a2396a4fecdc0541d09`；安装包 71,663,005 字节；SHA256 `72f5b81927eb3469dd7da6ea09b6e890c3a971fed1190d525532eaa23651f736`；
+- 安装器通过与图形按钮相同的准备协调器完成运行时、Firefox、Obsidian、ffmpeg、中文 Vault 和专用工作区；
+- 首轮验收暴露后台命令无超时，第二轮暴露英文 Windows `cp1252` 无法输出中文；均已修复后通过；
+- 结果 JSON：`ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`；
+- 不据此勾选 Windows 11 图形点击、扫码、ZCode 微信、卸载或真实视频项目。
 
 ## 卸载与恢复
 

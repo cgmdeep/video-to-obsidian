@@ -28,7 +28,7 @@
 
 - [x] 加入 Apache License 2.0，并在 Python 包元数据中声明。
 - [ ] 使用一台不含作者私人配置的 Windows 11 设备跑完整安装。
-- [ ] 记录该安装器的 commit、字节数、SHA256 和 CI 链接。
+- [x] 记录干净 Runner 安装器的 commit、字节数、SHA256 和 CI 链接。
 - [ ] 核验目标 ZCode 版本的 stdio MCP 配置字段。
 - [ ] 在无 Coding Plan 的干净 ZCode 中，用用户自有 Moonshot Key 调用免费 `doctor`。
 - [ ] 微信 Bot Channel 绑定到专用“视知库助手”工作区，不影响其他 ZCode 项目。
@@ -42,6 +42,15 @@
 - [x] 仓库已切换为 Public，GitHub Private Vulnerability Reporting API 报告 `enabled: true`，公开 Security Policy 页面可访问。
 - [ ] 完成真实付费样本后，在验收记录中填写 usage、当日单价与实际扣费；README 不写死每条价格。
 - [ ] 核验 README 中模型名称、充值规则和外部安装说明在发布当天仍有效。
+
+### 2026-09-27 干净 Windows Runner 证据
+
+- commit：`f25a67055b02330c177a5a2396a4fecdc0541d09`；
+- 工作流：[Windows clean acceptance #36307530529](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36307530529)；
+- `VideoToObsidian.Setup.exe`：71,663,005 字节；
+- SHA256：`72f5b81927eb3469dd7da6ea09b6e890c3a971fed1190d525532eaa23651f736`；
+- 结果：临时英文 Windows Runner 完成核心、Firefox、Obsidian、ffmpeg、默认中文 Vault 和专用 ZCode 工作区准备；`contains_secrets=false`、`paid_call_performed=false`；
+- 边界：这是无人值守准备验收，不替代 Windows 11 图形点击、用户扫码、ZCode 微信 Bot、卸载和真实视频验收。
 
 ## 不进入 v0.1
 
