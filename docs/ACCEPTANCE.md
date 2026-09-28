@@ -52,6 +52,16 @@
 - 修复后 SSH 体检会如实报告“系统钥匙串不可用”而不崩溃，其余依赖全部通过，`paid_call_performed=false`；
 - 同一机器的交互用户会话体检 `doctor_ok=true`，Kimi Key 可从 keyring 读取，未显示密钥、未触发付费调用。
 
+### 2026-09-28 旧线稳定性迁移与 ROG 免费验收
+
+- 迁移 commit：`28bee288021f9a54f3dc2dd81431801567d23b1b`；CI、安全扫描和 Windows 3.11/3.12 回归均通过；
+- 干净 Windows 首次准备 workflow：[`#36364601578`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36364601578)，从构建 wheel、发布单文件安装器到新用户准备全部通过；
+- 安装包 SHA256 `7f04d4cc2e6b206b376cc1e42e0d53ca515118d8961a140d99aab6f8f8aea974`；ROG 升级前已保留 `VideoToObsidian.Setup.pre-reuse-port.exe`；
+- ROG 幂等准备返回 `ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`；
+- Windows 实机制造“父 Python 启动子 Python 后超时”，返回 `command_timeout`、`retryable=false`，子进程确认已清理；
+- SSH 非交互体检只报告 Windows Credential Manager 不可用，其余依赖、Vault、Firefox Profile 和受管工作区均通过；该结果不代表交互用户会话中的 keyring 失效。
+- 本轮未执行真实视频和 Kimi 调用；B 站 412 公开 API 降级、抖音分享文本元数据恢复、任务锁和 Kimi 尝试账本仍需通过真实样本验收。
+
 ## 卸载与恢复
 
 - [x] 重复执行“一键准备本机”的共享准备协调器不会重复创建环境或破坏配置；
