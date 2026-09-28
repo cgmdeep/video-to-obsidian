@@ -14,7 +14,7 @@
 
 也可以直接把完整分享文本粘贴到 ZCode。
 
-> 当前状态：`v0.1.0-alpha` 建设中，尚未发布。独立 Windows 11 ROG 已完成一条抖音真实下载、Kimi K2.7 单次分析与 Obsidian 入库闭环；B站真实闭环、干净 Windows 安装器和微信 Bot 全流程仍待公开验收，不得描述为生产可用。
+> 当前状态：`v0.1.0-alpha.1` 发布候选。Windows 干净 Runner 已完成单文件安装器准备验收，独立 Windows 11 ROG 已完成抖音真实下载、Kimi K2.7 单次分析、Obsidian 入库、ZCode 官方微信 Bot 免费体检和超时子进程清理验收。B站付费真实闭环、长视频固定集、完整卸载与规模稳定性仍待验证，因此只能描述为未签名 Alpha，不能描述为生产可用。
 
 ## 设计目标
 
@@ -93,7 +93,7 @@ video-to-obsidian clear-summary-preferences
 
 ## Windows alpha 安装
 
-普通用户的目标入口是单个 `VideoToObsidian.Setup.exe`，不需要克隆仓库、安装 Coding Plan、理解 Python、PowerShell 或 MCP。当前尚未发布稳定 Release；测试版由 GitHub Actions 在每次通过 CI 后生成，正式下载链接必须等干净 Windows 验收通过后再发布。
+普通用户的目标入口是单个 `VideoToObsidian.Setup.exe`，不需要克隆仓库、安装 Coding Plan、理解 Python、PowerShell 或 MCP。首个公开包是 GitHub Pre-release 中的未签名 Alpha；下载后应对照 Release 页提供的 SHA256。它不是稳定版，Windows SmartScreen 可能显示未知发布者提示。
 
 安装向导会：
 
@@ -112,7 +112,7 @@ video-to-obsidian clear-summary-preferences
 
 完整步骤、失败恢复和卸载方式见 [Windows 安装与扫码指南](docs/INSTALL_WINDOWS.md)。
 
-当前 alpha 首发以 Windows 11 为优先验证平台。发布门槛见 [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)。
+当前 Alpha 首发以 Windows 11 x64 为优先验证平台。发布包见 [GitHub Releases](https://github.com/cgmdeep/video-to-obsidian/releases)，发布门槛见 [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)。
 
 ## 两种档位
 

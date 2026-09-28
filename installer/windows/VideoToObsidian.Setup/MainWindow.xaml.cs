@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -161,7 +162,10 @@ public partial class MainWindow : Window
             {
                 ["schema_version"] = 1,
                 ["generated_at_utc"] = DateTimeOffset.UtcNow,
-                ["installer_version"] = typeof(MainWindow).Assembly.GetName().Version?.ToString(),
+                ["installer_version"] = typeof(MainWindow).Assembly
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                    ?.InformationalVersion
+                    ?? typeof(MainWindow).Assembly.GetName().Version?.ToString(),
                 ["contains_secrets"] = false,
                 ["paid_call_performed"] = false,
                 ["onboarding_status"] = status.RootElement.Clone(),

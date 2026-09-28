@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "video-to-obsidian"
-version = "0.1.0a0"
+version = "0.1.0a1"
 description = "Analyze Douyin and Bilibili videos with Kimi and save structured notes to Obsidian."
 readme = "README.md"
 requires-python = ">=3.11"

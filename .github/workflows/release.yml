@@ -1,0 +1,205 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  python-package:
+    name: Test and package Python core
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Validate release metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+          import xml.etree.ElementTree as ET
+
+          root = pathlib.Path.cwd()
+          tag = os.environ["GITHUB_REF_NAME"]
+          project_version = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+          csproj = ET.parse(root / "installer/windows/VideoToObsidian.Setup/VideoToObsidian.Setup.csproj").getroot()
+          values = {child.tag: child.text for group in csproj.findall("PropertyGroup") for child in group}
+          product_version = values["InformationalVersion"]
+          expected_python = product_version.replace("-alpha.", "a")
+          assert tag == f"v{product_version}", (tag, product_version)
+          assert project_version == expected_python, (project_version, expected_python)
+          assert (root / f"docs/releases/{tag}.md").is_file(), tag
+          PY
+      - name: Install test and release dependencies
+        run: python -m pip install --upgrade pip ".[test,release]"
+      - name: Run tests
+        run: python -m pytest
+      - name: Build and inspect packages
+        run: |
+          python -m build
+          python -m twine check dist/*
+      - name: Upload Python packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-python-package
+          path: dist/*
+          if-no-files-found: error
+
+  windows-installer:
+    name: Build and prepare on clean Windows
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Build embedded core wheel
+        shell: pwsh
+        run: |
+          Remove-Item -Recurse -Force dist, build, installer/windows/VideoToObsidian.Setup/Payload, installer/windows/VideoToObsidian.Setup/bin, installer/windows/VideoToObsidian.Setup/obj -ErrorAction SilentlyContinue
+          python -m pip install --upgrade pip "build>=1,<2"
+          python -m build --wheel --outdir artifacts/core-wheel
+          $Wheels = @(Get-ChildItem artifacts/core-wheel/*.whl -File)
+          if ($Wheels.Count -ne 1) {
+            throw "Expected exactly one core wheel, found: $($Wheels.Name -join ', ')"
+          }
+          New-Item -ItemType Directory -Force installer/windows/VideoToObsidian.Setup/Payload | Out-Null
+          Copy-Item $Wheels[0].FullName installer/windows/VideoToObsidian.Setup/Payload/
+      - name: Publish versioned single-file installer
+        shell: pwsh
+        run: |
+          dotnet publish installer/windows/VideoToObsidian.Setup/VideoToObsidian.Setup.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            --output artifacts/windows-x64
+          $Files = @(Get-ChildItem artifacts/windows-x64 -File)
+          if ($Files.Count -ne 1 -or $Files[0].Name -ne 'VideoToObsidian.Setup.exe') {
+            throw "Expected one VideoToObsidian.Setup.exe, found: $($Files.Name -join ', ')"
+          }
+          $Version = [Diagnostics.FileVersionInfo]::GetVersionInfo($Files[0].FullName)
+          if ($Version.FileVersion -ne '0.1.0.1' -or $Version.ProductVersion -notlike '0.1.0-alpha.1*') {
+            throw "Unexpected installer version: file=$($Version.FileVersion), product=$($Version.ProductVersion)"
+          }
+      - name: Verify embedded payload
+        shell: pwsh
+        run: |
+          $Setup = Resolve-Path artifacts/windows-x64/VideoToObsidian.Setup.exe
+          $Report = Join-Path $env:RUNNER_TEMP 'embedded-payload.json'
+          $Process = Start-Process -FilePath $Setup -ArgumentList @('--verify-payload', $Report) -Wait -PassThru
+          if ($Process.ExitCode -ne 0 -or -not (Test-Path $Report)) {
+            throw "Published setup failed embedded payload verification (exit $($Process.ExitCode))."
+          }
+          $Payload = Get-Content $Report -Raw | ConvertFrom-Json
+          if (-not $Payload.has_selenium -or -not $Payload.sha256) {
+            throw 'Published setup contains an invalid embedded wheel.'
+          }
+      - name: Run full free first-time preparation
+        timeout-minutes: 16
+        shell: pwsh
+        run: |
+          $Setup = Resolve-Path artifacts/windows-x64/VideoToObsidian.Setup.exe
+          $Report = Join-Path $env:RUNNER_TEMP 'windows-clean-acceptance.json'
+          $Process = Start-Process -FilePath $Setup -ArgumentList @('--prepare-machine', $Report) -PassThru
+          $Deadline = (Get-Date).AddMinutes(15)
+          $LastPhase = ''
+          while (-not $Process.HasExited -and (Get-Date) -lt $Deadline) {
+            Start-Sleep -Seconds 10
+            $Process.Refresh()
+            if (Test-Path $Report) {
+              try {
+                $Progress = Get-Content $Report -Raw | ConvertFrom-Json
+                if ($Progress.phase -and $Progress.phase -ne $LastPhase) {
+                  Write-Host "Installer phase: $($Progress.phase)"
+                  $LastPhase = $Progress.phase
+                }
+              } catch {
+                Write-Host 'Installer progress report is being updated.'
+              }
+            }
+          }
+          if (-not $Process.HasExited) {
+            Stop-Process -Id $Process.Id -Force
+            throw "Installer exceeded the 15-minute clean preparation limit. Last phase: $LastPhase"
+          }
+          if (-not (Test-Path $Report)) {
+            throw "Installer did not produce a preparation report (exit $($Process.ExitCode))."
+          }
+          $Payload = Get-Content $Report -Raw | ConvertFrom-Json
+          if ($Process.ExitCode -ne 0 -or -not $Payload.ok) {
+            throw "Installer preparation failed: $($Payload.error_type): $($Payload.error)"
+          }
+          if (-not $Payload.vault_created -or -not $Payload.workspace_created) {
+            throw 'Installer did not create both the default Vault and workspace.'
+          }
+          if ($Payload.contains_secrets -or $Payload.paid_call_performed) {
+            throw 'Free preparation reported secrets or a paid call.'
+          }
+          Copy-Item $Report artifacts/windows-x64/windows-clean-acceptance.json
+      - name: Upload Windows release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-windows-x64
+          path: |
+            artifacts/windows-x64/VideoToObsidian.Setup.exe
+            artifacts/windows-x64/windows-clean-acceptance.json
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub prerelease
+    needs: [python-package, windows-installer]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Download verified build assets
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Generate source SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: release-assets/video-to-obsidian-${{ github.ref_name }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Generate SHA256SUMS
+        shell: bash
+        run: |
+          cd release-assets
+          find . -maxdepth 1 -type f ! -name SHA256SUMS -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | sed 's#  \./#  #' > SHA256SUMS
+          test -s SHA256SUMS
+      - name: Create prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --prerelease \
+            --title "视知库 $GITHUB_REF_NAME" \
+            --notes-file "docs/releases/$GITHUB_REF_NAME.md"

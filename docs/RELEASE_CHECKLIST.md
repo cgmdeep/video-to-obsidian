@@ -1,4 +1,6 @@
-# v0.1 Alpha 发布门槛
+# v0.1.0 Alpha 发布门槛
+
+`v0.1.0-alpha.1` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费准备验收，并同时生成 SHA256 与 SBOM。真实付费样本、完整卸载和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
 
 ## 已完成
 
@@ -29,10 +31,10 @@
 - [x] 加入 Apache License 2.0，并在 Python 包元数据中声明。
 - [ ] 使用一台不含作者私人配置的 Windows 11 设备跑完整安装。
 - [x] 记录干净 Runner 安装器的 commit、字节数、SHA256 和 CI 链接。
-- [ ] 核验目标 ZCode 版本的 stdio MCP 配置字段。
-- [ ] 在无 Coding Plan 的干净 ZCode 中，用用户自有 Moonshot Key 调用免费 `doctor`。
-- [ ] 微信 Bot Channel 绑定到专用“视知库助手”工作区，不影响其他 ZCode 项目。
-- [ ] 验证 Firefox 专用 Profile 名称能被 yt-dlp 正确读取。
+- [x] 核验目标 ZCode 版本的 stdio MCP 配置字段。
+- [x] 在 Windows 实机 ZCode 中，用用户自有 Moonshot Key 调用免费 `doctor`。
+- [x] 微信 Bot Channel 绑定到专用“视知库助手”工作区，不影响其他 ZCode 项目。
+- [x] 验证 Firefox 专用 Profile 名称能被下载适配器正确读取。
 - [ ] 分别用一条小型抖音和B站公开视频完成真实下载。
 - [ ] 经用户明确同意后，分别完成一次真实 K2.7 付费分析。
 - [ ] 验证无逐字稿标准版和远程 SenseVoice 增强版。
@@ -42,6 +44,7 @@
 - [x] 仓库已切换为 Public，GitHub Private Vulnerability Reporting API 报告 `enabled: true`，公开 Security Policy 页面可访问。
 - [ ] 完成真实付费样本后，在验收记录中填写 usage、当日单价与实际扣费；README 不写死每条价格。
 - [ ] 核验 README 中模型名称、充值规则和外部安装说明在发布当天仍有效。
+- [ ] 标签构建生成版本化 EXE、`SHA256SUMS`、SPDX SBOM、发行说明和干净 Runner 报告。
 
 ### 2026-09-27 干净 Windows Runner 证据
 

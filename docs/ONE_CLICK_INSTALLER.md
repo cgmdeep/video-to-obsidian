@@ -44,8 +44,8 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] 不返回 API Key 或 Base URL；
 - [x] 专用工作区和工作区级 MCP；
 - [x] 明确操作后可增量配置 Moonshot；
-- [ ] 干净 Windows 上用 Moonshot 完成一次免费 `doctor` 工具调用；
-- [ ] 在该工作区创建微信 Bot Channel，微信发“检查系统”可收到回复。
+- [x] Windows 实机上用 Moonshot 完成一次免费 `doctor` 工具调用；
+- [x] 在专用工作区创建微信 Bot Channel，微信发“检查系统”可收到回复。
 
 ### P2：安装器后端合同
 
@@ -82,7 +82,7 @@ Bot Channel 必须在这个专用工作区中创建。
 ### P5：发布
 
 - [x] CI 生成单文件 `VideoToObsidian.Setup.exe`；
-- [ ] 干净 Windows 验收后创建稳定 GitHub Release；
+- [ ] 干净 Windows 验收后创建未签名 GitHub Pre-release；
 - [ ] 代码签名或明确的 Alpha 未签名风险提示；
 - [ ] SHA256、SBOM、版本说明与卸载说明；
 - [ ] 真实 usage 与费用拆分：ZCode 路由和视频分析分开记录。
