@@ -1,4 +1,5 @@
 from dataclasses import replace
+import json
 from pathlib import Path
 
 import pytest
@@ -135,6 +136,11 @@ def test_standard_pipeline_writes_readable_note_and_skips_asr(tmp_path: Path) ->
     assert "platform/bilibili" in note
     assert "derived_notes: []" in note
     assert "## 逐字稿" not in note
+    history = Path(result["kimi_history_path"])
+    assert history.is_file()
+    history_text = history.read_text(encoding="utf-8")
+    assert "completed" in history_text
+    assert "完整视频笔记" not in history_text
 
 
 def test_completed_request_is_cached_without_second_kimi_call(tmp_path: Path) -> None:
@@ -183,6 +189,39 @@ def test_kimi_failure_preserves_source_checkpoint(tmp_path: Path) -> None:
     assert caught.value.retryable is False
     assert caught.value.details["source_checkpoint_exists"] is True
     assert fake.kimi_calls == 1
+    history = list((settings.paths.state / "history").rglob("*.json"))
+    assert len(history) == 1
+    record = json.loads(history[0].read_text(encoding="utf-8"))
+    assert record["outcome"] == "failed"
+    assert record["error_code"] == "kimi_output_budget_exhausted"
+    assert record["diagnostics"]["usage"]["completion_tokens"] == 16384
+
+
+def test_metadata_failure_leaves_secret_free_submission_receipt(tmp_path: Path) -> None:
+    fake = FakePipeline()
+    dependencies = fake.deps()
+    dependencies = replace(
+        dependencies,
+        metadata=lambda resolved, settings: (_ for _ in ()).throw(
+            AppError(
+                "command_timeout",
+                "yt-dlp 执行超时",
+                retryable=True,
+                details={"phase": "yt-dlp", "timeout_seconds": 120},
+            )
+        ),
+    )
+    settings = _settings(tmp_path)
+    with pytest.raises(AppError):
+        analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=dependencies)
+
+    receipts = list((settings.paths.state / "submissions").glob("*.json"))
+    assert len(receipts) == 1
+    receipt = json.loads(receipts[0].read_text(encoding="utf-8"))
+    assert receipt["status"] == "failed"
+    assert receipt["stage"] == "yt-dlp"
+    assert receipt["paid_call_performed"] is False
+    assert "BV1Uw826pE7J" not in receipts[0].read_text(encoding="utf-8")
 
 
 def test_optional_transcript_failure_does_not_block_note(tmp_path: Path) -> None:

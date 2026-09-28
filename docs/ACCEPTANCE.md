@@ -84,6 +84,17 @@
 - 安全与清理：浏览器 Cookie 只由 Firefox 访问，不转发给媒体 CDN；签名 URL 只留在进程内存；manifest 不含 Cookie 名或签名 CDN 域名；未保存原视频；成功后 `source_path`/`kimi_proxy_path` 为空，检查点目录无残留文件。
 - 输出：正式 Markdown 已写入新 Vault 的 `Douyin/`，`schema=kb-source/v1`、稳定身份与 `generated_by` 字段齐全。
 
+### 2026-09-28 旧线稳定性能力迁移（仅源码回归）
+
+- Windows 命令边界优先使用 Job Object，超时时整组终止 yt-dlp/ffmpeg 及子孙进程；非 Windows 使用独立进程组清理。
+- 同一视频使用跨进程互斥锁；重复提交不允许重复下载或调用 Kimi。
+- 元数据前创建脱敏 submission receipt；不保存分享文本、URL、Cookie 或签名媒体地址。
+- B站增加正常网页请求头、HTTP 412/元数据超时公开 `view/playurl` API 降级、单分P闸门、Range 下载和 yt-dlp 零文件回退。
+- `command_timeout` 不再向 ZCode 声明可盲目重试；抖音/B站由平台适配器在单次工具调用内执行受控降级。
+- 每次真实 Kimi 尝试写入同步树外不可变数值诊断记录；不含提示词、报告、逐字稿或 reasoning 正文。
+- 抖音恢复官方分享文本的标题/作者补全，并显式识别 Firefox 人机验证页。
+- 本地回归：`python -m pytest -q` 全部通过。本节不代表 Windows Job Object、B站真实 412 或付费 Kimi 已在 ROG 完成验收。
+
 ## 总结质量固定集
 
 - [ ] 时间线和事件顺序；

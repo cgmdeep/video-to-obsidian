@@ -10,6 +10,7 @@ from video_to_obsidian.platforms.douyin import (
     DouyinDownloadAdapter,
     _BrowserCapture,
     _allowed_media_url,
+    _browser_requires_human_verification,
     download_video,
     fetch_metadata,
     resolve_input,
@@ -54,6 +55,40 @@ def test_metadata_requires_stable_video_id_and_duration(tmp_path: Path) -> None:
     assert metadata.duration == 30
 
 
+def test_official_share_text_repairs_title_and_numeric_author(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    resolved = resolve_input(
+        "【清醒博主的作品】 这是反讽测试 #知识 #测试 "
+        "https://www.douyin.com/video/1234567890123456789"
+    )
+    metadata = fetch_metadata(
+        resolved,
+        settings,
+        runner=lambda command, timeout: CommandResult(
+            0,
+            json.dumps(
+                {
+                    "id": "1234567890123456789",
+                    "title": "页面重复标题",
+                    "duration": 30,
+                    "uploader": "123456",
+                }
+            ),
+            "",
+        ),
+    )
+    assert metadata.title == "这是反讽测试"
+    assert metadata.uploader == "清醒博主"
+
+
+def test_browser_human_verification_detection() -> None:
+    class Driver:
+        def execute_script(self, script):
+            return True
+
+    assert _browser_requires_human_verification(Driver()) is True
+
+
 def test_metadata_uses_resolved_dedicated_firefox_profile(tmp_path: Path, monkeypatch) -> None:
     settings = _settings(tmp_path)
     profile = tmp_path / "real-profile"
@@ -66,6 +101,7 @@ def test_metadata_uses_resolved_dedicated_firefox_profile(tmp_path: Path, monkey
 
     def runner(command: list[str], timeout: int) -> CommandResult:
         captured["command"] = command
+        captured["timeout"] = timeout
         return CommandResult(
             0,
             json.dumps({"id": "1234567890123456789", "duration": 20}),
@@ -74,6 +110,7 @@ def test_metadata_uses_resolved_dedicated_firefox_profile(tmp_path: Path, monkey
 
     fetch_metadata(resolve_input("https://v.douyin.com/abc123/"), settings, runner=runner)
     assert f"firefox:{profile}" in captured["command"]
+    assert captured["timeout"] == 120
 
 
 def test_rejects_non_video_item(tmp_path: Path) -> None:
@@ -145,3 +182,37 @@ def test_adapter_falls_back_to_browser_without_persisting_media_url(
     assert metadata.title == "测试标题"
     assert metadata.download_auth == "firefox_browser"
     assert "signed" not in json.dumps(metadata.to_dict(), ensure_ascii=False)
+
+
+def test_adapter_falls_back_to_browser_when_metadata_command_times_out(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    settings = _settings(tmp_path)
+    adapter = DouyinDownloadAdapter()
+    resolved = resolve_input("https://v.douyin.com/abc123/")
+    capture = _BrowserCapture(
+        source_url=resolved.url,
+        page_url="https://www.douyin.com/video/1234567890123456789",
+        media_urls=("https://v26-webf.douyinvod.com/signed",),
+        user_agent="Mozilla/5.0",
+        title="超时后回退 - 抖音",
+        description="测试描述",
+        uploader="测试作者",
+    )
+
+    def timeout_ytdlp(*args, **kwargs):
+        raise AppError(
+            "command_timeout",
+            "yt-dlp 执行超过 120 秒，已停止。",
+            retryable=True,
+            details={"phase": "yt-dlp", "timeout_seconds": 120},
+        )
+
+    monkeypatch.setattr("video_to_obsidian.platforms.douyin.fetch_metadata", timeout_ytdlp)
+    monkeypatch.setattr(adapter, "_capture_browser", lambda *_: capture)
+
+    metadata = adapter.metadata(resolved, settings)
+
+    assert metadata.identity == "douyin_1234567890123456789"
+    assert metadata.download_auth == "firefox_browser"

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import parse_qs, urlparse
@@ -26,6 +28,12 @@ _BV = re.compile(r"(?<![A-Za-z0-9])(BV[0-9A-Za-z]{10})(?![A-Za-z0-9])", re.IGNOR
 _ANY_BILIBILI_URL = re.compile(r"https?://(?:[^/]+\.)?bilibili\.com/", re.IGNORECASE)
 _SAFE_ID = re.compile(r"[A-Za-z0-9._-]+")
 _TRAILING = "，。；！？、,.!?;:：)）]】>》\"'"
+_API_BASE = "https://api.bilibili.com"
+_WEB_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+)
+_WEB_REFERER = "https://www.bilibili.com/"
 
 
 @dataclass(frozen=True)
@@ -51,6 +59,10 @@ class BilibiliMetadata:
     tags: tuple[str, ...]
     yt_dlp_id: str
     download_auth: str
+    avid: str = ""
+    cid: str = ""
+    download_strategy: str = "yt_dlp"
+    metadata_degradations: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -68,6 +80,10 @@ class BilibiliMetadata:
             "tags": list(self.tags),
             "yt_dlp_id": self.yt_dlp_id,
             "download_auth": self.download_auth,
+            "avid": self.avid,
+            "cid": self.cid,
+            "download_strategy": self.download_strategy,
+            "metadata_degradations": list(self.metadata_degradations),
         }
 
 
@@ -162,6 +178,14 @@ def _cookie_args(settings: Settings) -> list[str]:
     return ["--cookies-from-browser", yt_dlp_cookie_spec(settings.firefox_profile)]
 
 
+def _request_args() -> list[str]:
+    return ["--user-agent", _WEB_USER_AGENT, "--referer", _WEB_REFERER]
+
+
+def _web_headers() -> dict[str, str]:
+    return {"User-Agent": _WEB_USER_AGENT, "Referer": _WEB_REFERER}
+
+
 def _classify_ytdlp(result: CommandResult) -> AppError:
     lowered = result.stderr.lower()
     if "http error 412" in lowered or "precondition failed" in lowered:
@@ -189,6 +213,142 @@ def _classify_ytdlp(result: CommandResult) -> AppError:
     )
 
 
+def _public_api_json(path: str, params: dict[str, object]) -> dict[str, Any]:
+    try:
+        with httpx.Client(timeout=60, follow_redirects=True) as client:
+            response = client.get(
+                f"{_API_BASE}{path}",
+                params=params,
+                headers=_web_headers(),
+            )
+    except httpx.HTTPError as exc:
+        raise AppError(
+            "bilibili_public_api_failed",
+            "连接B站公开 API 失败。",
+            retryable=True,
+            details={"phase": "metadata"},
+        ) from exc
+    if response.status_code != 200:
+        raise AppError(
+            "bilibili_public_api_failed",
+            f"B站公开 API 返回 HTTP {response.status_code}。",
+            retryable=response.status_code == 429 or response.status_code >= 500,
+            details={"http_status": response.status_code, "phase": "metadata"},
+        )
+    try:
+        payload = response.json()
+        code = int(payload.get("code", -1))
+        data = payload.get("data")
+    except (TypeError, ValueError) as exc:
+        raise AppError("bilibili_public_api_failed", "B站公开 API 返回结构无效。") from exc
+    if code != 0 or not isinstance(data, dict):
+        raise AppError(
+            "bilibili_request_blocked" if code == -412 else "bilibili_public_api_failed",
+            f"B站公开 API 拒绝请求（code={code}）。",
+            retryable=code == -412,
+            details={"api_code": code, "phase": "metadata"},
+        )
+    return data
+
+
+def _fetch_public_tag_names(bvid: str) -> tuple[tuple[str, ...], str]:
+    try:
+        with httpx.Client(timeout=30, follow_redirects=True) as client:
+            response = client.get(
+                f"{_API_BASE}/x/tag/archive/tags",
+                params={"bvid": bvid},
+                headers=_web_headers(),
+            )
+        payload = response.json()
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if response.status_code != 200 or int(payload.get("code", -1)) != 0:
+            return (), f"B站原生标签补取失败（HTTP {response.status_code}）。"
+    except (httpx.HTTPError, TypeError, ValueError):
+        return (), "B站原生标签补取失败。"
+    if not isinstance(data, list):
+        return (), "B站原生标签补取返回无效结构。"
+    tags = tuple(
+        str(item.get("tag_name") or "").strip()
+        for item in data
+        if isinstance(item, dict) and str(item.get("tag_name") or "").strip()
+    )
+    return tuple(dict.fromkeys(tags)), ""
+
+
+def _fetch_metadata_public_api(resolved: ResolvedBilibili) -> BilibiliMetadata:
+    data = _public_api_json("/x/web-interface/view", {"bvid": resolved.bvid})
+    bvid = str(data.get("bvid") or "")
+    if bvid.lower() != resolved.bvid.lower():
+        raise AppError("identity_mismatch", "B站公开 API 返回的视频身份不一致。")
+    rights = data.get("rights") if isinstance(data.get("rights"), dict) else {}
+    if int(rights.get("is_stein_gate") or 0) != 0:
+        raise AppError(
+            "unsupported_interactive_or_multi_video",
+            "该页面是互动视频，已按单视频安全边界停止。",
+        )
+    pages = [item for item in (data.get("pages") or []) if isinstance(item, dict)]
+    if not pages:
+        raise AppError("invalid_metadata", "B站公开 API 没有返回可处理的视频分P。")
+    if resolved.part is None and len(pages) > 1:
+        raise AppError(
+            "part_selection_required",
+            f"这是一个 {len(pages)} P 视频，请发送带 ?p=序号 的具体分P链接。",
+            details={"part_count": len(pages)},
+        )
+    part = resolved.part or 1
+    if part > len(pages):
+        raise AppError("invalid_part", f"该视频只有 {len(pages)} P，无法选择第 {part} P。")
+    page = pages[part - 1]
+    if int(page.get("page") or part) != part:
+        raise AppError("identity_mismatch", "B站公开 API 返回的分P身份不一致。")
+    cid = str(page.get("cid") or "")
+    avid = str(data.get("aid") or "")
+    if not cid or not avid:
+        raise AppError("invalid_metadata", "B站公开 API 缺少 aid/cid 稳定身份。")
+    identity = f"bilibili_{bvid}_p{part:02d}"
+    owner = data.get("owner") if isinstance(data.get("owner"), dict) else {}
+    timestamp = data.get("pubdate") or 0
+    upload_date = ""
+    if isinstance(timestamp, (int, float)) and timestamp > 0:
+        try:
+            upload_date = datetime.fromtimestamp(timestamp, tz=UTC).strftime("%Y%m%d")
+        except (OverflowError, OSError, ValueError):
+            pass
+    title = str(data.get("title") or bvid)
+    part_title = str(page.get("part") or "").strip()
+    if len(pages) > 1 and part_title:
+        title = f"{title} - {part_title}"
+    category = str(data.get("tname") or "").strip()
+    public_tags, tag_warning = _fetch_public_tag_names(bvid)
+    tags = tuple(dict.fromkeys((*public_tags, *((category,) if category else ()))))
+    return BilibiliMetadata(
+        identity=identity,
+        bvid=bvid,
+        part=part,
+        url=resolved.canonical_url,
+        title=title,
+        uploader=str(owner.get("name") or ""),
+        uploader_id=str(owner.get("mid") or ""),
+        duration=float(page.get("duration") or data.get("duration") or 0),
+        upload_date=upload_date,
+        description=str(data.get("desc") or ""),
+        tags=tags,
+        yt_dlp_id=f"{bvid}_p{part}" if part > 1 else bvid,
+        download_auth="anonymous_public_api",
+        avid=avid,
+        cid=cid,
+        download_strategy="public_api_412_fallback",
+        metadata_degradations=tuple(
+            item
+            for item in (
+                "yt-dlp 受 B站 HTTP 412 限制，已改用官方公开 API。",
+                tag_warning,
+            )
+            if item
+        ),
+    )
+
+
 def fetch_metadata(
     resolved: ResolvedBilibili,
     settings: Settings,
@@ -201,12 +361,21 @@ def fetch_metadata(
         "--skip-download",
         "--dump-single-json",
         "--no-playlist",
+        *_request_args(),
         *_cookie_args(settings),
         resolved.canonical_url,
     )
-    result = runner(command, 180)
+    try:
+        result = runner(command, 180)
+    except AppError as exc:
+        if exc.code == "command_timeout":
+            return _fetch_metadata_public_api(resolved)
+        raise
     if result.returncode != 0:
-        raise _classify_ytdlp(result)
+        error = _classify_ytdlp(result)
+        if error.code == "bilibili_request_blocked":
+            return _fetch_metadata_public_api(resolved)
+        raise error
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
@@ -257,6 +426,87 @@ def fetch_metadata(
     )
 
 
+def _download_public_media(
+    urls: list[str],
+    target: Path,
+    expected_size: int,
+    settings: Settings,
+) -> None:
+    safe_urls = [
+        url
+        for url in urls
+        if urlparse(url).scheme == "https" and urlparse(url).hostname
+    ]
+    if not safe_urls:
+        raise AppError("public_media_unavailable", "B站公开 API 没有返回安全的 HTTPS 媒体地址。")
+    last_status = "connection_failed"
+    for media_url in safe_urls:
+        temporary = target.parent / f".{target.name}.public.part"
+        temporary.unlink(missing_ok=True)
+        try:
+            timeout = httpx.Timeout(float(settings.download_timeout_seconds), connect=30.0)
+            with httpx.Client(follow_redirects=True, timeout=timeout) as client:
+                with client.stream(
+                    "GET",
+                    media_url,
+                    headers={**_web_headers(), "Range": "bytes=0-"},
+                ) as response:
+                    if response.status_code not in {200, 206}:
+                        last_status = f"http_{response.status_code}"
+                        continue
+                    with temporary.open("wb") as handle:
+                        for chunk in response.iter_bytes():
+                            handle.write(chunk)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+            written = temporary.stat().st_size if temporary.is_file() else 0
+            if written <= 0 or (expected_size > 0 and written != expected_size):
+                last_status = "size_mismatch"
+                continue
+            os.replace(temporary, target)
+            return
+        except (OSError, httpx.HTTPError):
+            last_status = "connection_failed"
+        finally:
+            temporary.unlink(missing_ok=True)
+    raise AppError(
+        "public_media_download_failed",
+        f"B站公开媒体流下载失败（{last_status}）；未返回签名 URL。",
+    )
+
+
+def _download_public_api_video(
+    metadata: BilibiliMetadata,
+    output_dir: Path,
+    settings: Settings,
+) -> Path:
+    if not metadata.cid:
+        raise AppError("invalid_metadata", "B站公开下载缺少 cid。")
+    data = _public_api_json(
+        "/x/player/playurl",
+        {
+            "bvid": metadata.bvid,
+            "cid": metadata.cid,
+            "qn": 80,
+            "fnver": 0,
+            "fnval": 0,
+            "fourk": 1,
+        },
+    )
+    streams = [item for item in (data.get("durl") or []) if isinstance(item, dict)]
+    if len(streams) != 1:
+        raise AppError(
+            "download_boundary_violation",
+            f"B站公开 API 返回了 {len(streams)} 个媒体分段；已按单视频边界停止。",
+        )
+    stream = streams[0]
+    urls = [str(stream.get("url") or "")]
+    urls.extend(str(item) for item in (stream.get("backup_url") or []) if item)
+    target = output_dir / "source.mp4"
+    _download_public_media(urls, target, int(stream.get("size") or 0), settings)
+    return target
+
+
 def download_video(
     resolved: ResolvedBilibili,
     metadata: BilibiliMetadata,
@@ -266,11 +516,17 @@ def download_video(
     runner: CommandRunner = run_command,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
+    if metadata.download_strategy == "public_api_412_fallback":
+        return _download_public_api_video(metadata, output_dir, settings)
     template = output_dir / "source.%(ext)s"
     command = yt_dlp_command(
         "--ignore-config",
         "--no-warnings",
         "--no-playlist",
+        "--max-downloads",
+        "1",
+        "--http-chunk-size",
+        "10M",
         "--format",
         "bv*+ba/b",
         "--merge-output-format",
@@ -279,13 +535,44 @@ def download_video(
         "after_move:filepath",
         "--output",
         str(template),
+        *_request_args(),
         *_cookie_args(settings),
         resolved.canonical_url,
     )
-    result = runner(command, settings.download_timeout_seconds)
-    if result.returncode != 0:
+    try:
+        result = runner(command, settings.download_timeout_seconds)
+    except AppError as exc:
+        if exc.code != "command_timeout":
+            raise
+        public_metadata = _fetch_metadata_public_api(resolved)
+        if public_metadata.identity != metadata.identity:
+            raise AppError(
+                "identity_mismatch",
+                "yt-dlp 超时后 B站公开 API 返回的视频身份不一致。",
+            )
+        return _download_public_api_video(public_metadata, output_dir, settings)
+    if result.returncode not in {0, 101}:
         raise _classify_ytdlp(result)
-    candidates = [path for path in output_dir.glob("source.*") if path.is_file() and path.stat().st_size > 0]
+    candidates = [
+        path
+        for path in output_dir.glob("source.*")
+        if path.is_file() and path.stat().st_size > 0 and ".part" not in path.name.lower()
+    ]
+    used_public_fallback = False
+    if not candidates:
+        public_metadata = _fetch_metadata_public_api(resolved)
+        if public_metadata.identity != metadata.identity:
+            raise AppError(
+                "identity_mismatch",
+                "yt-dlp 与 B站公开 API 返回的视频身份不一致。",
+            )
+        _download_public_api_video(public_metadata, output_dir, settings)
+        used_public_fallback = True
+        candidates = [
+            path
+            for path in output_dir.glob("source.*")
+            if path.is_file() and path.stat().st_size > 0 and ".part" not in path.name.lower()
+        ]
     if len(candidates) != 1:
         raise AppError(
             "download_boundary_violation",
@@ -293,7 +580,7 @@ def download_video(
         )
     path = candidates[0]
     reported = [Path(line.strip()) for line in result.stdout.splitlines() if line.strip()]
-    if reported and path.resolve() not in {item.expanduser().resolve() for item in reported}:
+    if not used_public_fallback and reported and path.resolve() not in {item.expanduser().resolve() for item in reported}:
         raise AppError("identity_mismatch", "yt-dlp 报告的下载路径与实际单文件不一致。")
     if metadata.identity != f"bilibili_{resolved.bvid}_p{metadata.part:02d}":
         raise AppError("identity_mismatch", "下载前后的稳定身份不一致。")

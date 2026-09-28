@@ -26,12 +26,18 @@ _URL = re.compile(
 )
 _SAFE_ID = re.compile(r"[A-Za-z0-9._-]+")
 _TRAILING = "，。；！？、,.!?;:：)）]】>》\"'"
+_METADATA_TIMEOUT_SECONDS = 120
+_SHARE_WORK = re.compile(
+    r"【(?P<author>[^】]+?)的作品】\s*(?P<title>.*?)(?=https?://)",
+    re.DOTALL,
+)
 
 
 @dataclass(frozen=True)
 class ResolvedDouyin:
     url: str
     input_kind: str
+    share_text: str = ""
 
 
 @dataclass(frozen=True)
@@ -85,7 +91,21 @@ def resolve_input(share_text: str) -> ResolvedDouyin:
         )
     url = match.group(0).rstrip(_TRAILING)
     kind = "short_url" if "v.douyin.com" in url.lower() else "standard_url"
-    return ResolvedDouyin(url, kind)
+    return ResolvedDouyin(url, kind, share_text or "")
+
+
+def _share_context(resolved: ResolvedDouyin) -> tuple[str, str]:
+    match = _SHARE_WORK.search(resolved.share_text or "")
+    if not match:
+        return "", ""
+    author = re.sub(r"\s+", " ", match.group("author") or "").strip()
+    title = re.sub(r"\s+", " ", match.group("title") or "").strip(" ，,。.!！?？")
+    title = re.sub(r"\s*#.*$", "", title).strip()
+    if not 2 <= len(title) <= 160:
+        title = ""
+    if len(author) > 80:
+        author = ""
+    return author, title
 
 
 def _cookie_args(settings: Settings) -> list[str]:
@@ -133,10 +153,14 @@ def fetch_metadata(
             "--skip-download",
             "--dump-single-json",
             "--no-playlist",
+            "--socket-timeout",
+            "20",
+            "--retries",
+            "1",
             *_cookie_args(settings),
             resolved.url,
         ),
-        180,
+        _METADATA_TIMEOUT_SECONDS,
     )
     if result.returncode != 0:
         raise _classify_ytdlp(result)
@@ -161,12 +185,16 @@ def fetch_metadata(
     if duration <= 0:
         raise AppError("unsupported_content", "当前作品不是可验证的普通视频。")
     tags = tuple(str(item).strip() for item in (data.get("tags") or []) if str(item).strip())
+    share_author, share_title = _share_context(resolved)
+    uploader = str(data.get("uploader") or "")
+    if share_author and (not uploader.strip() or uploader.strip().isdigit()):
+        uploader = share_author
     return DouyinMetadata(
         identity=identity,
         aweme_id=aweme_id,
         url=str(data.get("webpage_url") or resolved.url),
-        title=str(data.get("title") or data.get("description") or aweme_id),
-        uploader=str(data.get("uploader") or ""),
+        title=share_title or str(data.get("title") or data.get("description") or aweme_id),
+        uploader=uploader,
         uploader_id=str(data.get("uploader_id") or ""),
         duration=duration,
         upload_date=str(data.get("upload_date") or ""),
@@ -267,6 +295,25 @@ def _probe_streams(path: Path, *, runner: CommandRunner = run_command) -> dict[s
     }
 
 
+def _browser_requires_human_verification(driver: Any) -> bool:
+    try:
+        return bool(
+            driver.execute_script(
+                """
+                const visible = (el) => !!el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+                const selectors = [
+                  '#captcha_verify_image', '#captcha-verify-image', '#captcha-verify_img_slide',
+                  '.captcha-slider-btn', 'iframe[src*="captcha"]', 'iframe[src*="verify"]',
+                  'iframe[src*="challenge"]'
+                ];
+                return selectors.some((selector) => visible(document.querySelector(selector)));
+                """
+            )
+        )
+    except Exception:
+        return False
+
+
 class DouyinDownloadAdapter:
     """Use yt-dlp when possible, then fall back to the user's real Firefox session."""
 
@@ -278,7 +325,11 @@ class DouyinDownloadAdapter:
         try:
             metadata = fetch_metadata(resolved, settings)
         except AppError as exc:
-            if exc.code not in {"douyin_login_required", "yt_dlp_failed"}:
+            if exc.code not in {
+                "command_timeout",
+                "douyin_login_required",
+                "yt_dlp_failed",
+            }:
                 raise
             capture = self._capture_browser(resolved, settings)
             self._capture = capture
@@ -290,12 +341,16 @@ class DouyinDownloadAdapter:
             title = re.sub(r"\s*[-|_]\s*抖音.*$", "", capture.title).strip()
             if not title:
                 title = capture.description.strip()[:120] or aweme_id
+            share_author, share_title = _share_context(resolved)
+            uploader = capture.uploader
+            if share_author and (not uploader.strip() or uploader.strip().isdigit()):
+                uploader = share_author
             return DouyinMetadata(
                 identity=f"douyin_{aweme_id}",
                 aweme_id=aweme_id,
                 url=f"https://www.douyin.com/video/{aweme_id}",
-                title=title,
-                uploader=capture.uploader,
+                title=share_title or title,
+                uploader=uploader,
                 uploader_id="",
                 duration=0,
                 upload_date="",
@@ -358,6 +413,12 @@ class DouyinDownloadAdapter:
             driver = webdriver.Firefox(options=options)
             driver.set_page_load_timeout(90)
             driver.get(resolved.url)
+            if _browser_requires_human_verification(driver):
+                raise AppError(
+                    "douyin_human_verification_required",
+                    "抖音专用 Firefox 当前需要人机验证；请在该 Profile 中手动完成后重试。",
+                    details={"phase": "browser_verification"},
+                )
             deadline = time.monotonic() + 45
             first_media_at: float | None = None
             resources: list[dict[str, Any]] = []
@@ -394,6 +455,12 @@ class DouyinDownloadAdapter:
             )
             media_urls = tuple(dict.fromkeys(url for _, url in ranked if url))
             if not media_urls:
+                if _browser_requires_human_verification(driver):
+                    raise AppError(
+                        "douyin_human_verification_required",
+                        "抖音专用 Firefox 当前需要人机验证；请在该 Profile 中手动完成后重试。",
+                        details={"phase": "browser_verification"},
+                    )
                 raise AppError(
                     "douyin_browser_capture_failed",
                     "Firefox 已打开抖音页面，但没有捕获到单视频媒体请求。",

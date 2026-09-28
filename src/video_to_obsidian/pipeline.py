@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import tempfile
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,7 @@ from typing import Any, Callable
 from .config import Settings
 from .errors import AppError
 from .kimi import KimiResult, KimiVideoClient
+from .locking import exclusive_task_lock
 from .media import KIMI_FILE_LIMIT_BYTES, PreparedVideo, hash_file, prepare_kimi_video, probe_video
 from .note_format import build_source_note
 from .notes import (
@@ -162,6 +164,64 @@ def _summary(body: str) -> str:
     return body.strip()[:1200]
 
 
+def _safe_kimi_diagnostics(value: dict[str, Any] | None) -> dict[str, Any]:
+    source = value if isinstance(value, dict) else {}
+    usage = source.get("usage") if isinstance(source.get("usage"), dict) else {}
+    numeric_usage = {
+        str(key): number
+        for key, number in usage.items()
+        if isinstance(number, (int, float)) and not isinstance(number, bool)
+    }
+    return {
+        "retryable": bool(source.get("retryable", False)),
+        "kimi_attempts": int(source.get("kimi_attempts") or 1),
+        "finish_reason": str(source.get("finish_reason") or ""),
+        "usage": numeric_usage,
+        "content_chars": int(source.get("content_chars") or 0),
+        "reasoning_chars": int(source.get("reasoning_chars") or 0),
+        "refusal_chars": int(source.get("refusal_chars") or 0),
+        "model": str(source.get("model") or ""),
+        "max_completion_tokens": int(source.get("max_completion_tokens") or 0),
+    }
+
+
+def _record_kimi_attempt(
+    settings: Settings,
+    manifest: dict[str, Any],
+    *,
+    attempt_id: str,
+    started_at: str,
+    outcome: str,
+    error_code: str = "",
+    diagnostics: dict[str, Any] | None = None,
+) -> str:
+    identity = safe_identity(str(manifest.get("identity") or "unknown"))
+    platform = safe_identity(str(manifest.get("platform") or "unknown"))
+    history_dir = settings.paths.state / "history" / platform / identity
+    stamp = started_at.replace(":", "").replace("-", "")
+    path = history_dir / f"{stamp}_{attempt_id}.json"
+    record = {
+        "schema_version": 1,
+        "attempt_id": attempt_id,
+        "started_at": started_at,
+        "finished_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "identity": identity,
+        "platform": platform,
+        "mode": str(manifest.get("mode") or "vision"),
+        "model": str(manifest.get("model") or ""),
+        "request_fingerprint": str(manifest.get("request_fingerprint") or ""),
+        "checkpoint_stage": str(manifest.get("stage") or ""),
+        "outcome": outcome,
+        "error_code": error_code,
+        "diagnostics": _safe_kimi_diagnostics(diagnostics),
+    }
+    try:
+        write_json(path, record)
+    except OSError:
+        return ""
+    return str(path)
+
+
 def _result(manifest: dict[str, Any], *, cached: bool) -> dict[str, Any]:
     saved_to = str(manifest.get("saved_to") or "")
     candidate = str(manifest.get("candidate_saved_to") or "")
@@ -196,6 +256,7 @@ def _result(manifest: dict[str, Any], *, cached: bool) -> dict[str, Any]:
         "transcript_chars": len(str(manifest.get("transcript") or "")),
         "note_bytes": note_path.stat().st_size if note_path else 0,
         "kimi_diagnostics": manifest.get("kimi_diagnostics") or {},
+        "kimi_history_path": str(manifest.get("kimi_history_path") or ""),
         "usage": (manifest.get("kimi_diagnostics") or {}).get("usage") or {},
         "preferences_applied": bool(manifest.get("preferences_applied", False)),
         "preference_chars": int(manifest.get("preference_chars") or 0),
@@ -209,7 +270,7 @@ def _result(manifest: dict[str, Any], *, cached: bool) -> dict[str, Any]:
     return result
 
 
-def _analyze_single_video(
+def _analyze_single_video_locked(
     share_text: str,
     *,
     platform: str,
@@ -218,6 +279,7 @@ def _analyze_single_video(
     instruction: str = "",
     save_video: bool | None = None,
     dependencies: SingleVideoDependencies,
+    resolved: Any,
 ) -> dict[str, Any]:
     mode = (mode or "vision").strip().lower()
     if mode not in {"vision", "deep"}:
@@ -225,7 +287,6 @@ def _analyze_single_video(
     keep_video = settings.save_video if save_video is None else bool(save_video)
     effective_request, preference_chars = effective_instruction(settings, instruction)
     deps = dependencies
-    resolved = deps.resolve(share_text)
     metadata_object = deps.metadata(resolved, settings)
     metadata = metadata_object.to_dict()
     identity = metadata_object.identity
@@ -279,7 +340,12 @@ def _analyze_single_video(
             "status": "running",
             "stage": manifest.get("stage", "metadata"),
             "archive_status": manifest.get("archive_status", "pending" if keep_video else "not_requested"),
-            "degradations": list(manifest.get("degradations") or []),
+            "degradations": list(
+                dict.fromkeys(
+                    (manifest.get("degradations") or [])
+                    + list(metadata.get("metadata_degradations") or [])
+                )
+            ),
             "manifest_path": str(manifest_path),
             "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         }
@@ -390,13 +456,39 @@ def _analyze_single_video(
                 dict(manifest.get("kimi_diagnostics") or {}),
             )
         else:
-            kimi_result = deps.kimi(
-                prepared.path,
-                metadata,
-                mode,
-                effective_request,
-                prepared.is_proxy,
+            attempt_id = uuid.uuid4().hex
+            started_at = datetime.now().astimezone().isoformat(timespec="seconds")
+            try:
+                kimi_result = deps.kimi(
+                    prepared.path,
+                    metadata,
+                    mode,
+                    effective_request,
+                    prepared.is_proxy,
+                )
+            except AppError as exc:
+                history_path = _record_kimi_attempt(
+                    settings,
+                    manifest,
+                    attempt_id=attempt_id,
+                    started_at=started_at,
+                    outcome="failed",
+                    error_code=exc.code,
+                    diagnostics=exc.details,
+                )
+                if history_path:
+                    manifest["kimi_history_path"] = history_path
+                raise
+            history_path = _record_kimi_attempt(
+                settings,
+                manifest,
+                attempt_id=attempt_id,
+                started_at=started_at,
+                outcome="completed",
+                diagnostics=kimi_result.diagnostics,
             )
+            if history_path:
+                manifest["kimi_history_path"] = history_path
             manifest.update(
                 {
                     "stage": "vision_complete",
@@ -503,6 +595,121 @@ def _analyze_single_video(
             retryable=exc.retryable,
             details=details,
         ) from exc
+
+
+def _receipt_error(exc: AppError) -> dict[str, Any]:
+    """Persist only bounded diagnostics; never copy URLs or provider response bodies."""
+
+    allowed = {
+        key: exc.details[key]
+        for key in (
+            "phase",
+            "http_status",
+            "timeout_seconds",
+            "command_kind",
+            "retryable",
+        )
+        if key in exc.details
+    }
+    return {
+        "code": exc.code,
+        "retryable": exc.retryable,
+        "details": allowed,
+    }
+
+
+def _analyze_single_video(
+    share_text: str,
+    *,
+    platform: str,
+    settings: Settings,
+    mode: str = "vision",
+    instruction: str = "",
+    save_video: bool | None = None,
+    dependencies: SingleVideoDependencies,
+) -> dict[str, Any]:
+    """Register the submission and serialize equivalent work before paid stages."""
+
+    resolved = dependencies.resolve(share_text)
+    canonical = str(
+        getattr(resolved, "canonical_url", "") or getattr(resolved, "url", "")
+    ).strip()
+    submission_key = hashlib.sha256(
+        f"{platform}\0{canonical}".encode("utf-8")
+    ).hexdigest()
+    lock_path = settings.paths.state / "locks" / f"{submission_key}.lock"
+    receipt_path = settings.paths.state / "submissions" / f"{submission_key}.json"
+
+    with exclusive_task_lock(lock_path):
+        now = datetime.now().astimezone().isoformat(timespec="seconds")
+        receipt: dict[str, Any] = {
+            "schema_version": 1,
+            "submission_id": submission_key,
+            "platform": platform,
+            "mode": (mode or "vision").strip().lower(),
+            "status": "running",
+            "stage": "metadata",
+            "paid_call_performed": False,
+            "updated_at": now,
+        }
+        write_json(receipt_path, receipt)
+        try:
+            result = _analyze_single_video_locked(
+                share_text,
+                platform=platform,
+                settings=settings,
+                mode=mode,
+                instruction=instruction,
+                save_video=save_video,
+                dependencies=dependencies,
+                resolved=resolved,
+            )
+        except AppError as exc:
+            receipt.update(
+                {
+                    "status": "failed",
+                    "stage": str(exc.details.get("checkpoint_stage") or exc.details.get("phase") or "metadata"),
+                    "paid_call_performed": bool(
+                        exc.code.startswith("kimi_")
+                        or int(exc.details.get("kimi_attempts") or 0) > 0
+                    ),
+                    "error": _receipt_error(exc),
+                    "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+                }
+            )
+            write_json(receipt_path, receipt)
+            raise
+        except Exception:
+            receipt.update(
+                {
+                    "status": "failed",
+                    "stage": "internal",
+                    "paid_call_performed": None,
+                    "error": {
+                        "code": "internal_error",
+                        "retryable": False,
+                        "details": {"phase": "internal"},
+                    },
+                    "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+                }
+            )
+            write_json(receipt_path, receipt)
+            raise
+        receipt.update(
+            {
+                "status": "completed",
+                "stage": "finished",
+                "identity": str(result.get("identity") or ""),
+                "manifest_path": str(result.get("manifest_path") or ""),
+                "paid_call_performed": int(
+                    (result.get("kimi_diagnostics") or {}).get("kimi_attempts") or 0
+                )
+                > 0,
+                "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+            }
+        )
+        write_json(receipt_path, receipt)
+        return result
 
 
 def analyze_bilibili(
