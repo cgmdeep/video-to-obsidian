@@ -15,6 +15,7 @@ from .errors import AppError
 
 KIMI_FILE_LIMIT_BYTES = 95_000_000
 KIMI_PROXY_TARGET_BYTES = 84_000_000
+KIMI_DIRECT_MAX_DURATION_SECONDS = 15 * 60
 
 
 @dataclass(frozen=True)
@@ -90,17 +91,28 @@ def prepare_kimi_video(
 ) -> PreparedVideo:
     if not video_path.is_file() or video_path.stat().st_size <= 0:
         raise AppError("invalid_media", "Kimi 输入视频不存在或为空。")
-    if video_path.stat().st_size <= file_limit_bytes:
+    source_bytes = video_path.stat().st_size
+    long_video = duration_seconds > KIMI_DIRECT_MAX_DURATION_SECONDS
+    if source_bytes <= file_limit_bytes and not long_video:
         return PreparedVideo(video_path, False)
     if duration_seconds <= 0:
         raise AppError("kimi_proxy_failed", "无法确定视频时长，不能安全生成完整时间线代理。")
 
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     proxy = checkpoint_dir / "kimi-proxy.mp4"
-    attempts = [
-        (target_bytes, 640, 360, 8, 48_000),
-        (max(1_000_000, int(target_bytes * 0.83)), 480, 270, 5, 32_000),
-    ]
+    if long_video:
+        long_target = min(target_bytes, max(1_000_000, int(file_limit_bytes * 0.65)))
+        attempts = [
+            (long_target, 480, 270, 2, 32_000),
+            (max(1_000_000, int(long_target * 0.72)), 426, 240, 1, 24_000),
+        ]
+        warning = "视频超过15分钟；已生成覆盖完整时间线的低帧率分析代理，以控制上下文与费用。"
+    else:
+        attempts = [
+            (target_bytes, 640, 360, 8, 48_000),
+            (max(1_000_000, int(target_bytes * 0.83)), 480, 270, 5, 32_000),
+        ]
+        warning = "原视频超过 Kimi 单文件上限；已生成覆盖完整时间线的低码率分析代理。"
     for attempt_target, width, height, fps, audio_bps in attempts:
         proxy.unlink(missing_ok=True)
         total_bps = max(128_000, int(attempt_target * 8 / duration_seconds * 0.94))
@@ -153,9 +165,7 @@ def prepare_kimi_video(
             return PreparedVideo(
                 proxy,
                 True,
-                (
-                    "原视频超过 Kimi 单文件上限；已生成覆盖完整时间线的低码率分析代理。",
-                ),
+                (warning,),
             )
     proxy.unlink(missing_ok=True)
     raise AppError(

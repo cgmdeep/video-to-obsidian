@@ -93,3 +93,34 @@ def test_large_video_proxy_covers_full_timeline(tmp_path: Path) -> None:
     assert prepared.path.stat().st_size == 90
     assert "-t" not in commands[0]
     assert "-ss" not in commands[0]
+
+
+def test_long_video_uses_low_frame_rate_proxy_even_when_source_is_small(
+    tmp_path: Path,
+) -> None:
+    media = tmp_path / "x.mp4"
+    media.write_bytes(b"small")
+    commands = []
+
+    def runner(command: list[str], timeout: int) -> CommandResult:
+        commands.append(command)
+        Path(command[-1]).write_bytes(b"p" * 60)
+        return CommandResult(0, "", "")
+
+    prepared = prepare_kimi_video(
+        media,
+        duration_seconds=30 * 60,
+        checkpoint_dir=tmp_path / "checkpoint",
+        settings=_settings(tmp_path),
+        runner=runner,
+        file_limit_bytes=100,
+        target_bytes=80,
+    )
+
+    assert prepared.is_proxy is True
+    assert "超过15分钟" in prepared.warnings[0]
+    filter_value = commands[0][commands[0].index("-vf") + 1]
+    assert "scale=480:270" in filter_value
+    assert "fps=2" in filter_value
+    assert "-t" not in commands[0]
+    assert "-ss" not in commands[0]
