@@ -62,6 +62,27 @@
 - SSH 非交互体检只报告 Windows Credential Manager 不可用，其余依赖、Vault、Firefox Profile 和受管工作区均通过；该结果不代表交互用户会话中的 keyring 失效。
 - 本轮未执行真实视频和 Kimi 调用；B 站 412 公开 API 降级、抖音分享文本元数据恢复、任务锁和 Kimi 尝试账本仍需通过真实样本验收。
 
+### ROG 验收节点守护
+
+ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端。ZCode 官方微信 Bot
+依赖已登录的 Windows 图形会话，不能以系统服务替代。
+
+- `scripts/windows-node-monitor.ps1` 只检查本项目运行时、ZCode、磁盘、内存和远程连接服务；
+- 守护脚本只在 ZCode 完全退出时重新打开 ZCode，不结束或重启其他项目的 Python 进程；
+- `doctor` 仍是免费检查，状态文件明确记录 `paid_call_performed=false`；
+- 状态写入 `%LOCALAPPDATA%\VideoToObsidian\state\node-status.json`，不含 Key、Cookie、Bearer、提示词、分享文本或签名媒体 URL；
+- `scripts/install-windows-node-monitor.ps1` 注册当前用户登录触发和每 5 分钟重复任务；使用 `-Remove` 可移除任务和脚本，同时保留 Vault、配置、检查点与状态记录。
+- 验收节点可显式运行 `scripts/set-windows-node-power.ps1`，只禁用插电状态下的睡眠和休眠；原值写入脱敏基线，使用 `-Restore` 恢复，电池设置始终不变。
+
+#### 2026-09-28 ROG 部署证据
+
+- Windows 11 ROG：15.7GB 内存、C 盘剩余 206.6GB，满足当前单并发验收；部署时未关闭任何其他项目进程；
+- 已安装当前用户计划任务 `VideoToObsidian Node Monitor`，登录触发并每 5 分钟运行，`LogonType=Interactive`、`RunLevel=Limited`、`LastTaskResult=0`；
+- 交互会话任务生成的状态：`doctor_ok=true`、`kimi_key_ok=true`、`zcode_running=true`，Tailscale、NetBird、sshd 均运行；
+- 状态报告敏感模式扫描为阴性，`paid_call_performed=false`，本轮未调用 Kimi、未下载或分析视频；
+- 插电睡眠由 600 秒、休眠由 3600 秒调整为关闭；电池设置未改，原值与恢复脚本保存在本机受管 `ops` 目录。
+- ROG 到 Moonshot、B站、抖音的 DNS 与 TCP 443 均通过；经 Tailscale 到 NAS 延迟约 28ms。
+
 ## 卸载与恢复
 
 - [x] 重复执行“一键准备本机”的共享准备协调器不会重复创建环境或破坏配置；
