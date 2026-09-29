@@ -85,7 +85,8 @@ internal sealed class InstallationClient
             winget,
             "Gyan.FFmpeg.Essentials",
             "ffmpeg 精简组件",
-            report
+            report,
+            TimeSpan.FromMinutes(30)
         );
         await EnsureFirefoxProfileAsync(report);
     }
@@ -236,7 +237,8 @@ internal sealed class InstallationClient
         string winget,
         string id,
         string displayName,
-        Action<string> report
+        Action<string> report,
+        TimeSpan? installTimeout = null
     )
     {
         report($"正在检查 {displayName}…");
@@ -262,7 +264,7 @@ internal sealed class InstallationClient
                 "--accept-package-agreements",
                 "--accept-source-agreements",
             },
-            TimeSpan.FromMinutes(10)
+            installTimeout ?? TimeSpan.FromMinutes(10)
         );
     }
 
