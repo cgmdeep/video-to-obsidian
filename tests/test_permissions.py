@@ -106,6 +106,26 @@ def test_windows_sddl_parser_detects_unexpected_allow(
     }
 
 
+def test_windows_sddl_local_administrator_and_owner_are_private(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    path = tmp_path / "config.json"
+    path.write_text("{}", encoding="utf-8")
+    current = "S-1-5-21-1000-500"
+    monkeypatch.setattr(permissions, "_windows_current_user_sid", lambda: current)
+    monkeypatch.setattr(
+        permissions,
+        "_windows_acl_sddl",
+        lambda target: "D:PAI(A;;FA;;;BA)(A;;FA;;;SY)(A;;FA;;;LA)(A;;FA;;;OW)",
+    )
+
+    assert permissions._windows_acl_state(path) == {
+        "protected": True,
+        "current_has_full_control": True,
+        "unexpected_allow_sids": [],
+    }
+
+
 def test_windows_permission_failure_stops_secure_write(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

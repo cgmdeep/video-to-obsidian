@@ -79,14 +79,26 @@ def _windows_acl_state(target: Path) -> dict[str, object] | None:
     protected = bool(re.match(r"^D:[^()]*P", sddl))
     current_has_full_control = False
     unexpected: list[str] = []
-    allowed = {current, "S-1-5-18", "S-1-5-32-544"}
+    # LA is the built-in local Administrator account and OW is the current
+    # object owner. Neither grants access to an unrelated local user. icacls
+    # can abbreviate the current SID as LA when running under that account.
+    allowed = {
+        current,
+        "S-1-5-18",
+        "S-1-5-32-544",
+        "LA",
+        "S-1-3-4",
+    }
     for match in re.finditer(r"\(([^()]*)\)", sddl):
         fields = match.group(1).split(";")
         if len(fields) != 6 or fields[0] != "A":
             continue
         rights, trustee = fields[2], fields[5]
         trustee_sid = _SDDL_TRUSTEE_TO_SID.get(trustee, trustee)
-        if trustee_sid == current and "FA" in rights:
+        current_trustee = trustee_sid == current or (
+            trustee == "LA" and current.endswith("-500")
+        )
+        if current_trustee and "FA" in rights:
             current_has_full_control = True
         if trustee_sid not in allowed and trustee_sid not in unexpected:
             unexpected.append(trustee_sid)
