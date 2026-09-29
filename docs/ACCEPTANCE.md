@@ -112,6 +112,13 @@
 - Kimi 失败结果也声明视频分析 usage 边界，并明确 ZCode 路由 usage 不在 MCP 工具可见范围内；工作区规则要求去 ZCode 或相应模型供应商查看，禁止猜测、混算或把未知费用写成零；
 - 单元测试覆盖首次分析、缓存命中、Kimi 失败和生成的 ZCode 工作区规则；本轮没有调用真实模型或产生费用。真实路由 usage/账单分栏仍需从 ZCode 或其模型供应商取得后单独留证。
 
+#### ROG 候选部署核验
+
+- 从 [`CI #36624790305`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36624790305) 下载 commit `82b0bdaaf3172cd0b27e5124312ee31ccd34cf57` 的 Windows 单文件候选包：71,693,314 字节，SHA256 `6973dea0153df8ed390595dfe806ea69e319f80a3082804abcf10a6f52b65fea`；传到 ROG 后字节数和 SHA256 完全一致；
+- ROG 执行原地修复返回 `operation=repair`、`ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`；修复前后公共配置 SHA256 不变，受管工作区规则已更新并包含新的 usage 归属字段，ZCode 进程保持运行；
+- 修复后真实 Vault 只读审计为 96 个有效 Markdown、5 个受管来源笔记、5 个唯一稳定身份、0 个重复组、0 个不可读文件，`paid_call_performed=false`；
+- SSH 非交互会话仍不能读取交互用户的 Windows Credential Manager，因此不把该会话的支持报告写成 Key 可用性验收；这不影响本轮配置保留、工作区更新和 Vault 一致性证据。
+
 ### ROG 验收节点守护
 
 ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端。ZCode 官方微信 Bot
