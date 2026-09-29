@@ -132,6 +132,27 @@ def test_prompt_contains_irony_guard(tmp_path: Path) -> None:
     assert "疑似反讽" in prompt
 
 
+def test_prompt_locks_quality_review_dimensions(tmp_path: Path) -> None:
+    transport = FakeTransport(
+        [
+            {"choices": [{"delta": {"content": "正文" * 50}}]},
+            {"choices": [{"delta": {}, "finish_reason": "stop"}]},
+        ]
+    )
+    KimiVideoClient(
+        _settings(tmp_path), api_key="test-key", transport=transport
+    ).analyze(_video(tmp_path), {"title": "x"})
+    prompt = transport.payload["messages"][0]["content"][1]["text"]
+    for contract in (
+        "按时间线和论证顺序",
+        "数字、参数、单位、图表",
+        "逐一标明观点归属",
+        "音频、烧屏字幕、图表与画面相互冲突",
+        "反讽、戏仿、夸张和反问",
+    ):
+        assert contract in prompt
+
+
 @pytest.mark.parametrize(
     ("status_code", "error_code"),
     ((429, "kimi_rate_limited"), (500, "kimi_upstream_failed"), (503, "kimi_upstream_failed")),

@@ -31,6 +31,8 @@ def test_preferences_live_outside_vault_and_are_combined(tmp_path: Path) -> None
     assert "按时间线详细总结，注意反讽" in combined
     assert "本次视频要求" in combined
     assert "本次重点保留数据" in combined
+    assert "以本次视频要求优先" in combined
+    assert combined.index("长期总结偏好") < combined.index("本次视频要求") < combined.index("执行优先级")
     assert character_count > 0
 
 

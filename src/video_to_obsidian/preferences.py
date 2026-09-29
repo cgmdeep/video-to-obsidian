@@ -74,4 +74,6 @@ def effective_instruction(settings: Settings, instruction: str) -> tuple[str, in
         parts.append(f"长期总结偏好：\n{preferences}")
     if instruction.strip():
         parts.append(f"本次视频要求：\n{instruction.strip()}")
+    if preferences and instruction.strip():
+        parts.append("执行优先级：若两者冲突，以本次视频要求优先；长期总结偏好只补充不冲突部分。")
     return "\n\n".join(parts), len(preferences)
