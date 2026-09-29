@@ -12,6 +12,7 @@ def test_doctor_never_performs_paid_call(tmp_path: Path, monkeypatch) -> None:
         runtime_root=tmp_path / "private",
     )
     monkeypatch.delenv("KIMI_API_KEY", raising=False)
+    monkeypatch.setattr("video_to_obsidian.doctor.kimi_key_source", lambda: "missing")
     payload = doctor_payload(config)
     assert payload["paid_call_performed"] is False
     checks = {item["name"]: item for item in payload["checks"]}
