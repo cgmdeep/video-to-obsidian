@@ -100,6 +100,8 @@ video-to-obsidian clear-summary-preferences
 
 普通用户的目标入口是单个 `VideoToObsidian.Setup.exe`，不需要克隆仓库、安装 Coding Plan、理解 Python、PowerShell 或 MCP。首个公开包是 GitHub Pre-release 中的未签名 Alpha；下载后应对照 Release 页提供的 SHA256。它不是稳定版，Windows SmartScreen 可能显示未知发布者提示。
 
+同一个安装器提供两个清楚的档位，不需要下载两套程序：默认“标准版”只生成结构化笔记；高级设置中的“逐字稿增强版”会尝试连接用户自己的 SenseVoice 兼容服务。SenseVoice 不可用时只跳过逐字稿，仍继续生成正式笔记。公开 Alpha 不提供作者的 ASUS 作为公共转写服务，也不会暗示普通用户已经获得一键本地 ASR。
+
 安装向导会：
 
 - 通过 Windows `winget` 检查或安装 Python、Firefox、Obsidian 和 ffmpeg；

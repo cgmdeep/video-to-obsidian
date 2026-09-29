@@ -40,6 +40,16 @@
                         <TextBlock Text="自动创建 Obsidian 知识库和专用 ZCode 工作区。" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
                         <TextBlock Text="Obsidian 知识库" />
                         <TextBox x:Name="VaultPathBox" Margin="0,6,0,8" />
+                        <Expander Header="高级设置（可选）" Margin="0,2,0,10">
+                            <StackPanel Margin="12,8,0,2">
+                                <CheckBox x:Name="TranscriptProfileCheckBox"
+                                          Content="启用逐字稿增强版（实验性）" />
+                                <TextBlock x:Name="TranscriptProfileHint"
+                                           TextWrapping="Wrap"
+                                           Foreground="{StaticResource MutedBrush}"
+                                           Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Expander>
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="PrepareButton" Content="安装 / 修复本机" Click="PrepareButton_Click" />
                             <Button Content="用 Obsidian 打开" Click="OpenVaultButton_Click" Background="#353948" />

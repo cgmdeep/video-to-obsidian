@@ -31,6 +31,23 @@ def test_installer_rejects_empty_stdin_key(monkeypatch, capsys) -> None:
     assert "没有 Kimi API Key" in capsys.readouterr().out
 
 
+def test_installer_can_switch_profile_without_paid_call(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "update_profile",
+        lambda profile, config_path=None: (config_path, True),
+    )
+    assert cli.main(
+        ["set-profile", "--profile", "transcript", "--config", "config.toml", "--json"]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["changed"] is True
+    assert payload["profile"] == "transcript"
+    assert payload["transcript_mode"] == "local"
+    assert payload["contains_secrets"] is False
+    assert payload["paid_call_performed"] is False
+
+
 def test_ensure_zcode_model_reports_missing_key_without_error(monkeypatch, capsys) -> None:
     monkeypatch.setattr(cli, "get_kimi_api_key", lambda: None)
     assert cli.main(["ensure-zcode-model", "--json"]) == 0

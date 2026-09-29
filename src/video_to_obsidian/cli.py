@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .config import ConfigError, initialize_settings, load_settings
+from .config import ConfigError, initialize_settings, load_settings, update_profile
 from .doctor import doctor_payload
 from .notes import NoteWriteError, audit_vault
 from .onboarding import (
@@ -50,6 +50,11 @@ def _parser() -> argparse.ArgumentParser:
     init.add_argument("--config", type=Path)
     init.add_argument("--overwrite", action="store_true")
     init.add_argument("--reuse-existing", action="store_true")
+
+    profile = sub.add_parser("set-profile", help="安全切换标准版或逐字稿增强版")
+    profile.add_argument("--profile", choices=("standard", "transcript"), required=True)
+    profile.add_argument("--config", type=Path)
+    profile.add_argument("--json", action="store_true")
 
     doctor = sub.add_parser("doctor", help="免费环境体检")
     doctor.add_argument("--config", type=Path)
@@ -174,6 +179,22 @@ def main(argv: list[str] | None = None) -> int:
                 reuse_existing=args.reuse_existing,
             )
             print(f"配置已创建：{path}")
+            return 0
+        if args.command == "set-profile":
+            path, changed = update_profile(args.profile, config_path=args.config)
+            payload = {
+                "ok": True,
+                "changed": changed,
+                "profile": args.profile,
+                "transcript_mode": "off" if args.profile == "standard" else "local",
+                "config": str(path),
+                "contains_secrets": False,
+                "paid_call_performed": False,
+            }
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print("已切换到" + ("标准版。" if args.profile == "standard" else "逐字稿增强版。"))
             return 0
         if args.command == "doctor":
             payload = doctor_payload(args.config)

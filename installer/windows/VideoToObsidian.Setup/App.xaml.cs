@@ -51,6 +51,7 @@ public partial class App : Application
                 await new MachinePreparationClient().PrepareAsync(
                     vaultPath,
                     MachinePreparationClient.DefaultWorkspacePath,
+                    MachinePreparationClient.ConfiguredProfileOrDefault,
                     phase => WritePreparationReport(resultPath, new
                     {
                         schema_version = 1,

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
+import stat
 import tempfile
 import tomllib
 from dataclasses import dataclass
@@ -149,6 +151,65 @@ def load_settings(config_path: Path | None = None) -> Settings:
 
 def _toml_string(value: str | Path) -> str:
     return json.dumps(str(value), ensure_ascii=False)
+
+
+def update_profile(profile: str, *, config_path: Path | None = None) -> tuple[Path, bool]:
+    """Atomically switch only the managed analysis profile fields."""
+    if profile not in {"standard", "transcript"}:
+        raise ConfigError("profile 只能是 standard 或 transcript。")
+    defaults = default_paths()
+    target = (config_path or defaults.config_file).expanduser()
+    current = load_settings(target)
+    desired_mode = "off" if profile == "standard" else "local"
+    if current.profile == profile and current.transcript.mode == desired_mode:
+        return target, False
+
+    lines = target.read_text(encoding="utf-8").splitlines()
+    section = ""
+    profile_updated = False
+    mode_updated = False
+    section_pattern = re.compile(r"^\s*\[([^]]+)]\s*$")
+    assignment_pattern = re.compile(r"^(\s*)([A-Za-z0-9_-]+)(\s*=).*$")
+    for index, line in enumerate(lines):
+        section_match = section_pattern.match(line)
+        if section_match:
+            section = section_match.group(1).strip()
+            continue
+        assignment_match = assignment_pattern.match(line)
+        if not assignment_match:
+            continue
+        indentation, key, equals = assignment_match.groups()
+        if not section and key == "profile":
+            lines[index] = f"{indentation}profile{equals} {_toml_string(profile)}"
+            profile_updated = True
+        elif section == "transcript" and key == "mode":
+            lines[index] = f"{indentation}mode{equals} {_toml_string(desired_mode)}"
+            mode_updated = True
+
+    if not profile_updated or not mode_updated:
+        raise ConfigError("现有配置缺少受管的 profile 或 transcript.mode，拒绝改写。")
+    candidate = "\n".join(lines) + "\n"
+    try:
+        parsed = tomllib.loads(candidate)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError("档位切换会产生无效配置，已取消。") from exc
+    if parsed.get("profile") != profile or (parsed.get("transcript") or {}).get("mode") != desired_mode:
+        raise ConfigError("档位切换校验失败，已取消。")
+
+    file_mode = stat.S_IMODE(target.stat().st_mode)
+    fd, temporary = tempfile.mkstemp(prefix=".config-profile-", suffix=".toml", dir=target.parent)
+    temp_path = Path(temporary)
+    try:
+        os.fchmod(fd, file_mode)
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(candidate)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, target)
+    finally:
+        temp_path.unlink(missing_ok=True)
+    load_settings(target)
+    return target, True
 
 
 def initialize_settings(

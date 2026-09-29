@@ -18,6 +18,11 @@ public partial class MainWindow : Window
         InitializeComponent();
         _workspacePath = MachinePreparationClient.DefaultWorkspacePath;
         VaultPathBox.Text = MachinePreparationClient.ConfiguredVaultPathOrDefault;
+        TranscriptProfileCheckBox.IsChecked =
+            MachinePreparationClient.ConfiguredProfileOrDefault == "transcript";
+        TranscriptProfileHint.Text = MachinePreparationClient.HasConfiguration
+            ? "当前档位已载入。修改勾选后点击“安装 / 修复本机”即可安全切换；现有笔记与检查点会保留。"
+            : "可选实验功能：需要你自己的 SenseVoice 兼容服务；未运行时会跳过逐字稿，仍继续生成正式笔记。";
         Loaded += async (_, _) => await RefreshStatusAsync();
     }
 
@@ -28,6 +33,7 @@ public partial class MainWindow : Window
             await _preparation.PrepareAsync(
                 VaultPathBox.Text,
                 _workspacePath,
+                TranscriptProfileCheckBox.IsChecked == true ? "transcript" : "standard",
                 message =>
             {
                 Dispatcher.Invoke(() => StatusText.Text = message);

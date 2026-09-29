@@ -17,6 +17,8 @@ Python、Firefox、Obsidian 和 ffmpeg 可以由安装器通过 `winget` 补齐�
 
 点击“安装 / 修复本机”，接受默认路径或选择新的 Obsidian Vault。安装器会使用官方 `winget` 来源补齐依赖，并把自身核心放在 `%LOCALAPPDATA%\VideoToObsidian\runtime`。重复点击会执行幂等修复，不会覆盖无关 ZCode 配置。默认标准版不需要显卡、NAS、Tailscale 或 SenseVoice。
 
+普通用户保持“高级设置”折叠并使用标准版即可。如果你已经在本机运行兼容的 SenseVoice 服务，可以展开高级设置并勾选“逐字稿增强版”；默认连接 `127.0.0.1:8010`。增强服务不可用时会跳过逐字稿而不阻止 Kimi 正式笔记。切换档位后再次点击“安装 / 修复本机”，安装器只改受管档位字段，保留 Vault、偏好、缓存、检查点和未知的未来配置项。当前 Alpha 不负责安装 SenseVoice，也不把作者的远程服务提供给公众。
+
 ## 2. 输入 Kimi API Key
 
 在“连接 Kimi”中输入自己的 Kimi API Key，点击“安全保存并自动补齐”。Key 保存到 Windows 凭据库，界面和日志不会显示其值。不要把 Key 写进聊天消息、截图或普通文本文件。

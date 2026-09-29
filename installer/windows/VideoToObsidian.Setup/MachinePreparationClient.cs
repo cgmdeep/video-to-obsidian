@@ -56,7 +56,9 @@ internal sealed class MachinePreparationClient
         }
     }
 
-    private static string ConfiguredProfileOrDefault
+    public static bool HasConfiguration => File.Exists(ConfigPath);
+
+    public static string ConfiguredProfileOrDefault
     {
         get
         {
@@ -70,6 +72,7 @@ internal sealed class MachinePreparationClient
     public async Task PrepareAsync(
         string vaultPath,
         string workspacePath,
+        string profile,
         Action<string> report
     )
     {
@@ -81,10 +84,35 @@ internal sealed class MachinePreparationClient
         {
             throw new InvalidOperationException("无法确定视知库助手工作区目录。");
         }
+        if (profile is not ("standard" or "transcript"))
+        {
+            throw new InvalidOperationException("分析档位只能是标准版或逐字稿增强版。");
+        }
 
         var normalizedVault = Path.GetFullPath(vaultPath.Trim());
         var normalizedWorkspace = Path.GetFullPath(workspacePath.Trim());
+        if (
+            HasConfiguration
+            && !string.Equals(
+                Path.GetFullPath(ConfiguredVaultPathOrDefault),
+                normalizedVault,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            throw new InvalidOperationException(
+                "本机已有视知库配置；修复必须继续使用原知识库目录，避免把笔记拆到两个位置。"
+            );
+        }
         await _installation.EnsureInstalledAsync(report);
+
+        if (HasConfiguration && ConfiguredProfileOrDefault != profile)
+        {
+            report("正在安全切换分析档位…");
+            await _backend.RunJsonAsync(
+                new[] { "set-profile", "--profile", profile, "--json" }
+            );
+        }
 
         report("正在创建 Obsidian 知识库…");
         await _backend.RunAsync(
@@ -94,7 +122,7 @@ internal sealed class MachinePreparationClient
                 "--vault",
                 normalizedVault,
                 "--profile",
-                ConfiguredProfileOrDefault,
+                profile,
                 "--reuse-existing",
             }
         );
