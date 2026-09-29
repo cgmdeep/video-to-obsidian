@@ -37,6 +37,10 @@ def test_windows_acl_integration_diagnostic(tmp_path: Path) -> None:
     }
     state = permissions._windows_acl_state(path)
     assert isinstance(state, dict), {"stage": "state-shape", "state": state}
+    assert not state.get("unexpected_allow_sids"), {
+        "stage": "unexpected-after-grant",
+        "state": state,
+    }
 
 
 def test_private_file_and_directory_permissions(tmp_path: Path) -> None:
