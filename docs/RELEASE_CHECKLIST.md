@@ -50,7 +50,7 @@
 
 ### 2026-09-29 本地一致性与失败恢复固定集
 
-- 当前全部 109 项核心测试通过；其中包含 100 个无付费并发提交的单节点排队固定集、总结质量提示词合同和最新失败边界回归；
+- 当前全部 111 项核心测试通过；其中包含 100 个无付费并发提交的单节点排队固定集、总结质量提示词合同和最新失败边界回归；
 - 旧版 Vault 根目录与新版平台子目录统一按稳定身份检查，同一来源不会再静默生成第二份正式笔记；
 - Vault 中只有用户笔记，cache、state、candidate 和 archive 均在私有运行目录；
 - Kimi 连接失败会保留下载检查点，人工重试不再次下载；
@@ -82,6 +82,13 @@
 - 工作流：[Windows clean acceptance #36537411556](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36537411556)；
 - 结果：仓库 `scripts/uninstall.ps1` 在干净 Windows 上先移除安装核心和受管 MCP，同时保留 Vault、工作区、Firefox Profile 与无关 MCP；随后重装、修复、安装器默认卸载、重装和私有数据卸载全部通过；
 - 本轮还验证英文 Windows 旧控制台编码边界，子 Python 命令使用临时 UTF-8 环境且执行后恢复；六份报告均不含 Secret 且未触发付费调用。
+
+### 2026-09-29 最新安装器支持工作流证据
+
+- commit `129ca2a2d473bd5011b1bd7196bfc724cba4e486`；CI [`#36585588795`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36585588795) 与 Security [`#36585589160`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36585589160) 通过；
+- ROG 候选包 SHA256 为 `12a50f18ad9efff1294981f409fb411038bf00c7a2c1880650f12e59c984c732`，内置载荷校验与原地修复均通过，复用现有 Vault 和专用工作区，未调用付费模型；
+- `support-report` 在实机只返回允许字段，对用户名、本机路径、Key/Cookie/Bearer/签名 URL 扫描无命中；
+- 安装器可检测 ROG 上的已安装 ZCode，直接打开应用或传入专用工作区；仅在未安装时跳转官方安装说明。
 
 ### 2026-09-29 alpha.2 候选阻断记录
 

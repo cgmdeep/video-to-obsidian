@@ -55,6 +55,7 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] `configure-zcode-moonshot --json`；
 - [x] `set-kimi-key --stdin --json` 仅通过标准输入接收安装器密钥；
 - [x] 统一 `onboarding-status --json`；
+- [x] 提供仅包含允许字段的 `support-report --json`，不输出本机路径、供应商身份、Key、Cookie、Bearer 或签名 URL；
 - [x] 安装、修复、卸载均返回稳定操作标识与错误码；
 - [ ] Windows ACL 实机验证。
 
@@ -66,12 +67,14 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] 将当前 Python wheel 内嵌进自包含的 Windows x64 单文件 EXE；
 - [x] 通过 winget 安装或检查 Python、Obsidian、Firefox 和 ffmpeg；
 - [x] 提供 ZCode 官方下载页和 Bot Channel 官方教程入口；
+- [x] 检测到已安装 ZCode 时直接打开，并可用专用工作区路径启动；未安装时才跳转官方说明；
 - [x] 默认创建 `文档\视知库` Vault；
 - [x] 提供隔离 Firefox 抖音/B站登录按钮、微信扫码引导和免费体检；
 - [x] 英文干净 Windows Runner 可通过同一准备逻辑创建中文 Vault、专用工作区和 Firefox Profile；
 - [x] 后台命令统一 UTF-8，外部安装步骤有超时并持续输出脱敏阶段进度；
 - [x] 高级折叠区显示实验性逐字稿增强版；默认标准版不启动 ASR，切换只改受管档位字段并保留现有笔记与检查点。
 - [x] ROG 候选安装器完成 `standard → transcript → standard` 零付费往返，生产配置未改写、Windows CRLF 与配置内容可字节级还原；未配置 ASR 时只提示非必需项不可用。
+- [x] ROG 候选安装器完成脱敏支持报告实机验收；报告不含用户名、本机路径或认证材料，全程未调用付费模型。
 - [ ] 原视频归档等高风险选项只在后续高级页提供，当前图形向导不开放。
 
 ### P4：干净机器和真实视频

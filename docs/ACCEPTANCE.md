@@ -249,7 +249,7 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 
 ### 2026-09-29 无费用队列与失败回执固定集
 
-- 当前全部 109 项核心测试通过；其中包含 100 个同时提交的 MCP 任务压测，处理节点实测最大并发为 1，所有任务均完成且 `paid_call_performed=false`；
+- 当前全部 111 项核心测试通过；其中包含 100 个同时提交的 MCP 任务压测，处理节点实测最大并发为 1，所有任务均完成且 `paid_call_performed=false`；
 - 412 由平台适配器执行单次受控降级；429、500、503 和连接中断在工具内不自动重试，只返回带 `kimi_attempts=1` 的可重试错误，工作区规则最多允许上层再试一次；
 - 失败 MCP 回执固定为 `ok=false`、`complete=false`、`status=failed`，不包含 `saved_to` 或 `archived_video`；未知异常只返回脱敏的 `internal_error`，不复制底层异常正文；
 - 此轮证明单节点排队与错误边界，不替代真实网络抖动、平台登录失效、20 人体验或付费 Kimi 稳定性验收。
@@ -269,3 +269,12 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 测试窗口内检查点盘可用空间净变化约 -9.82 MiB；ROG 同时运行其他服务，因此不把整机空间变化归因于本项目。最终 manifest 仍为 `completed/finished`，`source_path` 与 `kimi_proxy_path` 均为空且对应文件不存在。
 - 结束后没有匹配巡检命令的 Python/ffmpeg/yt-dlp 进程；专用 `VideoToObsidian Cache Soak` 计划任务与临时审计脚本已注销/清理，保留脱敏 JSON 报告作为证据。
 - 此轮证明重复完成态提交的缓存稳定性，不替代 20 人并发体验、真实付费服务故障或平台 Cookie 失效的长时间运行验收。
+
+### 2026-09-29 ROG 安装器支持报告与 ZCode 打开合同
+
+- commit `129ca2a2d473bd5011b1bd7196bfc724cba4e486`；CI [`#36585588795`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36585588795) 与 Security [`#36585589160`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36585589160) 全部通过，核心回归为 111 项。
+- 候选安装器为 71,689,163 字节，SHA256 `12a50f18ad9efff1294981f409fb411038bf00c7a2c1880650f12e59c984c732`；ROG 内置 wheel 校验通过，并返回 `contains_secrets=false`。
+- 同一候选包在 ROG 执行原地修复，返回 `ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`；未发起 Kimi 调用。
+- 新增 `support-report --json` 只输出检查项名、布尔状态、可用模型通道计数和后续动作。ROG 实际报告对用户名、`C:\\Users\\`、Moonshot 主机、`Bearer`、`Cookie`、`sk-` 和签名查询参数扫描均为阴性，并显式标记 `contains_local_paths=false`、`contains_secrets=false`、`paid_call_performed=false`。
+- ROG 实机确认 ZCode 安装于官方用户目录，安装器现在优先直接打开已安装 ZCode，并可将专用工作区路径作为参数传入；未安装时才降级到官方安装说明。
+- 边界：Windows OpenSSH 在 Session 0 运行，ROG 的 ZCode 在交互 Session 1 运行；因此 SSH 下的只读报告无法解密交互会话的 Windows 凭据，将 `kimi_key` 标为不可用。ZCode 模型配置仍识别到 4 个可用通道及 Moonshot 供应商，且原地修复不删除用户凭据；本节不把 SSH 会话写成交互钥匙串验收通过。
