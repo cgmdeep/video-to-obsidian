@@ -17,7 +17,7 @@
 - [x] 双击安装器后，不克隆仓库、不打开 PowerShell 也能完成准备（ROG 临时普通账户图形验收）；
 - [x] “登录抖音”“登录B站”均打开隔离的 `VideoToObsidian` Profile（干净 Windows Runner 真实按钮与进程参数验收；不代表用户已扫码）；
 - [x] “用 Obsidian 打开”会先登记本次选择的 Vault，再按 Vault ID 唤起 Obsidian（干净 Windows Runner 真实按钮与配置合同验收；不替代人工确认首篇笔记已在 Obsidian 中打开）；
-- [ ] 用户能从界面复制 `文档\视知库助手` 路径并在 ZCode 打开；
+- [x] 用户能从界面复制 `文档\视知库助手` 路径，“用 ZCode 打开视知库助手”会把同一路径作为启动参数交给已安装 ZCode（干净 Windows Runner 真实按钮合同；ROG 实机确认支持的安装位置存在且 ZCode 正运行，不代表微信已绑定）；
 - [x] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
 - [x] 无 Coding Plan 时，用户自有 Kimi Key 可以提供 ZCode 路由模型（ROG `has_coding_plan_provider=false`，Moonshot 通道可用，微信已完成免费 `doctor` 调用）；
 - [x] 微信发送“检查系统”能获得免费诊断回复；
@@ -97,6 +97,13 @@
 - 配置不是合法 JSON、结构异常或写入前被其他进程修改时，安装器拒绝覆盖原文件并提示关闭 Obsidian后重试或手动选择目录；
 - UI 合同证据为 `obsidian_open_action=true`、`obsidian_vault_registration=true`、`obsidian_config_preserved=true`、`obsidian_config_backup=true`；同一报告继续保持 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`；
 - 同一工作流随后完成首次准备、修复、默认卸载、重装和受管私有目录卸载。本节证明 Vault 登记、配置保护和唤起合同，不冒充用户已在真实 Vault 中看到首篇业务笔记。
+
+### 2026-09-30 ZCode 工作区启动动作
+
+- commit `907e78ca471477a150c3330b654f06172612146b`；[`Windows clean acceptance #36622727252`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36622727252)、[`CI #36622712409`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36622712409) 与 [`Security #36622712704`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36622712704) 全部通过；
+- 干净 Windows Runner 在安装器支持的当前用户 ZCode 位置放入一次性启动探针，真实点击“用 ZCode 打开视知库助手”，并从新进程命令行验证受管 `文档\视知库助手` 路径被作为启动参数传入；探针不覆盖已有 ZCode，验收结束后自动清理；
+- UI 合同证据为 `zcode_workspace_action=true`、`zcode_workspace_argument=true`，同时复制路径、Obsidian、双平台登录启动动作继续通过，报告保持 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`；
+- ROG 只读核对确认 ZCode 正在运行，且实际 EXE 位于安装器支持的候选位置之一。本节证明“找得到应用并传入正确工作区”的启动合同，不冒充 ZCode 已切换到该工作区、Bot Channel 已绑定或微信已扫码。
 
 ### ROG 验收节点守护
 

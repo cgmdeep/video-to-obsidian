@@ -126,6 +126,13 @@
 - 真实按钮合同记录 `obsidian_open_action=true`、`obsidian_vault_registration=true`、`obsidian_config_preserved=true`、`obsidian_config_backup=true`，同时保持无 Secret、无本机路径和无付费调用；
 - 同一工作流继续通过首次准备、修复、默认卸载、重装与私有数据卸载。本证据不替代用户在 Obsidian 中人工确认首篇业务笔记。
 
+### 2026-09-30 ZCode 工作区启动动作证据
+
+- commit `907e78ca471477a150c3330b654f06172612146b`；[`Windows clean acceptance #36622727252`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36622727252)、[`CI #36622712409`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36622712409) 与 [`Security #36622712704`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36622712704) 成功；
+- 真实按钮把受管 `文档\视知库助手` 路径作为参数交给安装器发现的 ZCode 位置；一次性探针不覆盖已有 ZCode，且验收后清理；
+- UI 证据 JSON 记录 `zcode_workspace_action=true`、`zcode_workspace_argument=true`，并继续保持无 Secret、无本机路径和无付费调用；ROG 只读核对同时确认实际 ZCode 位于支持路径且正在运行；
+- 本证据只覆盖应用发现与启动参数合同，不替代真实 ZCode 界面、Bot Channel 绑定或微信扫码验收。
+
 ### 2026-09-29 alpha.2 候选阻断记录
 
 - 标签 `v0.1.0-alpha.2` 的发布流水线在 Firefox 准备阶段被闸门阻断，没有生成 GitHub Release；

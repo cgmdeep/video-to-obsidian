@@ -78,6 +78,7 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] 干净 Windows Runner 启动真实编译 EXE，验证 13 个必需动作和高级逐字稿选项；实际点击复制工作区路径和导出诊断报告，剪贴板、桌面 JSON、脱敏扫描与零付费标志全部通过。
 - [x] 干净 Windows Runner 真实点击抖音/B站登录按钮，通过 Firefox 进程参数验证对应官方 URL 与隔离的 `VideoToObsidian` Profile；此项不代表用户已扫码。
 - [x] 干净 Windows Runner 真实点击“用 Obsidian 打开”，验证当前 Vault 被登记后按 Vault ID 唤起；原有 Vault、未知配置字段和原配置均保留，同时生成可恢复备份。此项不替代用户确认首篇笔记已在 Obsidian 中打开。
+- [x] 干净 Windows Runner 真实点击“用 ZCode 打开视知库助手”，验证受管工作区作为启动参数交给安装器发现的 ZCode；一次性探针不替代真实 Bot Channel 绑定或微信扫码。
 - [x] 原视频归档等高风险选项不在当前图形向导开放；公开 Alpha 的高级区只提供实验性逐字稿档位。
 
 ### P4：干净机器和真实视频
