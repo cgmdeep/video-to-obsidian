@@ -21,8 +21,9 @@ $LocalRoot = Join-Path $env:LOCALAPPDATA 'VideoToObsidian'
 $ProfilesIni = Join-Path $env:APPDATA 'Mozilla\Firefox\profiles.ini'
 $VaultSentinel = Join-Path $Vault 'lifecycle-vault-sentinel.txt'
 $WorkspaceSentinel = Join-Path $Workspace 'lifecycle-workspace-sentinel.txt'
+$SourceUninstall = Join-Path $PSScriptRoot 'uninstall.ps1'
 
-if (-not (Test-Path $Runtime) -or -not (Test-Path $WorkspaceConfig)) {
+if (-not (Test-Path $Runtime) -or -not (Test-Path $WorkspaceConfig) -or -not (Test-Path $SourceUninstall)) {
     throw 'Lifecycle acceptance requires a completed preparation first.'
 }
 
@@ -34,6 +35,39 @@ $WorkspacePayload.mcp.servers | Add-Member -NotePropertyName 'unrelated-test-ser
 $WorkspacePayload | ConvertTo-Json -Depth 20 | Set-Content $WorkspaceConfig -Encoding utf8
 Set-Content $VaultSentinel 'preserve vault' -Encoding utf8
 Set-Content $WorkspaceSentinel 'preserve workspace' -Encoding utf8
+
+# Exercise the repository's documented PowerShell uninstaller separately from
+# the graphical installer's own uninstall command. GitHub's disposable Windows
+# runner keeps this destructive check isolated from a real user machine.
+& $SourceUninstall -Confirm:$false
+if ((Test-Path $Runtime) -or (Test-Path $PayloadRoot)) {
+    throw 'Source uninstall left installed core files behind.'
+}
+if (-not (Test-Path $VaultSentinel) -or -not (Test-Path $WorkspaceSentinel) -or -not (Test-Path $ProfilesIni)) {
+    throw 'Source uninstall removed user-owned content.'
+}
+$AfterSourceUninstall = Get-Content $WorkspaceConfig -Raw | ConvertFrom-Json
+if ($AfterSourceUninstall.mcp.servers.PSObject.Properties.Name -contains 'video-to-obsidian') {
+    throw 'Source uninstall left the managed MCP entry behind.'
+}
+if ($AfterSourceUninstall.mcp.servers.PSObject.Properties.Name -notcontains 'unrelated-test-server') {
+    throw 'Source uninstall modified an unrelated MCP entry.'
+}
+
+$SourceReinstallReport = Join-Path $ArtifactsDirectory 'clean-source-reinstall.json'
+$SourceReinstall = Start-Process -FilePath $Setup -ArgumentList @('--prepare-machine', $SourceReinstallReport) -Wait -PassThru
+if ($SourceReinstall.ExitCode -ne 0 -or -not (Test-Path $SourceReinstallReport)) {
+    throw "Reinstall after source uninstall failed (exit $($SourceReinstall.ExitCode))."
+}
+$SourceReinstallPayload = Get-Content $SourceReinstallReport -Raw | ConvertFrom-Json
+if (-not $SourceReinstallPayload.ok -or $SourceReinstallPayload.operation -ne 'install' -or -not (Test-Path $Runtime)) {
+    throw 'Reinstall after source uninstall did not restore the installed core.'
+}
+$AfterSourceReinstall = Get-Content $WorkspaceConfig -Raw | ConvertFrom-Json
+$SourceReinstallServerNames = @($AfterSourceReinstall.mcp.servers.PSObject.Properties.Name)
+if ($SourceReinstallServerNames -notcontains 'video-to-obsidian' -or $SourceReinstallServerNames -notcontains 'unrelated-test-server') {
+    throw 'Reinstall after source uninstall did not restore managed MCP while preserving unrelated configuration.'
+}
 
 $RepairReport = Join-Path $ArtifactsDirectory 'clean-repair.json'
 $Repair = Start-Process -FilePath $Setup -ArgumentList @('--prepare-machine', $RepairReport) -Wait -PassThru
@@ -121,4 +155,4 @@ if ($AfterPrivateUninstall.mcp.servers.PSObject.Properties.Name -notcontains 'un
     throw 'Private uninstall modified an unrelated MCP entry.'
 }
 
-Write-Host 'Windows install, repair, default uninstall, and private uninstall acceptance passed.'
+Write-Host 'Windows install, source uninstall, repair, default uninstall, and private uninstall acceptance passed.'
