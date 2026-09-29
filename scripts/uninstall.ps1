@@ -15,21 +15,43 @@ $RepoCli = Join-Path $VenvRoot 'Scripts\video-to-obsidian.exe'
 $Cli = if (Test-Path $InstalledCli -PathType Leaf) { $InstalledCli } elseif (Test-Path $RepoCli -PathType Leaf) { $RepoCli } else { $null }
 $WorkspaceConfig = Join-Path $WorkspacePath '.zcode\config.json'
 $ConfigPaths = @($ZCodeConfig, $WorkspaceConfig) | Select-Object -Unique
+$PreviousPythonUtf8 = $env:PYTHONUTF8
+$PreviousPythonIoEncoding = $env:PYTHONIOENCODING
 
 if (-not $Cli -and ($ConfigPaths | Where-Object { Test-Path $_ -PathType Leaf })) {
     throw '未找到视知库核心，无法安全编辑现有 ZCode 配置；请先修复安装后再卸载。'
 }
 
-foreach ($ConfigPath in $ConfigPaths) {
-    if ((Test-Path $ConfigPath -PathType Leaf) -and $Cli) {
-        & $Cli unconfigure-zcode --config $ConfigPath
-        if ($LASTEXITCODE -ne 0) { throw "无法安全移除 ZCode MCP 条目，已停止卸载：$ConfigPath" }
+try {
+    if ($Cli) {
+        # Windows PowerShell may inherit a legacy console code page. The core
+        # prints Chinese status text, so force UTF-8 for child Python commands.
+        $env:PYTHONUTF8 = '1'
+        $env:PYTHONIOENCODING = 'utf-8'
     }
-}
 
-if ($RemovePrivateData -and $Cli) {
-    & $Cli delete-kimi-key
-    if ($LASTEXITCODE -ne 0) { throw '无法安全删除系统钥匙串中的 Kimi Key，已停止私有数据清理。' }
+    foreach ($ConfigPath in $ConfigPaths) {
+        if ((Test-Path $ConfigPath -PathType Leaf) -and $Cli) {
+            & $Cli unconfigure-zcode --config $ConfigPath
+            if ($LASTEXITCODE -ne 0) { throw "无法安全移除 ZCode MCP 条目，已停止卸载：$ConfigPath" }
+        }
+    }
+
+    if ($RemovePrivateData -and $Cli) {
+        & $Cli delete-kimi-key
+        if ($LASTEXITCODE -ne 0) { throw '无法安全删除系统钥匙串中的 Kimi Key，已停止私有数据清理。' }
+    }
+} finally {
+    if ($null -eq $PreviousPythonUtf8) {
+        Remove-Item Env:PYTHONUTF8 -ErrorAction SilentlyContinue
+    } else {
+        $env:PYTHONUTF8 = $PreviousPythonUtf8
+    }
+    if ($null -eq $PreviousPythonIoEncoding) {
+        Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+    } else {
+        $env:PYTHONIOENCODING = $PreviousPythonIoEncoding
+    }
 }
 
 if (Test-Path $VenvRoot -PathType Container) {
