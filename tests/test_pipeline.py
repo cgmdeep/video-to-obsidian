@@ -197,6 +197,54 @@ def test_kimi_failure_preserves_source_checkpoint(tmp_path: Path) -> None:
     assert record["diagnostics"]["usage"]["completion_tokens"] == 16384
 
 
+def test_manual_retry_after_kimi_failure_reuses_download_checkpoint(tmp_path: Path) -> None:
+    fake = FakePipeline(
+        kimi_error=AppError(
+            "kimi_connection_failed",
+            "Kimi 连接中断",
+            retryable=True,
+            details={"kimi_attempts": 1},
+        )
+    )
+    settings = _settings(tmp_path)
+
+    with pytest.raises(AppError, match="Kimi 连接中断"):
+        analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    fake.kimi_error = None
+    result = analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    assert result["ok"] is True
+    assert fake.download_calls == 1
+    assert fake.kimi_calls == 2
+    assert result["source_checkpoint_exists"] is False
+    history = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in (settings.paths.state / "history").rglob("*.json")
+    ]
+    assert sorted(item["outcome"] for item in history) == ["completed", "failed"]
+
+
+def test_runtime_artifacts_are_outside_vault(tmp_path: Path) -> None:
+    fake = FakePipeline()
+    settings = _settings(tmp_path)
+    result = analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    vault = settings.vault_path.resolve()
+    assert Path(result["saved_to"]).is_relative_to(vault)
+    for runtime_path in (
+        settings.paths.cache,
+        settings.paths.state,
+        settings.paths.candidates,
+        settings.paths.archive,
+    ):
+        assert not runtime_path.resolve().is_relative_to(vault)
+    assert not any(
+        path.name in {"cache", "state", "candidates", "archive"}
+        for path in vault.iterdir()
+    )
+
+
 def test_metadata_failure_leaves_secret_free_submission_receipt(tmp_path: Path) -> None:
     fake = FakePipeline()
     dependencies = fake.deps()
