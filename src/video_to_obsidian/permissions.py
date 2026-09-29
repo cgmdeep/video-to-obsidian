@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import base64
-import json
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 
@@ -14,102 +13,14 @@ class PrivatePermissionError(RuntimeError):
     """Raised when a sensitive local path cannot be made private."""
 
 
-_WINDOWS_CHECK_PRIVATE = r"""
-$ErrorActionPreference = 'Stop'
-$target = $env:VTO_PRIVATE_PATH
-if (-not (Test-Path -LiteralPath $target)) { exit 2 }
-$acl = Get-Acl -LiteralPath $target
-$current = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$allowed = @($current, 'S-1-5-18', 'S-1-5-32-544')
-$currentHasFullControl = $false
-$unexpectedAllow = $false
-foreach ($rule in @($acl.Access)) {
-    if ($rule.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) {
-        continue
-    }
-    try {
-        $sid = $rule.IdentityReference.Translate(
-            [System.Security.Principal.SecurityIdentifier]
-        ).Value
-    } catch {
-        $unexpectedAllow = $true
-        continue
-    }
-    if ($allowed -notcontains $sid) { $unexpectedAllow = $true }
-    if ($sid -eq $current) {
-        $full = [System.Security.AccessControl.FileSystemRights]::FullControl
-        if (($rule.FileSystemRights -band $full) -eq $full) {
-            $currentHasFullControl = $true
-        }
-    }
+_SDDL_TRUSTEE_TO_SID = {
+    "SY": "S-1-5-18",
+    "BA": "S-1-5-32-544",
+    "BU": "S-1-5-32-545",
+    "AU": "S-1-5-11",
+    "WD": "S-1-1-0",
+    "OW": "S-1-3-4",
 }
-if ($acl.AreAccessRulesProtected -and $currentHasFullControl -and -not $unexpectedAllow) {
-    Write-Output 'true'
-    exit 0
-}
-Write-Output 'false'
-exit 0
-"""
-
-_WINDOWS_ACL_STATE = r"""
-$ErrorActionPreference = 'Stop'
-$target = $env:VTO_PRIVATE_PATH
-if (-not (Test-Path -LiteralPath $target)) { exit 2 }
-$acl = Get-Acl -LiteralPath $target
-$current = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-$allowed = @($current, 'S-1-5-18', 'S-1-5-32-544')
-$currentHasFullControl = $false
-$unexpected = [System.Collections.Generic.List[string]]::new()
-foreach ($rule in @($acl.Access)) {
-    if ($rule.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) {
-        continue
-    }
-    try {
-        $sid = $rule.IdentityReference.Translate(
-            [System.Security.Principal.SecurityIdentifier]
-        ).Value
-    } catch {
-        continue
-    }
-    if ($allowed -notcontains $sid -and -not $unexpected.Contains($sid)) {
-        $unexpected.Add($sid)
-    }
-    if ($sid -eq $current) {
-        $full = [System.Security.AccessControl.FileSystemRights]::FullControl
-        if (($rule.FileSystemRights -band $full) -eq $full) {
-            $currentHasFullControl = $true
-        }
-    }
-}
-[ordered]@{
-    protected = [bool]$acl.AreAccessRulesProtected
-    current_has_full_control = $currentHasFullControl
-    unexpected_allow_sids = @($unexpected)
-} | ConvertTo-Json -Compress
-"""
-
-
-def _powershell(script: str, path: Path) -> subprocess.CompletedProcess[str]:
-    encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
-    environment = os.environ.copy()
-    environment["VTO_PRIVATE_PATH"] = str(path)
-    return subprocess.run(
-        [
-            "powershell.exe",
-            "-NoLogo",
-            "-NoProfile",
-            "-NonInteractive",
-            "-EncodedCommand",
-            encoded,
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        env=environment,
-        timeout=30,
-    )
 
 
 def _is_windows() -> bool:
@@ -144,15 +55,46 @@ def _run_icacls(arguments: list[str]) -> bool:
     return result.returncode == 0
 
 
-def _windows_acl_state(target: Path) -> dict[str, object] | None:
-    result = _powershell(_WINDOWS_ACL_STATE, target)
-    if result.returncode != 0:
-        return None
+def _windows_acl_sddl(target: Path) -> str | None:
+    descriptor_fd, descriptor_name = tempfile.mkstemp(suffix=".acl")
+    os.close(descriptor_fd)
+    descriptor = Path(descriptor_name)
     try:
-        state = json.loads(result.stdout.strip())
-    except (json.JSONDecodeError, TypeError):
+        descriptor.unlink()
+        if not _run_icacls([str(target), "/save", str(descriptor), "/c", "/q"]):
+            return None
+        text = descriptor.read_text(encoding="utf-16-le")
+    except OSError:
         return None
-    return state if isinstance(state, dict) else None
+    finally:
+        descriptor.unlink(missing_ok=True)
+    return next((line.strip() for line in text.splitlines() if line.startswith("D:")), None)
+
+
+def _windows_acl_state(target: Path) -> dict[str, object] | None:
+    sddl = _windows_acl_sddl(target)
+    current = _windows_current_user_sid()
+    if not sddl or not current:
+        return None
+    protected = bool(re.match(r"^D:[^()]*P", sddl))
+    current_has_full_control = False
+    unexpected: list[str] = []
+    allowed = {current, "S-1-5-18", "S-1-5-32-544"}
+    for match in re.finditer(r"\(([^()]*)\)", sddl):
+        fields = match.group(1).split(";")
+        if len(fields) != 6 or fields[0] != "A":
+            continue
+        rights, trustee = fields[2], fields[5]
+        trustee_sid = _SDDL_TRUSTEE_TO_SID.get(trustee, trustee)
+        if trustee_sid == current and "FA" in rights:
+            current_has_full_control = True
+        if trustee_sid not in allowed and trustee_sid not in unexpected:
+            unexpected.append(trustee_sid)
+    return {
+        "protected": protected,
+        "current_has_full_control": current_has_full_control,
+        "unexpected_allow_sids": unexpected,
+    }
 
 
 def _windows_apply_private_acl(target: Path, sid: str) -> bool:
@@ -218,8 +160,13 @@ def is_private_path(path: Path) -> bool:
     if not target.exists():
         return False
     if _is_windows():
-        result = _powershell(_WINDOWS_CHECK_PRIVATE, target)
-        return result.returncode == 0 and result.stdout.strip().casefold() == "true"
+        state = _windows_acl_state(target)
+        return bool(
+            state
+            and state.get("protected") is True
+            and state.get("current_has_full_control") is True
+            and not state.get("unexpected_allow_sids")
+        )
     try:
         return target.stat().st_mode & 0o077 == 0
     except OSError:

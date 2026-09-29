@@ -1,8 +1,6 @@
-import json
 import os
 import subprocess
 from pathlib import Path
-from subprocess import CompletedProcess
 
 import pytest
 
@@ -37,25 +35,7 @@ def test_windows_acl_integration_diagnostic(tmp_path: Path) -> None:
         "returncode": command.returncode,
         "stderr": command.stderr.strip()[:500],
     }
-    state_result = permissions._powershell(permissions._WINDOWS_ACL_STATE, path)
-    assert state_result.returncode == 0, {
-        "stage": "powershell-state",
-        "returncode": state_result.returncode,
-        "stderr": state_result.stderr.strip()[:500],
-    }
-    try:
-        state = json.loads(state_result.stdout.strip())
-    except json.JSONDecodeError as exc:
-        pytest.fail(
-            repr(
-                {
-                    "stage": "state-json",
-                    "stdout": state_result.stdout.strip()[:500],
-                    "stderr": state_result.stderr.strip()[:500],
-                    "error": str(exc),
-                }
-            )
-        )
+    state = permissions._windows_acl_state(path)
     assert isinstance(state, dict), {"stage": "state-shape", "state": state}
 
 
@@ -80,7 +60,7 @@ def test_missing_private_path_is_rejected(tmp_path: Path) -> None:
         permissions.ensure_private_path(tmp_path / "missing")
 
 
-def test_windows_private_check_uses_bounded_boolean_output(
+def test_windows_private_check_uses_bounded_acl_state(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     path = tmp_path / "config.json"
@@ -88,11 +68,38 @@ def test_windows_private_check_uses_bounded_boolean_output(
     monkeypatch.setattr(permissions, "_is_windows", lambda: True)
     monkeypatch.setattr(
         permissions,
-        "_powershell",
-        lambda script, target: CompletedProcess([], 0, stdout="true\r\n", stderr=""),
+        "_windows_acl_state",
+        lambda target: {
+            "protected": True,
+            "current_has_full_control": True,
+            "unexpected_allow_sids": [],
+        },
     )
 
     assert permissions.is_private_path(path) is True
+
+
+def test_windows_sddl_parser_detects_unexpected_allow(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    path = tmp_path / "config.json"
+    path.write_text("{}", encoding="utf-8")
+    current = "S-1-5-21-1000"
+    monkeypatch.setattr(permissions, "_windows_current_user_sid", lambda: current)
+    monkeypatch.setattr(
+        permissions,
+        "_windows_acl_sddl",
+        lambda target: (
+            "D:PAI(A;;FA;;;BA)(A;;FA;;;SY)"
+            f"(A;;FA;;;{current})(A;;FR;;;BU)"
+        ),
+    )
+
+    assert permissions._windows_acl_state(path) == {
+        "protected": True,
+        "current_has_full_control": True,
+        "unexpected_allow_sids": ["S-1-5-32-545"],
+    }
 
 
 def test_windows_permission_failure_stops_secure_write(
