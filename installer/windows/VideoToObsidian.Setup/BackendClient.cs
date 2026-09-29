@@ -7,6 +7,7 @@ namespace VideoToObsidian.Setup;
 
 internal sealed class BackendClient
 {
+    private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(5);
     private readonly string? _configuredExecutable;
 
     public BackendClient()
@@ -42,10 +43,11 @@ internal sealed class BackendClient
 
     public async Task<JsonDocument> RunJsonAsync(
         IEnumerable<string> arguments,
-        string? secretStandardInput = null
+        string? secretStandardInput = null,
+        TimeSpan? timeout = null
     )
     {
-        var output = await RunAsync(arguments, secretStandardInput);
+        var output = await RunAsync(arguments, secretStandardInput, timeout);
         try
         {
             return JsonDocument.Parse(output);
@@ -58,7 +60,8 @@ internal sealed class BackendClient
 
     public async Task<string> RunAsync(
         IEnumerable<string> arguments,
-        string? secretStandardInput = null
+        string? secretStandardInput = null,
+        TimeSpan? timeout = null
     )
     {
         var start = new ProcessStartInfo
@@ -109,7 +112,26 @@ internal sealed class BackendClient
         }
         var stdoutTask = process.StandardOutput.ReadToEndAsync();
         var stderrTask = process.StandardError.ReadToEndAsync();
-        await process.WaitForExitAsync();
+        using var timeoutSource = new CancellationTokenSource(timeout ?? DefaultTimeout);
+        try
+        {
+            await process.WaitForExitAsync(timeoutSource.Token);
+        }
+        catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested)
+        {
+            try
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+            }
+            catch (InvalidOperationException)
+            {
+                // The process exited between timeout detection and cleanup.
+            }
+            throw new TimeoutException(
+                "本机操作等待超过 5 分钟，已停止相关进程。请点击“重新检查”；若仍失败再导出脱敏诊断报告。"
+            );
+        }
         var stdout = await stdoutTask;
         var stderr = await stderrTask;
         if (process.ExitCode != 0)
