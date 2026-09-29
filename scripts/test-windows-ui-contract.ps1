@@ -88,6 +88,62 @@ function Wait-InstallerEnabled {
     throw 'Installer did not return to an enabled state.'
 }
 
+function Test-PlatformLoginAction {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Automation.AutomationElement]$Root,
+        [Parameter(Mandatory = $true)]
+        [string]$ButtonName,
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedUrl
+    )
+
+    $Baseline = @(
+        Get-CimInstance Win32_Process `
+            -Filter "Name = 'firefox.exe'" `
+            -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty ProcessId
+    )
+    try {
+        Invoke-InstallerButton -Root $Root -Name $ButtonName
+        $Deadline = (Get-Date).AddSeconds(20)
+        while ((Get-Date) -lt $Deadline) {
+            $NewFirefox = @(
+                Get-CimInstance Win32_Process `
+                    -Filter "Name = 'firefox.exe'" `
+                    -ErrorAction SilentlyContinue |
+                    Where-Object { $Baseline -notcontains $_.ProcessId }
+            )
+            $Launch = $NewFirefox | Where-Object {
+                $_.CommandLine -match '(?i)(^|\s)-P\s+"?VideoToObsidian"?(\s|$)' -and
+                $_.CommandLine -match [regex]::Escape($ExpectedUrl)
+            } | Select-Object -First 1
+            if ($Launch) {
+                return $true
+            }
+            Start-Sleep -Milliseconds 100
+        }
+        throw "$ButtonName did not launch the isolated Firefox profile for $ExpectedUrl"
+    } finally {
+        for ($Attempt = 0; $Attempt -lt 3; $Attempt++) {
+            $NewProcessIds = @(
+                Get-CimInstance Win32_Process `
+                    -Filter "Name = 'firefox.exe'" `
+                    -ErrorAction SilentlyContinue |
+                    Where-Object { $Baseline -notcontains $_.ProcessId } |
+                    Select-Object -ExpandProperty ProcessId
+            )
+            foreach ($ProcessId in $NewProcessIds) {
+                Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
+            }
+            if ($NewProcessIds.Count -eq 0) {
+                break
+            }
+            Start-Sleep -Milliseconds 300
+        }
+    }
+}
+
 function Close-InstallerMessageBox {
     param(
         [Parameter(Mandatory = $true)]
@@ -308,6 +364,16 @@ try {
     Close-InstallerMessageBox `
         -ProcessId $Process.Id `
         -ExpectedText '脱敏诊断报告已保存到桌面'
+    Wait-InstallerEnabled -Root $Root
+
+    $DouyinLoginAction = Test-PlatformLoginAction `
+        -Root $Root `
+        -ButtonName '登录抖音' `
+        -ExpectedUrl 'https://www.douyin.com/'
+    $BilibiliLoginAction = Test-PlatformLoginAction `
+        -Root $Root `
+        -ButtonName '登录B站' `
+        -ExpectedUrl 'https://www.bilibili.com/'
 
     $Report = [ordered]@{
         schema_version = 2
@@ -319,6 +385,9 @@ try {
         copy_workspace_action = $true
         diagnostic_export_action = $true
         diagnostic_artifact = 'windows-ui-diagnostics.json'
+        douyin_login_action = $DouyinLoginAction
+        bilibili_login_action = $BilibiliLoginAction
+        isolated_firefox_profile = 'VideoToObsidian'
         contains_secrets = $false
         contains_local_paths = $false
         paid_call_performed = $false
