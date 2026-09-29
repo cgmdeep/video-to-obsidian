@@ -100,17 +100,24 @@ function Close-InstallerMessageBox {
     $Deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $Deadline) {
         $Windows = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
-            [System.Windows.Automation.TreeScope]::Children,
+            [System.Windows.Automation.TreeScope]::Descendants,
             ([System.Windows.Automation.PropertyCondition]::new(
                 [System.Windows.Automation.AutomationElement]::ProcessIdProperty,
                 $ProcessId
             ))
         )
         foreach ($Window in $Windows) {
+            if (
+                $Window.Current.ControlType -ne
+                [System.Windows.Automation.ControlType]::Window
+            ) {
+                continue
+            }
             if ($Window.Current.Name -eq '视知库安装与连接向导') {
                 continue
             }
             $Text = @(
+                $Window.Current.Name
                 $Window.FindAll(
                     [System.Windows.Automation.TreeScope]::Descendants,
                     [System.Windows.Automation.Condition]::TrueCondition
