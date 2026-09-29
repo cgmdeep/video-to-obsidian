@@ -26,10 +26,11 @@ internal sealed class InstallationClient
     public async Task EnsureInstalledAsync(Action<string> report)
     {
         Directory.CreateDirectory(_appRoot);
+        var winget = await ResolveWingetAsync();
         var runtimePython = Path.Combine(_appRoot, "runtime", "Scripts", "python.exe");
         if (!File.Exists(runtimePython))
         {
-            var python = await EnsurePythonAsync(report);
+            var python = await EnsurePythonAsync(winget, report);
             report("正在创建独立运行环境…");
             await RunCheckedAsync(
                 python,
@@ -78,13 +79,13 @@ internal sealed class InstallationClient
         );
         await RunCheckedAsync(runtimePython, new[] { "-m", "pip", "check" });
 
-        await EnsureWingetPackageAsync("Mozilla.Firefox", "Firefox", report);
-        await EnsureWingetPackageAsync("Obsidian.Obsidian", "Obsidian", report);
-        await EnsureWingetPackageAsync("Gyan.FFmpeg", "ffmpeg", report);
+        await EnsureWingetPackageAsync(winget, "Mozilla.Firefox", "Firefox", report);
+        await EnsureWingetPackageAsync(winget, "Obsidian.Obsidian", "Obsidian", report);
+        await EnsureWingetPackageAsync(winget, "Gyan.FFmpeg", "ffmpeg", report);
         await EnsureFirefoxProfileAsync(report);
     }
 
-    private async Task<string> EnsurePythonAsync(Action<string> report)
+    private async Task<string> EnsurePythonAsync(string winget, Action<string> report)
     {
         var discovered = await DiscoverPythonAsync();
         if (discovered is not null)
@@ -93,7 +94,7 @@ internal sealed class InstallationClient
         }
         report("未发现 Python，正通过 Windows 官方软件源安装…");
         await RunCheckedAsync(
-            "winget",
+            winget,
             new[]
             {
                 "install",
@@ -227,6 +228,7 @@ internal sealed class InstallationClient
     }
 
     private static async Task EnsureWingetPackageAsync(
+        string winget,
         string id,
         string displayName,
         Action<string> report
@@ -234,7 +236,7 @@ internal sealed class InstallationClient
     {
         report($"正在检查 {displayName}…");
         var list = await TryCaptureAsync(
-            "winget",
+            winget,
             new[] { "list", "--id", id, "--exact" },
             TimeSpan.FromMinutes(2)
         );
@@ -244,7 +246,7 @@ internal sealed class InstallationClient
         }
         report($"正在安装 {displayName}…");
         await RunCheckedAsync(
-            "winget",
+            winget,
             new[]
             {
                 "install",
@@ -257,6 +259,76 @@ internal sealed class InstallationClient
             },
             TimeSpan.FromMinutes(10)
         );
+    }
+
+    private static async Task<string> ResolveWingetAsync()
+    {
+        var direct = await TryCaptureAsync(
+            "winget",
+            new[] { "--version" },
+            TimeSpan.FromSeconds(30)
+        );
+        if (direct.ExitCode == 0)
+        {
+            return "winget";
+        }
+
+        var alias = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Microsoft",
+            "WindowsApps",
+            "winget.exe"
+        );
+        if (await IsWorkingWingetAsync(alias))
+        {
+            return alias;
+        }
+
+        var powershell = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.System),
+            "WindowsPowerShell",
+            "v1.0",
+            "powershell.exe"
+        );
+        var package = await TryCaptureAsync(
+            powershell,
+            new[]
+            {
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "Get-AppxPackage Microsoft.DesktopAppInstaller | "
+                    + "Sort-Object Version -Descending | "
+                    + "Select-Object -First 1 -ExpandProperty InstallLocation",
+            },
+            TimeSpan.FromSeconds(30)
+        );
+        if (package.ExitCode == 0 && !string.IsNullOrWhiteSpace(package.Stdout))
+        {
+            var packagedWinget = Path.Combine(package.Stdout.Trim(), "winget.exe");
+            if (await IsWorkingWingetAsync(packagedWinget))
+            {
+                return packagedWinget;
+            }
+        }
+
+        throw new InvalidOperationException(
+            "Windows 应用安装程序（winget）尚未可用。请先在 Microsoft Store 更新“应用安装程序”，然后重新打开本向导。"
+        );
+    }
+
+    private static async Task<bool> IsWorkingWingetAsync(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return false;
+        }
+        var result = await TryCaptureAsync(
+            path,
+            new[] { "--version" },
+            TimeSpan.FromSeconds(30)
+        );
+        return result.ExitCode == 0;
     }
 
     private static async Task EnsureFirefoxProfileAsync(Action<string> report)
