@@ -80,7 +80,7 @@ internal sealed class InstallationClient
         await RunCheckedAsync(runtimePython, new[] { "-m", "pip", "check" });
 
         await EnsureWingetPackageAsync(winget, "Mozilla.Firefox", "Firefox", report);
-        await EnsureWingetPackageAsync(winget, "Obsidian.Obsidian", "Obsidian", report);
+        await EnsureObsidianAsync(winget, report);
         await EnsureWingetPackageAsync(winget, "Gyan.FFmpeg", "ffmpeg", report);
         await EnsureFirefoxProfileAsync(report);
     }
@@ -253,6 +253,41 @@ internal sealed class InstallationClient
                 "--id",
                 id,
                 "--exact",
+                "--silent",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+            },
+            TimeSpan.FromMinutes(10)
+        );
+    }
+
+    private static async Task EnsureObsidianAsync(string winget, Action<string> report)
+    {
+        report("正在检查 Obsidian…");
+        foreach (var id in new[] { "XP8K51FR765RLD", "Obsidian.Obsidian" })
+        {
+            var list = await TryCaptureAsync(
+                winget,
+                new[] { "list", "--id", id, "--exact" },
+                TimeSpan.FromMinutes(2)
+            );
+            if (list.ExitCode == 0 && list.Stdout.Contains(id, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+        }
+
+        report("正在通过 Microsoft Store 安装 Obsidian…");
+        await RunCheckedAsync(
+            winget,
+            new[]
+            {
+                "install",
+                "--id",
+                "XP8K51FR765RLD",
+                "--exact",
+                "--source",
+                "msstore",
                 "--silent",
                 "--accept-package-agreements",
                 "--accept-source-agreements",
