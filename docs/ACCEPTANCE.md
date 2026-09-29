@@ -193,6 +193,14 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 报告写入 ROG 私有状态目录，标记 `paid_call_performed=false`；临时 WAV 和执行脚本已清理，不含 API Key、ASR Token 或转写正文。
 - 此项只验证“远程 SenseVoice 兼容接口 + 本项目适配器”可用，不代表逐字稿增强版已完成真实视频全链路，也不能让公开版依赖作者的 ASUS。公开用户仍需自备本地或私有远程 SenseVoice 服务；一键部署与完整真实视频验收保持待办。
 
+### 2026-09-29 安装器档位切换零付费验收
+
+- commit `e31911a23517f54ccebafaf5b83f2fc2dfbe20f4` 的候选安装器在 ROG 原地修复成功；文件 SHA256 为 `4fe73242ea32a36f4aade610e03dcb930fe6a85818b8841927a36f51160e455b`。CI [`#36555808076`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36555808076) 与 Security [`#36555808096`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36555808096) 全部通过。
+- 验收只复制生产配置到临时文件，再执行 `standard → transcript → standard`；两个方向均返回 `changed=true`，标准档体检通过，逐字稿档在未配置 `ASR_URL` 时只报告非必需项不可用，符合“缺少自备 SenseVoice 时不阻断正式笔记”的降级边界。
+- 切换实现兼容 Windows：不再调用 Windows 缺失的 `os.fchmod`，并在关闭临时文件句柄后保留权限、原子替换；同时保留原有 CRLF 换行。往返后的临时配置与切换前 SHA256 完全一致。
+- 生产配置没有被档位测试改写；测试前后私有状态均为 22 个文件、65,435 字节。报告标记 `paid_call_performed=false`，没有提交视频或调用 Kimi。
+- 验收后 Vault 审计为 95 个 Markdown、4 个受管来源笔记、4 个唯一稳定身份、0 个重复组、0 个不可读文件。该项只完成安装器/配置切换验收，逐字稿增强版真实视频闭环仍保持待办。
+
 ### 2026-09-29 ZCode 官方微信入口双平台验收
 
 - 入口：用户在微信中向 ROG 上 ZCode 官方 Bot Channel “小Z”主动发送链接；两类消息均进入专用 `视知库助手` 工作区，未使用企业微信回调或个人微信 Hook。
