@@ -224,3 +224,10 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 412 由平台适配器执行单次受控降级；429、500、503 和连接中断在工具内不自动重试，只返回带 `kimi_attempts=1` 的可重试错误，工作区规则最多允许上层再试一次；
 - 失败 MCP 回执固定为 `ok=false`、`complete=false`、`status=failed`，不包含 `saved_to` 或 `archived_video`；未知异常只返回脱敏的 `internal_error`，不复制底层异常正文；
 - 此轮证明单节点排队与错误边界，不替代真实网络抖动、平台登录失效、20 人体验或付费 Kimi 稳定性验收。
+
+### 2026-09-29 磁盘空间前置闸门与平台只读抽样
+
+- commit `63e50dafe0a076182791ece093117c86b7f6a9c2` 在没有可复用来源检查点时，先验证检查点盘至少剩余 1 GiB；不足时返回 `insufficient_disk_space`，并在任何下载和 Kimi 调用前停止；
+- 自动固定集验证错误详情只含阶段、所需字节和可用字节，submission receipt 为 `paid_call_performed=false`，下载与 Kimi 调用次数均为 0；全部 106 项核心测试、CI [`#36547669913`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36547669913) 与 Security [`#36547669893`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36547669893) 均通过；
+- ROG 已更新至该 commit，再次运行真实 Vault 审计仍为 0 个重复组、0 个不可读文件；B站固定长样本只读元数据抽样返回稳定身份 `bilibili_BV12ftJ6rEkw_p01`、时长 2221.343 秒、`download_auth=firefox_profile`、无降级，`paid_call_performed=false`；
+- 更新后终止旧的受管 MCP 进程，使 ZCode 下次调用按新运行时重新启动；未结束或修改其他项目的 Python 进程。
