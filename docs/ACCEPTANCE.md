@@ -91,6 +91,14 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 交互会话任务生成的状态：`doctor_ok=true`、`kimi_key_ok=true`、`zcode_running=true`，Tailscale、NetBird、sshd 均运行；
 - 状态报告敏感模式扫描为阴性，`paid_call_performed=false`，本轮未调用 Kimi、未下载或分析视频；
 - 插电睡眠由 600 秒、休眠由 3600 秒调整为关闭；电池设置未改，原值与恢复脚本保存在本机受管 `ops` 目录。
+
+#### 2026-09-29 可选跨设备同步核验
+
+- ROG 的 `kb-notes` Syncthing 目录状态为 `idle`，`globalFiles=143`、`localFiles=143`、`needFiles=0`、`needBytes=0`、`pullErrors=0`，并连接到 1 台同步设备；
+- ROG 与 Mac 的有效 Markdown 相对路径集合均为 95 项；Mac 文件系统额外看到的 3 项全部位于 `#SyncVersion/`，是同步历史版本，不是未同步笔记；
+- 产品的稳定身份检查已排除 `.obsidian`、`.trash`、`.stversions` 和 `#SyncVersion`，避免把同步软件备份误判为第二份正式笔记；
+- Syncthing 管理界面只监听 ROG 的 `127.0.0.1:8384`，诊断后已轮换本地管理令牌并验证进程与监听恢复；
+- 此项只证明作者验收环境的可选跨设备同步。公开 Alpha 的基础承诺仍是写入用户选择的本地 Vault，不强制安装 Syncthing、NAS 或其他同步软件。
 - ROG 到 Moonshot、B站、抖音的 DNS 与 TCP 443 均通过；经 Tailscale 到 NAS 延迟约 28ms。
 
 ## 卸载与恢复
