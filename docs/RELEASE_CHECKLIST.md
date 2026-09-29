@@ -75,6 +75,13 @@
 - SHA256：`c51446235f997c0f8c8e98c49fcda70f2a916fbf7582d4ec01862aec9a6dc0e0`；
 - 结果：首次安装、原地修复、默认安全卸载、重装与私有数据卸载均通过；Vault、专用工作区、Firefox Profile 和无关 MCP 在应保留的阶段均保留；全程无 Secret 输出且无付费调用。
 
+### 2026-09-29 源码卸载补充证据
+
+- commit：`ee58e82f6bf9b1b8ec80db8e31a25d683b76ce9e`；
+- 工作流：[Windows clean acceptance #36537411556](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36537411556)；
+- 结果：仓库 `scripts/uninstall.ps1` 在干净 Windows 上先移除安装核心和受管 MCP，同时保留 Vault、工作区、Firefox Profile 与无关 MCP；随后重装、修复、安装器默认卸载、重装和私有数据卸载全部通过；
+- 本轮还验证英文 Windows 旧控制台编码边界，子 Python 命令使用临时 UTF-8 环境且执行后恢复；六份报告均不含 Secret 且未触发付费调用。
+
 ### 2026-09-29 alpha.2 候选阻断记录
 
 - 标签 `v0.1.0-alpha.2` 的发布流水线在 Firefox 准备阶段被闸门阻断，没有生成 GitHub Release；

@@ -105,7 +105,7 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 
 - [x] 重复执行“安装 / 修复本机”的共享准备协调器不会重复创建环境或破坏配置；
 - [x] 安装器内置安全卸载能移除安装核心和本项目 MCP；
-- [ ] 源码中的 `scripts/uninstall.ps1` 能移除安装器核心和本项目 MCP；
+- [x] 源码中的 `scripts/uninstall.ps1` 能移除安装器核心和本项目 MCP；
 - [x] 默认卸载保留 Vault、专用工作区、Firefox Profile、Kimi Key 和检查点；
 - [x] 私有数据卸载会删除受管私有运行目录，但仍不删除 Vault；
 - [ ] 在存在专用测试 Key 的 Windows Credential Manager 上验证 Kimi Key 实际删除；
@@ -118,7 +118,14 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 同一干净 Runner 顺序完成首次安装、原地修复、默认安全卸载、卸载后重装和私有数据卸载；五份结果均 `ok=true`、`contains_secrets=false`、`paid_call_performed=false`；
 - 默认卸载后 `core_removed=true`、`managed_mcp_removed=true`，Vault、专用工作区与 Firefox Profile 均保留；预先注入的无关 MCP 在修复、卸载和重装后均存在；
 - 私有数据卸载后受管 roaming/local 目录均移除，Vault、工作区、Firefox Profile 和无关 MCP 仍保留；Runner 未注入真实 Key，因此不把该轮视为 Credential Manager 真实删除验收；
-- 边界：这是无人值守自动验收，不替代普通用户在 Windows 11 上的图形按钮、SmartScreen 和交互确认验收；源码 `scripts/uninstall.ps1` 仍单独待测。
+- 边界：这是无人值守自动验收，不替代普通用户在 Windows 11 上的图形按钮、SmartScreen 和交互确认验收。
+
+### 2026-09-29 源码卸载补充验收
+
+- commit：`ee58e82f6bf9b1b8ec80db8e31a25d683b76ce9e`；workflow：[`Windows clean acceptance #36537411556`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36537411556)；CI 与 Security 同 commit 均通过；
+- 干净 Runner 在安装后先直接执行仓库中的 `scripts/uninstall.ps1`，确认核心与本项目 MCP 被移除，而 Vault、工作区、Firefox Profile 和预先注入的无关 MCP 均保留；随后重新安装并继续通过修复、安装器默认卸载、重装和私有数据卸载；
+- 首轮补充验收发现英文 Windows 的旧控制台编码无法输出核心的中文状态文本；修复仅在子 Python 命令期间临时强制 UTF-8，并在命令结束后恢复调用者环境；
+- 六份 JSON 报告均 `ok=true`、`contains_secrets=false`、`paid_call_performed=false`；本轮临时安装器为 71,684,315 字节，SHA256 `138b1be4954ec1aa8f0ca139c9f7dbbfcb6a5258ef0c52408d42effdb6407521`。
 
 ## 真实视频闭环
 
