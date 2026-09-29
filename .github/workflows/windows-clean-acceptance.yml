@@ -125,6 +125,13 @@ jobs:
             throw 'The clean environment doctor unexpectedly reported a paid call.'
           }
           Copy-Item $Report artifacts/windows-x64/clean-prepare.json
+      - name: Verify graphical installer contract
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          ./scripts/test-windows-ui-contract.ps1 `
+            -Setup artifacts/windows-x64/VideoToObsidian.Setup.exe `
+            -ArtifactsDirectory artifacts/windows-x64
       - name: Verify repair and uninstall lifecycle
         timeout-minutes: 25
         shell: pwsh
