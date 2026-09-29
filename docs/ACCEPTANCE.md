@@ -16,7 +16,7 @@
 
 - [x] 双击安装器后，不克隆仓库、不打开 PowerShell 也能完成准备（ROG 临时普通账户图形验收）；
 - [x] “登录抖音”“登录B站”均打开隔离的 `VideoToObsidian` Profile（干净 Windows Runner 真实按钮与进程参数验收；不代表用户已扫码）；
-- [ ] “用 Obsidian 打开”能打开本次选择的 Vault；
+- [x] “用 Obsidian 打开”会先登记本次选择的 Vault，再按 Vault ID 唤起 Obsidian（干净 Windows Runner 真实按钮与配置合同验收；不替代人工确认首篇笔记已在 Obsidian 中打开）；
 - [ ] 用户能从界面复制 `文档\视知库助手` 路径并在 ZCode 打开；
 - [x] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
 - [x] 无 Coding Plan 时，用户自有 Kimi Key 可以提供 ZCode 路由模型（ROG `has_coding_plan_provider=false`，Moonshot 通道可用，微信已完成免费 `doctor` 调用）；
@@ -88,6 +88,15 @@
 - 验收结束只清理 Runner 本轮新启动的 Firefox 进程，不读取 Profile、Cookie 或账号状态；证据为 `douyin_login_action=true`、`bilibili_login_action=true`、`isolated_firefox_profile=VideoToObsidian`；
 - 同一工作流继续完成首次准备、修复、默认卸载、重装和私有数据卸载；诊断报告仍为 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`；
 - 此项只证明“正确打开隔离登录空间”，不代表用户已扫码或平台会话可用；真实扫码仍是人工闸门。
+
+### 2026-09-30 Obsidian Vault 登记与打开动作
+
+- 根因：旧按钮调用 `obsidian://open?path=<Vault 目录>`，但 Obsidian URI 的 `path` 参数只在已经登记的 Vault 中定位文件，不能把首次创建的目录登记为 Vault，因此新用户点击后可能没有任何可见结果；
+- 修复 commit `ea4b368f9b8e7bcbe614e38352837975bd2bb287`；[`Windows clean acceptance #36620811598`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36620811598)、[`CI #36620750983`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36620750983) 与 [`Security #36620750904`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36620750904) 全部通过；
+- 真实编译 EXE 点击“用 Obsidian 打开”后，安装器以原子写入方式把当前 Vault 登记进 `%APPDATA%\obsidian\obsidian.json`，保留无关 Vault、未知根字段和原配置，同时创建 `obsidian.json.video-to-obsidian.bak`，随后使用生成的 Vault ID 唤起 Obsidian；
+- 配置不是合法 JSON、结构异常或写入前被其他进程修改时，安装器拒绝覆盖原文件并提示关闭 Obsidian后重试或手动选择目录；
+- UI 合同证据为 `obsidian_open_action=true`、`obsidian_vault_registration=true`、`obsidian_config_preserved=true`、`obsidian_config_backup=true`；同一报告继续保持 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`；
+- 同一工作流随后完成首次准备、修复、默认卸载、重装和受管私有目录卸载。本节证明 Vault 登记、配置保护和唤起合同，不冒充用户已在真实 Vault 中看到首篇业务笔记。
 
 ### ROG 验收节点守护
 

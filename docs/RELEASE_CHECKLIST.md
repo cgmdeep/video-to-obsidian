@@ -119,6 +119,13 @@
 - 真实编译 EXE 中的“登录抖音”和“登录B站”被分别点击，新 Firefox 进程参数必须同时包含 `-P VideoToObsidian` 与对应官方 URL 才通过；
 - UI 证据 JSON 记录两个启动动作均为 `true`，同时保持无 Secret、无本机路径和无付费调用；真实扫码与会话有效性仍需用户人工确认。
 
+### 2026-09-30 Obsidian Vault 登记与打开动作证据
+
+- commit `ea4b368f9b8e7bcbe614e38352837975bd2bb287`；[`Windows clean acceptance #36620811598`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36620811598)、[`CI #36620750983`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36620750983) 与 [`Security #36620750904`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36620750904) 成功；
+- 旧实现把尚未登记的 Vault 目录直接交给 `obsidian://open?path=`，不能满足首次使用场景；新实现先原子登记 Vault、保留无关 Vault 和未知字段、创建原配置备份，再按 Vault ID 唤起；
+- 真实按钮合同记录 `obsidian_open_action=true`、`obsidian_vault_registration=true`、`obsidian_config_preserved=true`、`obsidian_config_backup=true`，同时保持无 Secret、无本机路径和无付费调用；
+- 同一工作流继续通过首次准备、修复、默认卸载、重装与私有数据卸载。本证据不替代用户在 Obsidian 中人工确认首篇业务笔记。
+
 ### 2026-09-29 alpha.2 候选阻断记录
 
 - 标签 `v0.1.0-alpha.2` 的发布流水线在 Firefox 准备阶段被闸门阻断，没有生成 GitHub Release；
