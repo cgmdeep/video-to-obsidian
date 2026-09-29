@@ -144,6 +144,61 @@ function Test-PlatformLoginAction {
     }
 }
 
+function Test-ObsidianOpenAction {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Automation.AutomationElement]$Root,
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedVaultPath
+    )
+
+    $ExpectedUri = 'obsidian://open?path=' +
+        [Uri]::EscapeDataString($ExpectedVaultPath)
+    $Baseline = @(
+        Get-CimInstance Win32_Process `
+            -Filter "Name = 'Obsidian.exe'" `
+            -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty ProcessId
+    )
+    try {
+        Invoke-InstallerButton -Root $Root -Name '用 Obsidian 打开'
+        $Deadline = (Get-Date).AddSeconds(20)
+        while ((Get-Date) -lt $Deadline) {
+            $NewObsidian = @(
+                Get-CimInstance Win32_Process `
+                    -Filter "Name = 'Obsidian.exe'" `
+                    -ErrorAction SilentlyContinue |
+                    Where-Object { $Baseline -notcontains $_.ProcessId }
+            )
+            $Launch = $NewObsidian | Where-Object {
+                $_.CommandLine -match [regex]::Escape($ExpectedUri)
+            } | Select-Object -First 1
+            if ($Launch) {
+                return $true
+            }
+            Start-Sleep -Milliseconds 100
+        }
+        throw "Obsidian did not receive the expected managed Vault URI: $ExpectedUri"
+    } finally {
+        for ($Attempt = 0; $Attempt -lt 3; $Attempt++) {
+            $NewProcessIds = @(
+                Get-CimInstance Win32_Process `
+                    -Filter "Name = 'Obsidian.exe'" `
+                    -ErrorAction SilentlyContinue |
+                    Where-Object { $Baseline -notcontains $_.ProcessId } |
+                    Select-Object -ExpandProperty ProcessId
+            )
+            foreach ($ProcessId in $NewProcessIds) {
+                Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
+            }
+            if ($NewProcessIds.Count -eq 0) {
+                break
+            }
+            Start-Sleep -Milliseconds 300
+        }
+    }
+}
+
 function Close-InstallerMessageBox {
     param(
         [Parameter(Mandatory = $true)]
@@ -366,6 +421,13 @@ try {
         -ExpectedText '脱敏诊断报告已保存到桌面'
     Wait-InstallerEnabled -Root $Root
 
+    $ExpectedVault = Join-Path `
+        ([Environment]::GetFolderPath('MyDocuments')) `
+        '视知库'
+    $ObsidianOpenAction = Test-ObsidianOpenAction `
+        -Root $Root `
+        -ExpectedVaultPath $ExpectedVault
+
     $DouyinLoginAction = Test-PlatformLoginAction `
         -Root $Root `
         -ButtonName '登录抖音' `
@@ -385,6 +447,8 @@ try {
         copy_workspace_action = $true
         diagnostic_export_action = $true
         diagnostic_artifact = 'windows-ui-diagnostics.json'
+        obsidian_open_action = $ObsidianOpenAction
+        obsidian_vault_uri = $true
         douyin_login_action = $DouyinLoginAction
         bilibili_login_action = $BilibiliLoginAction
         isolated_firefox_profile = 'VideoToObsidian'
