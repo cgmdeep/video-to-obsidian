@@ -104,3 +104,18 @@ def test_profile_can_switch_atomically_without_losing_other_settings(tmp_path: P
     assert changed_back is True
     assert standard.profile == "standard"
     assert standard.transcript.mode == "off"
+
+
+def test_profile_roundtrip_preserves_windows_line_endings(tmp_path: Path) -> None:
+    config = initialize_settings(
+        tmp_path / "vault",
+        config_path=tmp_path / "config.toml",
+        runtime_root=tmp_path / "private",
+    )
+    original = config.read_text(encoding="utf-8").replace("\n", "\r\n").encode("utf-8")
+    config.write_bytes(original)
+
+    update_profile("transcript", config_path=config)
+    update_profile("standard", config_path=config)
+
+    assert config.read_bytes() == original

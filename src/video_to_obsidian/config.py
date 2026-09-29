@@ -164,7 +164,13 @@ def update_profile(profile: str, *, config_path: Path | None = None) -> tuple[Pa
     if current.profile == profile and current.transcript.mode == desired_mode:
         return target, False
 
-    lines = target.read_text(encoding="utf-8").splitlines()
+    # Read without universal-newline translation so a settings-only change does
+    # not silently rewrite CRLF configuration files created on Windows.
+    with target.open("r", encoding="utf-8", newline="") as handle:
+        original = handle.read()
+    line_ending = "\r\n" if "\r\n" in original else "\n"
+    has_final_newline = original.endswith(("\n", "\r"))
+    lines = original.splitlines()
     section = ""
     profile_updated = False
     mode_updated = False
@@ -188,7 +194,7 @@ def update_profile(profile: str, *, config_path: Path | None = None) -> tuple[Pa
 
     if not profile_updated or not mode_updated:
         raise ConfigError("现有配置缺少受管的 profile 或 transcript.mode，拒绝改写。")
-    candidate = "\n".join(lines) + "\n"
+    candidate = line_ending.join(lines) + (line_ending if has_final_newline else "")
     try:
         parsed = tomllib.loads(candidate)
     except tomllib.TOMLDecodeError as exc:
@@ -200,7 +206,7 @@ def update_profile(profile: str, *, config_path: Path | None = None) -> tuple[Pa
     fd, temporary = tempfile.mkstemp(prefix=".config-profile-", suffix=".toml", dir=target.parent)
     temp_path = Path(temporary)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
             handle.write(candidate)
             handle.flush()
             os.fsync(handle.fileno())
