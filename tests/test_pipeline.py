@@ -297,6 +297,44 @@ def test_deep_analysis_becomes_candidate_when_formal_note_exists(tmp_path: Path)
     assert settings.paths.candidates in Path(deep["candidate_saved_to"]).parents
 
 
+def test_existing_legacy_note_blocks_before_download_or_kimi(tmp_path: Path) -> None:
+    fake = FakePipeline()
+    settings = _settings(tmp_path)
+    legacy = settings.vault_path / "旧版笔记.md"
+    legacy.write_text(
+        "---\n"
+        'identity: "bilibili_BV1Uw826pE7J_p01"\n'
+        'generated_by: "video-to-obsidian"\n'
+        "---\n\n旧正文\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(AppError) as caught:
+        analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    assert caught.value.code == "existing_note_conflict"
+    assert fake.download_calls == 0
+    assert fake.kimi_calls == 0
+
+
+def test_changed_preferences_create_candidate_instead_of_overwriting_formal_note(
+    tmp_path: Path,
+) -> None:
+    fake = FakePipeline()
+    settings = _settings(tmp_path)
+    formal = analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+    formal_content = Path(formal["saved_to"]).read_text(encoding="utf-8")
+    write_preferences(settings, "以后严格按时间线展开")
+
+    revised = analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    assert revised["output_kind"] == "candidate"
+    assert not revised["saved_to"]
+    assert Path(revised["candidate_saved_to"]).is_file()
+    assert Path(formal["saved_to"]).read_text(encoding="utf-8") == formal_content
+    assert fake.kimi_calls == 2
+
+
 def test_douyin_uses_same_safe_pipeline(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     calls = {"kimi": 0, "transcript": 0}

@@ -324,7 +324,16 @@ def _analyze_single_video_locked(
             if key in prior:
                 manifest[key] = prior[key]
     formal_note = find_note_by_identity(settings.vault_path, platform, identity)
-    candidate_output = mode == "deep" and formal_note is not None
+    prior_completed = prior.get("status") == "completed" and bool(prior.get("request_fingerprint"))
+    candidate_output = formal_note is not None and (
+        mode == "deep" or (prior_completed and not same_request)
+    )
+    if formal_note is not None and not candidate_output:
+        raise AppError(
+            "existing_note_conflict",
+            "Vault 中已存在相同稳定身份的正式笔记；为避免重复付费和覆盖，已在分析前停止。",
+            details={"existing_note": str(formal_note)},
+        )
     manifest.update(
         {
             "schema_version": 1,
@@ -516,7 +525,7 @@ def _analyze_single_video_locked(
         )
         try:
             if candidate_output:
-                marker = f"deep-{request_fingerprint[:10]}"
+                marker = f"{mode}-{request_fingerprint[:10]}"
                 saved = write_candidate(
                     settings.paths.candidates / platform,
                     title=metadata_object.title,
