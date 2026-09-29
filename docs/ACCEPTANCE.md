@@ -251,3 +251,12 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 自动固定集验证错误详情只含阶段、所需字节和可用字节，submission receipt 为 `paid_call_performed=false`，下载与 Kimi 调用次数均为 0；全部 106 项核心测试、CI [`#36547669913`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36547669913) 与 Security [`#36547669893`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36547669893) 均通过；
 - ROG 已更新至该 commit，再次运行真实 Vault 审计仍为 0 个重复组、0 个不可读文件；B站固定长样本只读元数据抽样返回稳定身份 `bilibili_BV12ftJ6rEkw_p01`、时长 2221.343 秒、`download_auth=firefox_profile`、无降级，`paid_call_performed=false`；
 - 更新后终止旧的受管 MCP 进程，使 ZCode 下次调用按新运行时重新启动；未结束或修改其他项目的 Python 进程。
+
+### 2026-09-29 B站完成态缓存 30 轮稳定性巡检
+
+- ROG 对固定完成态身份 `bilibili_BV12ftJ6rEkw_p01` 连续执行 30 轮，轮间隔 60 秒，总时段为 17:37:45–18:07:53；巡检依赖层硬阻断 Kimi 阶段，一旦缓存前置条件或历史计数变化即失败。
+- 30/30 均返回 `cached=true`；Kimi 历史计数 `1 → 1`，最终报告 `paid_call_performed=false`、`all_cached=true`，没有新增模型调用。
+- 单轮耗时 2.047–3.875 秒，平均 2.279 秒；进程工作集范围 16,723,968–39,337,984 字节（峰值约 37.5 MiB），未观察到随轮次持续增长。
+- 测试窗口内检查点盘可用空间净变化约 -9.82 MiB；ROG 同时运行其他服务，因此不把整机空间变化归因于本项目。最终 manifest 仍为 `completed/finished`，`source_path` 与 `kimi_proxy_path` 均为空且对应文件不存在。
+- 结束后没有匹配巡检命令的 Python/ffmpeg/yt-dlp 进程；专用 `VideoToObsidian Cache Soak` 计划任务与临时审计脚本已注销/清理，保留脱敏 JSON 报告作为证据。
+- 此轮证明重复完成态提交的缓存稳定性，不替代 20 人并发体验、真实付费服务故障或平台 Cookie 失效的长时间运行验收。
