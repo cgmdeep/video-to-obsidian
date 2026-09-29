@@ -4,7 +4,7 @@ import pytest
 
 from video_to_obsidian.config import initialize_settings, load_settings
 from video_to_obsidian.errors import AppError
-from video_to_obsidian.kimi import KimiVideoClient
+from video_to_obsidian.kimi import KimiVideoClient, _raise_for_kimi_status
 
 
 class FakeTransport:
@@ -130,3 +130,24 @@ def test_prompt_contains_irony_guard(tmp_path: Path) -> None:
     prompt = transport.payload["messages"][0]["content"][1]["text"]
     assert "反讽" in prompt
     assert "疑似反讽" in prompt
+
+
+@pytest.mark.parametrize(
+    ("status_code", "error_code"),
+    ((429, "kimi_rate_limited"), (500, "kimi_upstream_failed"), (503, "kimi_upstream_failed")),
+)
+def test_transient_http_failures_request_only_one_outer_retry(
+    status_code: int,
+    error_code: str,
+) -> None:
+    with pytest.raises(AppError) as caught:
+        _raise_for_kimi_status(status_code, phase="analysis", attempts=1)
+
+    assert caught.value.code == error_code
+    assert caught.value.retryable is True
+    assert caught.value.details == {
+        "phase": "analysis",
+        "kimi_attempts": 1,
+        "http_status": status_code,
+        "retryable": True,
+    }
