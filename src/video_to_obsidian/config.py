@@ -200,11 +200,15 @@ def update_profile(profile: str, *, config_path: Path | None = None) -> tuple[Pa
     fd, temporary = tempfile.mkstemp(prefix=".config-profile-", suffix=".toml", dir=target.parent)
     temp_path = Path(temporary)
     try:
-        os.fchmod(fd, file_mode)
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
             handle.write(candidate)
             handle.flush()
             os.fsync(handle.fileno())
+        # Windows does not expose os.fchmod, and it will not allow replacing or
+        # deleting a file while the descriptor is still open. Apply the original
+        # permission bits to the closed temporary file instead; os.chmod works on
+        # every supported platform.
+        os.chmod(temp_path, file_mode)
         os.replace(temp_path, target)
     finally:
         temp_path.unlink(missing_ok=True)
