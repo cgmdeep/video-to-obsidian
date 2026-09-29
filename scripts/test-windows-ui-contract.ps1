@@ -355,28 +355,33 @@ try {
     $ExpectedWorkspace = Join-Path `
         ([Environment]::GetFolderPath('MyDocuments')) `
         '视知库助手'
-    Wait-InstallerEnabled -Root $Root
-    Invoke-InstallerButton -Root $Root -Name '复制工作区路径'
-    $ClipboardDeadline = (Get-Date).AddSeconds(10)
     $ClipboardText = ''
-    while ((Get-Date) -lt $ClipboardDeadline) {
-        try {
-            $ClipboardText = (Get-Clipboard -Raw).Trim()
-        } catch {
-            $ClipboardText = ''
+    for ($CopyAttempt = 0; $CopyAttempt -lt 2; $CopyAttempt++) {
+        Wait-InstallerEnabled -Root $Root
+        Invoke-InstallerButton -Root $Root -Name '复制工作区路径'
+        Close-InstallerMessageBox `
+            -ProcessId $Process.Id `
+            -ExpectedText '工作区路径已复制'
+        Wait-InstallerEnabled -Root $Root
+        $ClipboardDeadline = (Get-Date).AddSeconds(10)
+        while ((Get-Date) -lt $ClipboardDeadline) {
+            try {
+                $ClipboardText = (Get-Clipboard -Raw).Trim()
+            } catch {
+                $ClipboardText = ''
+            }
+            if ($ClipboardText -eq $ExpectedWorkspace) {
+                break
+            }
+            Start-Sleep -Milliseconds 200
         }
         if ($ClipboardText -eq $ExpectedWorkspace) {
             break
         }
-        Start-Sleep -Milliseconds 200
     }
     if ($ClipboardText -ne $ExpectedWorkspace) {
         throw 'Copy-workspace action did not place the managed workspace path on the clipboard.'
     }
-    Close-InstallerMessageBox `
-        -ProcessId $Process.Id `
-        -ExpectedText '工作区路径已复制'
-    Wait-InstallerEnabled -Root $Root
 
     $Desktop = [Environment]::GetFolderPath('DesktopDirectory')
     $DesktopDiagnostic = Join-Path $Desktop '视知库诊断报告.json'
