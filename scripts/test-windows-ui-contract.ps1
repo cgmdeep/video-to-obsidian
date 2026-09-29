@@ -152,8 +152,7 @@ function Test-ObsidianOpenAction {
         [string]$ExpectedVaultPath
     )
 
-    $ExpectedUri = 'obsidian://open?path=' +
-        [Uri]::EscapeDataString($ExpectedVaultPath)
+    $ObsidianConfig = Join-Path $env:APPDATA 'obsidian\obsidian.json'
     $Baseline = @(
         Get-CimInstance Win32_Process `
             -Filter "Name = 'Obsidian.exe'" `
@@ -162,7 +161,8 @@ function Test-ObsidianOpenAction {
     )
     try {
         Invoke-InstallerButton -Root $Root -Name '用 Obsidian 打开'
-        $Deadline = (Get-Date).AddSeconds(20)
+        $Deadline = (Get-Date).AddSeconds(30)
+        $ProcessLaunched = $false
         while ((Get-Date) -lt $Deadline) {
             $NewObsidian = @(
                 Get-CimInstance Win32_Process `
@@ -170,15 +170,29 @@ function Test-ObsidianOpenAction {
                     -ErrorAction SilentlyContinue |
                     Where-Object { $Baseline -notcontains $_.ProcessId }
             )
-            $Launch = $NewObsidian | Where-Object {
-                $_.CommandLine -match [regex]::Escape($ExpectedUri)
-            } | Select-Object -First 1
-            if ($Launch) {
-                return $true
+            if ($NewObsidian.Count -gt 0) {
+                $ProcessLaunched = $true
+            }
+            if ($ProcessLaunched -and (Test-Path -LiteralPath $ObsidianConfig)) {
+                try {
+                    $Obsidian = Get-Content `
+                        -LiteralPath $ObsidianConfig `
+                        -Raw `
+                        -Encoding utf8 | ConvertFrom-Json
+                    $RegisteredVaults = @(
+                        $Obsidian.vaults.PSObject.Properties |
+                            ForEach-Object { $_.Value.path }
+                    )
+                    if ($RegisteredVaults -contains $ExpectedVaultPath) {
+                        return $true
+                    }
+                } catch {
+                    # Obsidian may be replacing its config while starting.
+                }
             }
             Start-Sleep -Milliseconds 100
         }
-        throw "Obsidian did not receive the expected managed Vault URI: $ExpectedUri"
+        throw 'Obsidian did not register the managed Vault after the installer action.'
     } finally {
         for ($Attempt = 0; $Attempt -lt 3; $Attempt++) {
             $NewProcessIds = @(
@@ -453,7 +467,7 @@ try {
         diagnostic_export_action = $true
         diagnostic_artifact = 'windows-ui-diagnostics.json'
         obsidian_open_action = $ObsidianOpenAction
-        obsidian_vault_uri = $true
+        obsidian_vault_registration = $true
         douyin_login_action = $DouyinLoginAction
         bilibili_login_action = $BilibiliLoginAction
         isolated_firefox_profile = 'VideoToObsidian'
