@@ -81,7 +81,12 @@ internal sealed class InstallationClient
 
         await EnsureWingetPackageAsync(winget, "Mozilla.Firefox", "Firefox", report);
         await EnsureObsidianAsync(winget, report);
-        await EnsureWingetPackageAsync(winget, "Gyan.FFmpeg", "ffmpeg", report);
+        await EnsureWingetPackageAsync(
+            winget,
+            "Gyan.FFmpeg.Essentials",
+            "ffmpeg 精简组件",
+            report
+        );
         await EnsureFirefoxProfileAsync(report);
     }
 
