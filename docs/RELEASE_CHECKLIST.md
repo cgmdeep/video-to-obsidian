@@ -46,7 +46,7 @@
 - [x] 仓库已切换为 Public，GitHub Private Vulnerability Reporting API 报告 `enabled: true`，公开 Security Policy 页面可访问。
 - [x] 完成真实付费样本后，在验收记录中填写 usage、当日官方单价与费用估算；README 不写死每条价格，也不把估算冒充账单实扣值。
 - [x] 2026-09-29 按 Kimi 与 ZCode 官方文档核验 README 中模型名称、K3 充值门槛、官方价格入口、ZCode 安装与 Bot Channel 入口仍有效。
-- [ ] `v0.1.0-alpha.7` 标签构建生成版本化 EXE、`SHA256SUMS`、SPDX SBOM、发行说明和干净 Runner 报告。
+- [x] `v0.1.0-alpha.7` 标签构建生成版本化 EXE、`SHA256SUMS`、SPDX SBOM、发行说明和干净 Runner 报告。
 
 ### 2026-09-29 本地一致性与失败恢复固定集
 
@@ -97,6 +97,14 @@
 - Security workflow：[`#36587313011`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36587313011) 成功；
 - `VideoToObsidian.Setup.exe`：71,689,162 字节，SHA256 `fc8e3221a50c15b7709fde0d5f14e75127b8d5efa55f93d21c61358e0f3b74ab`；
 - 同一 Pre-release 提供 `SHA256SUMS` 与 SPDX 2.3 SBOM；发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.6>。
+
+### 2026-09-30 alpha.7 正式发布证据
+
+- 标签提交：`d07e63901ca92435a5b29089b792e9c062002c34`；
+- Release workflow：[`#36597614427`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36597614427) 成功，121 项核心测试及干净 Windows 首次准备、修复、卸载和重装生命周期全部通过；
+- 最终候选提交的 CI workflow [`#36597275259`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36597275259) 与 Security workflow [`#36597275469`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36597275469) 均成功；
+- `VideoToObsidian.Setup.exe`：71,691,693 字节，SHA256 `b03b99201c01c49016fd92ecdc770ebbf0d2077750b7ba9795614cbb451e399e`；
+- 本地重新下载全部发布资产后，`SHA256SUMS` 对 EXE、Python wheel/sdist、SPDX 2.3 SBOM 和干净 Runner 报告校验全部通过；发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.7>。
 
 ### 2026-09-29 alpha.2 候选阻断记录
 
