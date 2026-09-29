@@ -91,9 +91,15 @@ jobs:
           if ($Files.Count -ne 1 -or $Files[0].Name -ne 'VideoToObsidian.Setup.exe') {
             throw "Expected one VideoToObsidian.Setup.exe, found: $($Files.Name -join ', ')"
           }
+          [xml]$Project = Get-Content installer/windows/VideoToObsidian.Setup/VideoToObsidian.Setup.csproj
+          $ExpectedFileVersion = [string]$Project.Project.PropertyGroup.FileVersion
+          $ExpectedProductVersion = [string]$Project.Project.PropertyGroup.InformationalVersion
+          if (-not $ExpectedFileVersion -or -not $ExpectedProductVersion) {
+            throw 'Installer project does not declare FileVersion and InformationalVersion.'
+          }
           $Version = [Diagnostics.FileVersionInfo]::GetVersionInfo($Files[0].FullName)
-          if ($Version.FileVersion -ne '0.1.0.5' -or $Version.ProductVersion -notlike '0.1.0-alpha.5*') {
-            throw "Unexpected installer version: file=$($Version.FileVersion), product=$($Version.ProductVersion)"
+          if ($Version.FileVersion -ne $ExpectedFileVersion -or $Version.ProductVersion -notlike "$ExpectedProductVersion*") {
+            throw "Unexpected installer version: file=$($Version.FileVersion), product=$($Version.ProductVersion); expected file=$ExpectedFileVersion, product=$ExpectedProductVersion"
           }
       - name: Verify embedded payload
         shell: pwsh
