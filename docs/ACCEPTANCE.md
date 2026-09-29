@@ -10,7 +10,7 @@
 - [ ] 当前目标 ZCode 版本及版本号；
 - [x] 全新 Firefox `VideoToObsidian` Profile（干净 Runner 自动验收）；
 - [x] 全新 Obsidian Vault（干净 Runner 自动验收）；
-- [ ] 标准版安装、重装和卸载。
+- [x] 标准版安装、重装和卸载（干净 Runner 自动验收）。
 
 ## 普通用户路径
 
@@ -30,7 +30,7 @@
 - [x] `route_video` 正确区分抖音、B站和“使用K3深度分析”；
 - [x] 安装、启动、重新检查阶段账户无 token 扣费（自动准备与 `doctor` 均无付费调用）；
 - [x] ZCode 只发现一个 `video-to-obsidian` MCP；
-- [ ] 原有 ZCode MCP 配置未变化；
+- [x] 原有 ZCode MCP 配置未变化（自动验收注入无关 MCP，修复、卸载和重装后均保留）；
 - [x] 首次准备的进度、配置和空 Vault 不出现 Key、Cookie、签名 URL；
 - [x] 默认不创建 `.obsidian` 或安装社区插件。
 
@@ -85,11 +85,22 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 
 ## 卸载与恢复
 
-- [x] 重复执行“一键准备本机”的共享准备协调器不会重复创建环境或破坏配置；
+- [x] 重复执行“安装 / 修复本机”的共享准备协调器不会重复创建环境或破坏配置；
+- [x] 安装器内置安全卸载能移除安装核心和本项目 MCP；
 - [ ] 源码中的 `scripts/uninstall.ps1` 能移除安装器核心和本项目 MCP；
-- [ ] 默认卸载保留 Vault、专用工作区、Firefox Profile、Kimi Key 和检查点；
-- [ ] `-RemovePrivateData` 会删除 Kimi Key 和私有运行数据，但仍不删除 Vault；
-- [ ] 卸载后不触碰其他 ZCode 工作区、模型供应商和 MCP。
+- [x] 默认卸载保留 Vault、专用工作区、Firefox Profile、Kimi Key 和检查点；
+- [x] 私有数据卸载会删除受管私有运行目录，但仍不删除 Vault；
+- [ ] 在存在专用测试 Key 的 Windows Credential Manager 上验证 Kimi Key 实际删除；
+- [x] 卸载后不触碰其他 ZCode 配置和 MCP；模型供应商不在卸载器修改范围内。
+
+### 2026-09-29 干净 Windows 生命周期验收
+
+- commit：`c30926fc34c72e370b2bb6a070ecf9ea646d05fc`；workflow：[`Windows clean acceptance #36503042863`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36503042863)；
+- `VideoToObsidian.Setup.exe`：71,678,488 字节；SHA256 `c51446235f997c0f8c8e98c49fcda70f2a916fbf7582d4ec01862aec9a6dc0e0`；
+- 同一干净 Runner 顺序完成首次安装、原地修复、默认安全卸载、卸载后重装和私有数据卸载；五份结果均 `ok=true`、`contains_secrets=false`、`paid_call_performed=false`；
+- 默认卸载后 `core_removed=true`、`managed_mcp_removed=true`，Vault、专用工作区与 Firefox Profile 均保留；预先注入的无关 MCP 在修复、卸载和重装后均存在；
+- 私有数据卸载后受管 roaming/local 目录均移除，Vault、工作区、Firefox Profile 和无关 MCP 仍保留；Runner 未注入真实 Key，因此不把该轮视为 Credential Manager 真实删除验收；
+- 边界：这是无人值守自动验收，不替代普通用户在 Windows 11 上的图形按钮、SmartScreen 和交互确认验收；源码 `scripts/uninstall.ps1` 仍单独待测。
 
 ## 真实视频闭环
 

@@ -15,7 +15,7 @@ Python、Firefox、Obsidian 和 ffmpeg 可以由安装器通过 `winget` 补齐�
 
 下载正式 Release 中的 `VideoToObsidian.Setup.exe`，核对发布页 SHA256 后双击运行。当前 Alpha 未签名，Windows SmartScreen 可能提示风险；正式 Release 出现前，不要从群聊、网盘或第三方网站下载安装包。
 
-点击“一键准备本机”，接受默认路径或选择新的 Obsidian Vault。安装器会使用官方 `winget` 来源补齐依赖，并把自身核心放在 `%LOCALAPPDATA%\VideoToObsidian\runtime`。默认标准版不需要显卡、NAS、Tailscale 或 SenseVoice。
+点击“安装 / 修复本机”，接受默认路径或选择新的 Obsidian Vault。安装器会使用官方 `winget` 来源补齐依赖，并把自身核心放在 `%LOCALAPPDATA%\VideoToObsidian\runtime`。重复点击会执行幂等修复，不会覆盖无关 ZCode 配置。默认标准版不需要显卡、NAS、Tailscale 或 SenseVoice。
 
 ## 2. 输入 Kimi API Key
 
@@ -68,9 +68,11 @@ Obsidian 不需要一直运行；MCP 可以在应用关闭时写入 Markdown。
 
 价格以 [Kimi 官方页面](https://platform.kimi.com/docs/pricing/chat) 为准。真实测试必须记录 API 返回的 `usage` 和账户扣费，不能只根据视频时长估算。
 
-## 8. 高级诊断和卸载
+## 8. 诊断和卸载
 
-普通用户优先看安装器底部“免费检查”。以下命令只供开发者、AI 助手或故障恢复使用，需要先获取源码：
+普通用户优先看安装器底部“免费检查”。不再使用时，点击“安全卸载（保留笔记）”；默认只移除视知库核心和受管 MCP，保留 Vault、专用工作区、Firefox Profile、Kimi Key、检查点和第三方软件。
+
+以下命令只供开发者、AI 助手或故障恢复使用，需要先获取源码：
 
 免费诊断：
 

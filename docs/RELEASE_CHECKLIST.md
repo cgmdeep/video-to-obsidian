@@ -1,6 +1,6 @@
 # v0.1.0 Alpha 发布门槛
 
-`v0.1.0-alpha.1` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费准备验收，并同时生成 SHA256 与 SBOM。真实付费样本、完整卸载和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
+`v0.1.0-alpha.1` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
 
 ## 已完成
 
@@ -24,6 +24,7 @@
 - 每周依赖漏洞审计、完整 Git 历史 Gitleaks 扫描和 Dependabot；
 - 私密漏洞报告说明与 GitHub Private Vulnerability Reporting；
 - Windows 可选 winget 依赖安装、专用 Firefox Profile 检查和安全卸载脚本；
+- 干净 Windows Runner 自动安装、原地修复、默认卸载、重装与受管私有目录卸载；
 - 人类安装扫码指南与可复现公开验收记录模板。
 
 ## 公开前必须完成
@@ -54,6 +55,14 @@
 - SHA256：`e9f8eda8f8bf35b764ed1936ec791f4dc02772192eb850fcbe0cac44409692f6`；
 - 结果：临时英文 Windows Runner 完成核心、Firefox、Obsidian、ffmpeg、默认中文 Vault 和专用 ZCode 工作区准备；确认专用 Firefox Profile、单一 MCP、无 `.obsidian`、脱敏配置和免费 `doctor`；`contains_secrets=false`、`paid_call_performed=false`；
 - 边界：这是无人值守准备验收，不替代 Windows 11 图形点击、用户扫码、ZCode 微信 Bot、卸载和真实视频验收。
+
+### 2026-09-29 干净 Windows 生命周期证据
+
+- commit：`c30926fc34c72e370b2bb6a070ecf9ea646d05fc`；
+- 工作流：[Windows clean acceptance #36503042863](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36503042863)；
+- `VideoToObsidian.Setup.exe`：71,678,488 字节；
+- SHA256：`c51446235f997c0f8c8e98c49fcda70f2a916fbf7582d4ec01862aec9a6dc0e0`；
+- 结果：首次安装、原地修复、默认安全卸载、重装与私有数据卸载均通过；Vault、专用工作区、Firefox Profile 和无关 MCP 在应保留的阶段均保留；全程无 Secret 输出且无付费调用。
 
 ## 不进入 v0.1
 

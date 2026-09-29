@@ -55,8 +55,10 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] `configure-zcode-moonshot --json`；
 - [x] `set-kimi-key --stdin --json` 仅通过标准输入接收安装器密钥；
 - [x] 统一 `onboarding-status --json`；
-- [ ] 安装、修复、卸载均返回稳定错误码；
+- [x] 安装、修复、卸载均返回稳定操作标识与错误码；
 - [ ] Windows ACL 实机验证。
+
+自动化合同：参数错误返回 `64`，首次安装失败返回 `20`，修复失败返回 `21`，卸载失败返回 `30`；JSON 同时提供 `operation`、`status` 和稳定 `error_code`。
 
 ### P3：Windows 图形向导
 
@@ -72,6 +74,7 @@ Bot Channel 必须在这个专用工作区中创建。
 
 ### P4：干净机器和真实视频
 
+- [x] 干净 Windows Runner 自动安装、原地修复、默认卸载、重装和受管私有目录卸载；
 - [ ] 不含作者配置的 Windows 11 安装/修复/卸载；
 - [ ] 抖音、B站短视频各一条；
 - [ ] 20～30 分钟长视频；

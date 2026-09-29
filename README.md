@@ -14,7 +14,7 @@
 
 也可以直接把完整分享文本粘贴到 ZCode。
 
-> 当前状态：`v0.1.0-alpha.1` 发布候选。Windows 干净 Runner 已完成单文件安装器准备验收，独立 Windows 11 ROG 已完成抖音小视频与 B站 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库，以及 ZCode 官方微信 Bot 免费体检和双平台输入验收。B站短视频、总结质量固定集、完整卸载与规模稳定性仍待验证，因此只能描述为未签名 Alpha，不能描述为生产可用。
+> 当前状态：`v0.1.0-alpha.1` 发布候选。Windows 干净 Runner 已完成单文件安装、原地修复、安全卸载、重装和受管私有目录清理验收；独立 Windows 11 ROG 已完成抖音小视频与 B站 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库，以及 ZCode 官方微信 Bot 免费体检和双平台输入验收。B站短视频、总结质量固定集与规模稳定性仍待验证，因此只能描述为未签名 Alpha，不能描述为生产可用。
 
 ## 设计目标
 
@@ -168,7 +168,7 @@ video-to-obsidian clear-summary-preferences
 
 ## 卸载
 
-当前 Alpha 尚未注册到 Windows“已安装的应用”。开发者脚本会删除图形安装器部署的核心和本项目的 ZCode MCP 条目，保留 Vault、专用工作区、Firefox Profile、第三方软件及私有运行数据：
+当前 Alpha 尚未注册到 Windows“已安装的应用”。普通用户可在安装向导底部点击“安全卸载（保留笔记）”：它只移除核心和本项目的 ZCode MCP，保留 Vault、专用工作区、Firefox Profile、Kimi Key 和第三方软件。开发者或 AI 助手也可使用源码脚本：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\uninstall.ps1
