@@ -33,9 +33,10 @@ public partial class App : Application
             var resultPath = e.Args[1];
             var wasInstalled = new InstallationClient().IsInstalled;
             var operation = wasInstalled ? "repair" : "install";
-            var vaultPath = wasInstalled
-                ? MachinePreparationClient.ConfiguredVaultPathOrDefault
-                : MachinePreparationClient.DefaultVaultPath;
+            // A default uninstall preserves the user's private configuration.
+            // Reinstallation must therefore reuse its Vault just like repair;
+            // on a genuinely fresh machine this property falls back to default.
+            var vaultPath = MachinePreparationClient.ConfiguredVaultPathOrDefault;
             try
             {
                 WritePreparationReport(resultPath, new
