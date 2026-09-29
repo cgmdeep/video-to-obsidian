@@ -15,6 +15,7 @@ from .notes import NoteWriteError, audit_vault
 from .onboarding import (
     OnboardingError,
     bootstrap_workspace,
+    build_support_report,
     configure_zcode_moonshot,
     ensure_zcode_model,
     inspect_zcode_models,
@@ -134,6 +135,22 @@ def _parser() -> argparse.ArgumentParser:
         default=Path.home() / ".zcode" / "v2" / "config.json",
     )
     onboarding.add_argument("--json", action="store_true")
+
+    support = sub.add_parser(
+        "support-report", help="输出不含 Secret 和本地路径的免费诊断报告"
+    )
+    support.add_argument("--config", type=Path)
+    support.add_argument(
+        "--workspace",
+        type=Path,
+        default=Path.home() / "Documents" / "视知库助手",
+    )
+    support.add_argument(
+        "--zcode-model-config",
+        type=Path,
+        default=Path.home() / ".zcode" / "v2" / "config.json",
+    )
+    support.add_argument("--json", action="store_true")
 
     remove = sub.add_parser("unconfigure-zcode", help="只删除本项目的 ZCode MCP 条目")
     remove.add_argument(
@@ -305,6 +322,19 @@ def main(argv: list[str] | None = None) -> int:
                 state = "可进行免费 Bot 验收" if payload["ok"] else "尚需完成安装步骤"
                 print(f"安装向导状态：{state}")
                 print("下一步：" + ", ".join(payload["next_actions"]))
+            return 0
+        if args.command == "support-report":
+            status = onboarding_status(
+                doctor=doctor_payload(args.config),
+                workspace=inspect_workspace(args.workspace),
+                zcode_models=inspect_zcode_models(args.zcode_model_config),
+            )
+            payload = build_support_report(status)
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                state = "本机已就绪" if payload["ok"] else "尚需完成安装步骤"
+                print(f"脱敏诊断：{state}（未调用付费分析）")
             return 0
         if args.command == "unconfigure-zcode":
             from .zcode import remove_from_file

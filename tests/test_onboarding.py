@@ -10,6 +10,7 @@ from video_to_obsidian.onboarding import (
     MOONSHOT_PROVIDER_ID,
     OnboardingError,
     bootstrap_workspace,
+    build_support_report,
     build_moonshot_model_config,
     configure_zcode_moonshot,
     ensure_zcode_model,
@@ -218,3 +219,60 @@ def test_onboarding_status_returns_stable_next_actions() -> None:
         "configure_zcode_model",
         "verify_bot_channel",
     ]
+
+
+def test_support_report_omits_paths_provider_names_and_details() -> None:
+    status = {
+        "ok": True,
+        "ready_for_free_bot_test": True,
+        "doctor": {
+            "ok": True,
+            "checks": [
+                {
+                    "name": "config",
+                    "ok": True,
+                    "required": True,
+                    "detail": r"配置可读：C:\\Users\\private-user\\config.toml",
+                }
+            ],
+        },
+        "workspace": {
+            "ok": True,
+            "exists": True,
+            "managed_marker": True,
+            "managed_rules": True,
+            "workspace_mcp": True,
+            "workspace": r"C:\\Users\\private-user\\Documents\\视知库助手",
+        },
+        "zcode_models": {
+            "ok": True,
+            "config_exists": True,
+            "config": r"C:\\Users\\private-user\\.zcode\\v2\\config.json",
+            "providers": [
+                {
+                    "provider_id": "private-provider-name",
+                    "name": "Private Provider",
+                    "secret_present": True,
+                }
+            ],
+            "usable_provider_count": 1,
+            "has_moonshot_provider": True,
+            "has_coding_plan_provider": False,
+            "permissions_private": True,
+        },
+        "next_actions": ["verify_bot_channel"],
+    }
+
+    report = build_support_report(status)
+    serialized = json.dumps(report)
+
+    assert report["contains_secrets"] is False
+    assert report["contains_local_paths"] is False
+    assert report["paid_call_performed"] is False
+    assert report["doctor"]["checks"] == [
+        {"name": "config", "ok": True, "required": True}
+    ]
+    assert "private-user" not in serialized
+    assert "private-provider-name" not in serialized
+    assert "Private Provider" not in serialized
+    assert "config.toml" not in serialized

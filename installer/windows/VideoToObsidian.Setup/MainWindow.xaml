@@ -87,6 +87,7 @@
                         <WrapPanel>
                             <Button Content="安装 / 打开 ZCode" Click="OpenZCodeInstallButton_Click" />
                             <Button Content="官方微信连接教程" Click="OpenBotGuideButton_Click" />
+                            <Button Content="用 ZCode 打开视知库助手" Click="OpenWorkspaceInZCodeButton_Click" Background="#353948" />
                             <Button Content="打开工作区文件夹" Click="OpenWorkspaceButton_Click" Background="#353948" />
                             <Button Content="复制工作区路径" Click="CopyWorkspacePathButton_Click" Background="#353948" />
                         </WrapPanel>

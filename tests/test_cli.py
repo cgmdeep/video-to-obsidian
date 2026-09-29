@@ -81,3 +81,58 @@ def test_audit_vault_cli_is_free_and_uses_configured_vault(monkeypatch, capsys) 
     assert payload["ok"] is True
     assert payload["paid_call_performed"] is False
     assert payload["duplicate_groups"] == []
+
+
+def test_support_report_cli_is_bounded_and_free(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        cli,
+        "doctor_payload",
+        lambda _: {
+            "ok": True,
+            "paid_call_performed": False,
+            "checks": [
+                {
+                    "name": "config",
+                    "ok": True,
+                    "required": True,
+                    "detail": r"C:\\Users\\private-user\\config.toml",
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        cli,
+        "inspect_workspace",
+        lambda _: {
+            "ok": True,
+            "exists": True,
+            "managed_marker": True,
+            "managed_rules": True,
+            "workspace_mcp": True,
+            "workspace": r"C:\\Users\\private-user\\Documents\\视知库助手",
+        },
+    )
+    monkeypatch.setattr(
+        cli,
+        "inspect_zcode_models",
+        lambda _: {
+            "ok": True,
+            "config_exists": True,
+            "config": r"C:\\Users\\private-user\\.zcode\\v2\\config.json",
+            "providers": [{"name": "private-provider", "secret_present": True}],
+            "usable_provider_count": 1,
+            "has_moonshot_provider": True,
+            "has_coding_plan_provider": False,
+            "permissions_private": None,
+        },
+    )
+
+    assert cli.main(["support-report", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    serialized = json.dumps(payload)
+    assert payload["ok"] is True
+    assert payload["contains_secrets"] is False
+    assert payload["contains_local_paths"] is False
+    assert payload["paid_call_performed"] is False
+    assert "private-user" not in serialized
+    assert "private-provider" not in serialized

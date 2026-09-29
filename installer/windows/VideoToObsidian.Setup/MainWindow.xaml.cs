@@ -119,12 +119,56 @@ public partial class MainWindow : Window
 
     private void OpenZCodeInstallButton_Click(object sender, RoutedEventArgs e)
     {
+        var executable = FindZCodeExecutable();
+        if (executable is not null)
+        {
+            Process.Start(new ProcessStartInfo(executable) { UseShellExecute = true });
+            return;
+        }
         Process.Start(
             new ProcessStartInfo("https://zcode.z.ai/cn/docs/install")
             {
                 UseShellExecute = true,
             }
         );
+    }
+
+    private void OpenWorkspaceInZCodeButton_Click(object sender, RoutedEventArgs e)
+    {
+        Directory.CreateDirectory(_workspacePath);
+        var executable = FindZCodeExecutable();
+        if (executable is null)
+        {
+            MessageBox.Show(
+                "未找到 ZCode，将为你打开官方安装页。安装后再点一次这个按钮。",
+                "视知库"
+            );
+            OpenZCodeInstallButton_Click(sender, e);
+            return;
+        }
+        Process.Start(
+            new ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                Arguments = $"\"{_workspacePath}\"",
+            }
+        );
+    }
+
+    private static string? FindZCodeExecutable()
+    {
+        var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var candidates = new[]
+        {
+            Path.Combine(local, "Programs", "ZCode", "ZCode.exe"),
+            Path.Combine(local, "ZCode", "ZCode.exe"),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "ZCode",
+                "ZCode.exe"
+            ),
+        };
+        return candidates.FirstOrDefault(File.Exists);
     }
 
     private void OpenWorkspaceButton_Click(object sender, RoutedEventArgs e)
@@ -190,7 +234,7 @@ public partial class MainWindow : Window
         await GuardedAsync(async () =>
         {
             using var status = await _backend.RunJsonAsync(
-                new[] { "onboarding-status", "--workspace", _workspacePath, "--json" }
+                new[] { "support-report", "--workspace", _workspacePath, "--json" }
             );
             var report = new Dictionary<string, object?>
             {
@@ -202,7 +246,7 @@ public partial class MainWindow : Window
                     ?? typeof(MainWindow).Assembly.GetName().Version?.ToString(),
                 ["contains_secrets"] = false,
                 ["paid_call_performed"] = false,
-                ["onboarding_status"] = status.RootElement.Clone(),
+                ["support_status"] = status.RootElement.Clone(),
             };
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             var path = Path.Combine(desktop, "视知库诊断报告.json");

@@ -302,6 +302,61 @@ def onboarding_status(
     }
 
 
+def build_support_report(status: dict[str, Any]) -> dict[str, Any]:
+    """Return a bounded, path-free snapshot suitable for user-shared diagnostics."""
+
+    doctor = status.get("doctor") if isinstance(status.get("doctor"), dict) else {}
+    raw_checks = doctor.get("checks") if isinstance(doctor.get("checks"), list) else []
+    checks = [
+        {
+            "name": str(item.get("name") or "unknown"),
+            "ok": bool(item.get("ok")),
+            "required": bool(item.get("required")),
+        }
+        for item in raw_checks
+        if isinstance(item, dict)
+    ]
+    workspace = (
+        status.get("workspace") if isinstance(status.get("workspace"), dict) else {}
+    )
+    models = (
+        status.get("zcode_models")
+        if isinstance(status.get("zcode_models"), dict)
+        else {}
+    )
+    raw_actions = (
+        status.get("next_actions") if isinstance(status.get("next_actions"), list) else []
+    )
+    return {
+        "schema_version": 1,
+        "ok": bool(status.get("ok")),
+        "ready_for_free_bot_test": bool(status.get("ready_for_free_bot_test")),
+        "contains_secrets": False,
+        "contains_local_paths": False,
+        "paid_call_performed": False,
+        "doctor": {
+            "ok": bool(doctor.get("ok")),
+            "checks": checks,
+        },
+        "workspace": {
+            "ok": bool(workspace.get("ok")),
+            "exists": bool(workspace.get("exists")),
+            "managed_marker": bool(workspace.get("managed_marker")),
+            "managed_rules": bool(workspace.get("managed_rules")),
+            "workspace_mcp": bool(workspace.get("workspace_mcp")),
+        },
+        "zcode_models": {
+            "ok": bool(models.get("ok")),
+            "config_exists": bool(models.get("config_exists")),
+            "usable_provider_count": int(models.get("usable_provider_count") or 0),
+            "has_moonshot_provider": bool(models.get("has_moonshot_provider")),
+            "has_coding_plan_provider": bool(models.get("has_coding_plan_provider")),
+            "permissions_private": models.get("permissions_private"),
+        },
+        "next_actions": [str(item) for item in raw_actions],
+    }
+
+
 def inspect_zcode_models(path: Path) -> dict[str, Any]:
     target = path.expanduser()
     if not target.is_file():
