@@ -105,6 +105,13 @@
 - UI 合同证据为 `zcode_workspace_action=true`、`zcode_workspace_argument=true`，同时复制路径、Obsidian、双平台登录启动动作继续通过，报告保持 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`；
 - ROG 只读核对确认 ZCode 正在运行，且实际 EXE 位于安装器支持的候选位置之一。本节证明“找得到应用并传入正确工作区”的启动合同，不冒充 ZCode 已切换到该工作区、Bot Channel 已绑定或微信已扫码。
 
+### 2026-09-30 路由与视频分析 usage 归属
+
+- commit `82b0bdaaf3172cd0b27e5124312ee31ccd34cf57`；[`CI #36624790305`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36624790305) 与 [`Security #36624790568`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36624790568) 成功；
+- 成功结果新增 `usage_scope=video_analysis_only`、`video_analysis_usage`、`video_analysis_cached` 和 `zcode_routing_usage`；旧 `usage` 继续作为同一份视频分析数据的兼容别名；
+- Kimi 失败结果也声明视频分析 usage 边界，并明确 ZCode 路由 usage 不在 MCP 工具可见范围内；工作区规则要求去 ZCode 或相应模型供应商查看，禁止猜测、混算或把未知费用写成零；
+- 单元测试覆盖首次分析、缓存命中、Kimi 失败和生成的 ZCode 工作区规则；本轮没有调用真实模型或产生费用。真实路由 usage/账单分栏仍需从 ZCode 或其模型供应商取得后单独留证。
+
 ### ROG 验收节点守护
 
 ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端。ZCode 官方微信 Bot

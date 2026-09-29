@@ -133,6 +133,12 @@
 - UI 证据 JSON 记录 `zcode_workspace_action=true`、`zcode_workspace_argument=true`，并继续保持无 Secret、无本机路径和无付费调用；ROG 只读核对同时确认实际 ZCode 位于支持路径且正在运行；
 - 本证据只覆盖应用发现与启动参数合同，不替代真实 ZCode 界面、Bot Channel 绑定或微信扫码验收。
 
+### 2026-09-30 usage 归属边界证据
+
+- commit `82b0bdaaf3172cd0b27e5124312ee31ccd34cf57`；[`CI #36624790305`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36624790305) 与 [`Security #36624790568`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36624790568) 成功；
+- 工具结果将 `video_analysis_usage` 明确归属为视频分析，保留 `usage` 兼容别名，并用 `zcode_routing_usage.available=false` 如实表示路由模型发生在 MCP 边界外；缓存与失败结果沿用相同边界；
+- 受管工作区规则禁止猜测或混算路由费用。本证据不冒充已经取得 ZCode 或模型供应商的真实路由 usage/账单。
+
 ### 2026-09-29 alpha.2 候选阻断记录
 
 - 标签 `v0.1.0-alpha.2` 的发布流水线在 Firefox 准备阶段被闸门阻断，没有生成 GitHub Release；
