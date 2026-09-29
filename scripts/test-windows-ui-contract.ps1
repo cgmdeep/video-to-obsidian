@@ -165,6 +165,10 @@ function Test-ObsidianOpenAction {
         Invoke-InstallerButton -Root $Root -Name '用 Obsidian 打开'
         $Deadline = (Get-Date).AddSeconds(30)
         $ProcessLaunched = $false
+        $ConfigReadable = $false
+        $ManagedVaultRegistered = $false
+        $UnrelatedConfigPreserved = $false
+        $BackupCreated = $false
         while ((Get-Date) -lt $Deadline) {
             $NewObsidian = @(
                 Get-CimInstance Win32_Process `
@@ -181,6 +185,7 @@ function Test-ObsidianOpenAction {
                         -LiteralPath $ObsidianConfig `
                         -Raw `
                         -Encoding utf8 | ConvertFrom-Json
+                    $ConfigReadable = $true
                     $RegisteredVaults = @(
                         $Obsidian.vaults.PSObject.Properties |
                             ForEach-Object { $_.Value.path }
@@ -189,11 +194,16 @@ function Test-ObsidianOpenAction {
                         Where-Object { $_.Name -eq 'acceptance-unrelated-vault' } |
                         Select-Object -First 1
                     $Backup = $ObsidianConfig + '.video-to-obsidian.bak'
-                    if (
-                        $RegisteredVaults -contains $ExpectedVaultPath -and
+                    $ManagedVaultRegistered =
+                        $RegisteredVaults -contains $ExpectedVaultPath
+                    $UnrelatedConfigPreserved =
                         $Obsidian.acceptance_sentinel -eq 'preserve' -and
-                        $Sentinel.Value.path -eq $ExpectedUnrelatedVaultPath -and
-                        (Test-Path -LiteralPath $Backup)
+                        $Sentinel.Value.path -eq $ExpectedUnrelatedVaultPath
+                    $BackupCreated = Test-Path -LiteralPath $Backup
+                    if (
+                        $ManagedVaultRegistered -and
+                        $UnrelatedConfigPreserved -and
+                        $BackupCreated
                     ) {
                         return [pscustomobject]@{
                             opened = $true
@@ -207,7 +217,12 @@ function Test-ObsidianOpenAction {
             }
             Start-Sleep -Milliseconds 100
         }
-        throw 'Obsidian did not register the managed Vault after the installer action.'
+        throw (
+            'Obsidian action did not reach the verified state ' +
+            "(process=$ProcessLaunched; config=$ConfigReadable; " +
+            "managed=$ManagedVaultRegistered; preserved=$UnrelatedConfigPreserved; " +
+            "backup=$BackupCreated)."
+        )
     } finally {
         for ($Attempt = 0; $Attempt -lt 3; $Attempt++) {
             $NewProcessIds = @(
