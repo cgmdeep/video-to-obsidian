@@ -1,6 +1,6 @@
 # v0.1.0 Alpha 发布门槛
 
-`v0.1.0-alpha.5` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
+`v0.1.0-alpha.6` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
 
 ## 已完成
 
@@ -46,7 +46,7 @@
 - [x] 仓库已切换为 Public，GitHub Private Vulnerability Reporting API 报告 `enabled: true`，公开 Security Policy 页面可访问。
 - [x] 完成真实付费样本后，在验收记录中填写 usage、当日官方单价与费用估算；README 不写死每条价格，也不把估算冒充账单实扣值。
 - [x] 2026-09-29 按 Kimi 与 ZCode 官方文档核验 README 中模型名称、K3 充值门槛、官方价格入口、ZCode 安装与 Bot Channel 入口仍有效。
-- [x] `v0.1.0-alpha.5` 标签构建生成版本化 EXE、`SHA256SUMS`、SPDX SBOM、发行说明和干净 Runner 报告。
+- [x] `v0.1.0-alpha.6` 标签构建生成版本化 EXE、`SHA256SUMS`、SPDX SBOM、发行说明和干净 Runner 报告。
 
 ### 2026-09-29 本地一致性与失败恢复固定集
 
@@ -89,6 +89,14 @@
 - ROG 候选包 SHA256 为 `12a50f18ad9efff1294981f409fb411038bf00c7a2c1880650f12e59c984c732`，内置载荷校验与原地修复均通过，复用现有 Vault 和专用工作区，未调用付费模型；
 - `support-report` 在实机只返回允许字段，对用户名、本机路径、Key/Cookie/Bearer/签名 URL 扫描无命中；
 - 安装器可检测 ROG 上的已安装 ZCode，直接打开应用或传入专用工作区；仅在未安装时跳转官方安装说明。
+
+### 2026-09-29 alpha.6 正式发布证据
+
+- 标签提交：`79b3636a00f60bc77ae8338f085886439336ef3a`；
+- Release workflow：[`#36587899899`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36587899899) 成功，111 项核心测试及干净 Windows 首次准备、修复、卸载、重装、私有目录清理生命周期全部通过；
+- Security workflow：[`#36587313011`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36587313011) 成功；
+- `VideoToObsidian.Setup.exe`：71,689,162 字节，SHA256 `fc8e3221a50c15b7709fde0d5f14e75127b8d5efa55f93d21c61358e0f3b74ab`；
+- 同一 Pre-release 提供 `SHA256SUMS` 与 SPDX 2.3 SBOM；发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.6>。
 
 ### 2026-09-29 alpha.2 候选阻断记录
 
