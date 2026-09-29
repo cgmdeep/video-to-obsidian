@@ -149,7 +149,9 @@ function Test-ObsidianOpenAction {
         [Parameter(Mandatory = $true)]
         [System.Windows.Automation.AutomationElement]$Root,
         [Parameter(Mandatory = $true)]
-        [string]$ExpectedVaultPath
+        [string]$ExpectedVaultPath,
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedUnrelatedVaultPath
     )
 
     $ObsidianConfig = Join-Path $env:APPDATA 'obsidian\obsidian.json'
@@ -183,8 +185,21 @@ function Test-ObsidianOpenAction {
                         $Obsidian.vaults.PSObject.Properties |
                             ForEach-Object { $_.Value.path }
                     )
-                    if ($RegisteredVaults -contains $ExpectedVaultPath) {
-                        return $true
+                    $Sentinel = $Obsidian.vaults.PSObject.Properties |
+                        Where-Object { $_.Name -eq 'acceptance-unrelated-vault' } |
+                        Select-Object -First 1
+                    $Backup = $ObsidianConfig + '.video-to-obsidian.bak'
+                    if (
+                        $RegisteredVaults -contains $ExpectedVaultPath -and
+                        $Obsidian.acceptance_sentinel -eq 'preserve' -and
+                        $Sentinel.Value.path -eq $ExpectedUnrelatedVaultPath -and
+                        (Test-Path -LiteralPath $Backup)
+                    ) {
+                        return [pscustomobject]@{
+                            opened = $true
+                            config_preserved = $true
+                            backup_created = $true
+                        }
                     }
                 } catch {
                     # Obsidian may be replacing its config while starting.
@@ -298,6 +313,26 @@ $RequiredButtons = @(
     '导出脱敏诊断报告',
     '安全卸载（保留笔记）'
 )
+
+$ObsidianConfig = Join-Path $env:APPDATA 'obsidian\obsidian.json'
+if (Test-Path -LiteralPath $ObsidianConfig) {
+    throw 'Clean preparation unexpectedly initialized the Obsidian app configuration.'
+}
+$ObsidianUnrelatedVault = Join-Path $env:RUNNER_TEMP 'unrelated-obsidian-vault'
+New-Item -ItemType Directory -Force $ObsidianUnrelatedVault | Out-Null
+New-Item -ItemType Directory -Force (Split-Path $ObsidianConfig -Parent) | Out-Null
+$ObsidianSeed = [ordered]@{
+    acceptance_sentinel = 'preserve'
+    vaults = [ordered]@{
+        'acceptance-unrelated-vault' = [ordered]@{
+            path = $ObsidianUnrelatedVault
+            ts = 1
+            open = $false
+        }
+    }
+}
+$ObsidianSeed | ConvertTo-Json -Depth 5 |
+    Set-Content -LiteralPath $ObsidianConfig -Encoding utf8
 
 $Process = $null
 try {
@@ -445,7 +480,8 @@ try {
         '视知库'
     $ObsidianOpenAction = Test-ObsidianOpenAction `
         -Root $Root `
-        -ExpectedVaultPath $ExpectedVault
+        -ExpectedVaultPath $ExpectedVault `
+        -ExpectedUnrelatedVaultPath $ObsidianUnrelatedVault
 
     $DouyinLoginAction = Test-PlatformLoginAction `
         -Root $Root `
@@ -466,8 +502,10 @@ try {
         copy_workspace_action = $true
         diagnostic_export_action = $true
         diagnostic_artifact = 'windows-ui-diagnostics.json'
-        obsidian_open_action = $ObsidianOpenAction
+        obsidian_open_action = $ObsidianOpenAction.opened
         obsidian_vault_registration = $true
+        obsidian_config_preserved = $ObsidianOpenAction.config_preserved
+        obsidian_config_backup = $ObsidianOpenAction.backup_created
         douyin_login_action = $DouyinLoginAction
         bilibili_login_action = $BilibiliLoginAction
         isolated_firefox_profile = 'VideoToObsidian'

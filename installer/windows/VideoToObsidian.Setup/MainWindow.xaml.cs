@@ -192,8 +192,29 @@ public partial class MainWindow : Window
             MessageBox.Show("请先点击“安装 / 修复本机”创建知识库。", "视知库");
             return;
         }
-        var uri = "obsidian://open?path=" + Uri.EscapeDataString(vaultPath);
-        Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+        try
+        {
+            var vaultId = ObsidianVaultRegistry.EnsureRegistered(vaultPath);
+            var uri = "obsidian://open?vault=" + Uri.EscapeDataString(vaultId);
+            Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+        }
+        catch (Exception exception) when (
+            exception is IOException
+            or UnauthorizedAccessException
+            or JsonException
+            or ArgumentException
+            or NotSupportedException
+            or PathTooLongException
+        )
+        {
+            MessageBox.Show(
+                $"无法安全登记 Obsidian 知识库：{exception.Message}\n"
+                    + "未覆盖你的原配置。请关闭 Obsidian 后重试，或在 Obsidian 中手动选择该目录。",
+                "视知库",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning
+            );
+        }
     }
 
     private async void RefreshButton_Click(object sender, RoutedEventArgs e)
