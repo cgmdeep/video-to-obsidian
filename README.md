@@ -14,7 +14,7 @@
 
 也可以直接把完整分享文本粘贴到 ZCode。
 
-> 当前状态：`v0.1.0-alpha.5` 发布候选。Windows 干净 Runner 已完成单文件安装、原地修复、安全卸载、重装和受管私有目录清理验收；独立 Windows 11 ROG 已完成普通账户图形安装，以及抖音小视频与 B站 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库和 ZCode 官方微信 Bot 双平台输入验收。B站短视频、总结质量固定集与规模稳定性仍待验证，因此只能描述为未签名 Alpha，不能描述为生产可用。
+> 当前状态：`v0.1.0-alpha.5` 是已公开的未签名 Pre-release。Windows 干净 Runner 已完成单文件安装、原地修复、安全卸载、重装和受管私有目录清理验收；独立 Windows 11 ROG 已完成普通账户图形安装，以及抖音小视频、B站约 20 分钟典型视频和 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库和 ZCode 官方微信 Bot 双平台输入验收。多说话人、反讽/引用、音画冲突、偏好优先级固定集与完整规模稳定性仍待补齐，因此不能描述为生产可用。
 
 主线阶段、完成门槛与暂停项见 [`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md)。
 
@@ -161,7 +161,7 @@ video-to-obsidian clear-summary-preferences
 - 文件上传与保存接口是否免费、模型单价和充值规则可能变化，使用前请查看 [Kimi 官方价格页](https://platform.kimi.com/docs/pricing/chat)。
 - K3 当前需要账户完成充值后才能调用；新用户赠送额度可能不能用于 K3，详见 [K3 官方说明](https://platform.kimi.com/docs/guide/kimi-k3-quickstart)。
 
-公开测试价格必须来自真实 `usage`，不能按时长猜测。验收记录会同时列出视频时长、输入 token、输出 token、模型、当时官方单价和最终扣费；当前公开版尚未完成这组独立设备付费样本，因此仍标记为 Alpha。
+公开测试价格必须来自真实 `usage`，不能按时长猜测。验收记录同时列出视频时长、输入 token、输出 token、模型和当时官方单价；费用是依据 API usage 的估算，不冒充控制台账单。独立 Windows 设备上的抖音、B站典型视频和长视频付费样本见 [公开验收记录](docs/ACCEPTANCE.md)。
 
 ## 安全边界
 
