@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Setup,
     [Parameter(Mandatory = $true)]
-    [string]$ArtifactsDirectory
+    [string]$ArtifactsDirectory,
+    [switch]$InstallZCodeLaunchProbe
 )
 
 $ErrorActionPreference = 'Stop'
@@ -251,6 +252,58 @@ function Test-ObsidianOpenAction {
     }
 }
 
+function Test-ZCodeWorkspaceAction {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Automation.AutomationElement]$Root,
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedWorkspace
+    )
+
+    $Baseline = @(
+        Get-CimInstance Win32_Process `
+            -Filter "Name = 'ZCode.exe'" `
+            -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty ProcessId
+    )
+    try {
+        Invoke-InstallerButton -Root $Root -Name '用 ZCode 打开视知库助手'
+        $Deadline = (Get-Date).AddSeconds(20)
+        while ((Get-Date) -lt $Deadline) {
+            $Launch = Get-CimInstance Win32_Process `
+                -Filter "Name = 'ZCode.exe'" `
+                -ErrorAction SilentlyContinue |
+                Where-Object {
+                    $Baseline -notcontains $_.ProcessId -and
+                    $_.CommandLine -match [regex]::Escape($ExpectedWorkspace)
+                } |
+                Select-Object -First 1
+            if ($Launch) {
+                return $true
+            }
+            Start-Sleep -Milliseconds 100
+        }
+        throw 'ZCode workspace action did not pass the managed workspace as a launch argument.'
+    } finally {
+        for ($Attempt = 0; $Attempt -lt 3; $Attempt++) {
+            $NewProcessIds = @(
+                Get-CimInstance Win32_Process `
+                    -Filter "Name = 'ZCode.exe'" `
+                    -ErrorAction SilentlyContinue |
+                    Where-Object { $Baseline -notcontains $_.ProcessId } |
+                    Select-Object -ExpandProperty ProcessId
+            )
+            foreach ($ProcessId in $NewProcessIds) {
+                Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
+            }
+            if ($NewProcessIds.Count -eq 0) {
+                break
+            }
+            Start-Sleep -Milliseconds 300
+        }
+    }
+}
+
 function Close-InstallerMessageBox {
     param(
         [Parameter(Mandatory = $true)]
@@ -357,6 +410,22 @@ $ObsidianSeed = [ordered]@{
 $ObsidianSeed | ConvertTo-Json -Depth 5 |
     Set-Content -LiteralPath $ObsidianConfig -Encoding utf8
 
+$ZCodeProbeExecutable = Join-Path `
+    $env:LOCALAPPDATA `
+    'Programs\ZCode\ZCode.exe'
+$ZCodeProbeCreated = $false
+if ($InstallZCodeLaunchProbe) {
+    if (Test-Path -LiteralPath $ZCodeProbeExecutable) {
+        throw 'Refusing to replace an existing ZCode executable with the acceptance probe.'
+    }
+    New-Item `
+        -ItemType Directory `
+        -Force `
+        (Split-Path $ZCodeProbeExecutable -Parent) | Out-Null
+    Copy-Item -LiteralPath $Setup -Destination $ZCodeProbeExecutable
+    $ZCodeProbeCreated = $true
+}
+
 $Process = $null
 try {
     $Process = Start-Process -FilePath $Setup -PassThru
@@ -455,6 +524,13 @@ try {
         throw 'Copy-workspace action did not place the managed workspace path on the clipboard.'
     }
 
+    $ZCodeWorkspaceAction = $false
+    if ($InstallZCodeLaunchProbe) {
+        $ZCodeWorkspaceAction = Test-ZCodeWorkspaceAction `
+            -Root $Root `
+            -ExpectedWorkspace $ExpectedWorkspace
+    }
+
     $Desktop = [Environment]::GetFolderPath('DesktopDirectory')
     $DesktopDiagnostic = Join-Path $Desktop '视知库诊断报告.json'
     Remove-Item -LiteralPath $DesktopDiagnostic -Force -ErrorAction SilentlyContinue
@@ -516,13 +592,15 @@ try {
         -ExpectedUrl 'https://www.bilibili.com/'
 
     $Report = [ordered]@{
-        schema_version = 2
+        schema_version = 3
         ok = $true
         window_title = $Root.Current.Name
         required_button_count = $RequiredButtons.Count
         required_buttons = $RequiredButtons
         transcript_option = $TranscriptCheckBox.Current.Name
         copy_workspace_action = $true
+        zcode_workspace_action = $ZCodeWorkspaceAction
+        zcode_workspace_argument = $ZCodeWorkspaceAction
         diagnostic_export_action = $true
         diagnostic_artifact = 'windows-ui-diagnostics.json'
         obsidian_open_action = $ObsidianOpenAction.protocol_dispatched
@@ -545,5 +623,8 @@ try {
         if (-not $Process.WaitForExit(5000)) {
             Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
         }
+    }
+    if ($ZCodeProbeCreated) {
+        Remove-Item -LiteralPath $ZCodeProbeExecutable -Force -ErrorAction SilentlyContinue
     }
 }

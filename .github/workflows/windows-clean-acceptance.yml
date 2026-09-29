@@ -131,7 +131,8 @@ jobs:
         run: |
           ./scripts/test-windows-ui-contract.ps1 `
             -Setup artifacts/windows-x64/VideoToObsidian.Setup.exe `
-            -ArtifactsDirectory artifacts/windows-x64
+            -ArtifactsDirectory artifacts/windows-x64 `
+            -InstallZCodeLaunchProbe
       - name: Verify repair and uninstall lifecycle
         timeout-minutes: 25
         shell: pwsh
