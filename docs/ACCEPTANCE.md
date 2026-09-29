@@ -14,7 +14,7 @@
 
 ## 普通用户路径
 
-- [ ] 双击安装器后，不克隆仓库、不打开 PowerShell 也能完成准备；
+- [x] 双击安装器后，不克隆仓库、不打开 PowerShell 也能完成准备（ROG 临时普通账户图形验收）；
 - [ ] “登录抖音”“登录B站”均打开隔离的 `VideoToObsidian` Profile；
 - [ ] “用 Obsidian 打开”能打开本次选择的 Vault；
 - [ ] 用户能从界面复制 `文档\视知库助手` 路径并在 ZCode 打开；
@@ -61,6 +61,16 @@
 - Windows 实机制造“父 Python 启动子 Python 后超时”，返回 `command_timeout`、`retryable=false`，子进程确认已清理；
 - SSH 非交互体检只报告 Windows Credential Manager 不可用，其余依赖、Vault、Firefox Profile 和受管工作区均通过；该结果不代表交互用户会话中的 keyring 失效。
 - 本轮未执行真实视频和 Kimi 调用；B 站 412 公开 API 降级、抖音分享文本元数据恢复、任务锁和 Kimi 尝试账本仍需通过真实样本验收。
+
+### 2026-09-29 ROG 临时普通账户图形验收
+
+- Windows 11 Home 新建本地标准账户 `VTOAcceptance`，从单文件图形安装器点击“安装 / 修复本机”；用户路径未克隆仓库、未打开终端、未提供 Secret，也未调用付费模型；
+- 首轮真实点击暴露新账户没有 `winget` 命令别名；commit `888d740` 改为自动定位系统已安装的 App Installer，复测成功进入 Python 安装；
+- Obsidian 默认条目从 GitHub 下载较慢；commit `5516f18` 改为优先 Microsoft Store 官方条目，实机完成 1.13.7 下载、验签和安装；
+- FFmpeg 完整包约 258 MB；commit `5b0cee5` 改为约 115 MB 的 Essentials Build，仍提供 `ffmpeg`、`ffplay` 和 `ffprobe`；commit `62925f6` 为弱网下载保留 30 分钟边界；
+- 最终安装包来自 commit `62925f6`，CI [#36524435554](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36524435554) 与安全检查通过；文件 71,680,234 字节，SHA256 `50368272a31a8b56efe0ed8281ace1752d2961357616121b05f6ee55be1d2548`；
+- 图形流程创建隔离运行时、无 Secret 配置、空中文 Vault、专用 ZCode 工作区和单一 MCP，并注册 `VideoToObsidian` Firefox Profile；默认 `save_video=false`、逐字稿关闭且不创建 `.obsidian`；
+- 首次联网准备还会下载 Python、Firefox、Obsidian 与 FFmpeg；弱网环境应预留约 1–2 GB 空间和 10–30 分钟，官网和下载页必须明确说明。扫码、真实 Key、真实视频和图形卸载仍按各自验收项单独确认。
 
 ### ROG 验收节点守护
 
