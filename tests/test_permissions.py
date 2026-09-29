@@ -1,9 +1,62 @@
+import json
+import os
+import subprocess
 from pathlib import Path
 from subprocess import CompletedProcess
 
 import pytest
 
 from video_to_obsidian import permissions
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows ACL integration check")
+def test_windows_acl_integration_diagnostic(tmp_path: Path) -> None:
+    path = tmp_path / "acl-diagnostic"
+    path.mkdir()
+    sid = permissions._windows_current_user_sid()
+    assert sid is not None, "whoami did not return the current Windows SID"
+    permission = "(OI)(CI)F"
+    arguments = [
+        str(path),
+        "/inheritance:r",
+        "/grant:r",
+        f"*{sid}:{permission}",
+        f"*S-1-5-18:{permission}",
+        f"*S-1-5-32-544:{permission}",
+    ]
+    command = subprocess.run(
+        ["icacls.exe", *arguments],
+        check=False,
+        capture_output=True,
+        text=True,
+        errors="replace",
+        timeout=30,
+    )
+    assert command.returncode == 0, {
+        "stage": "icacls-grant",
+        "returncode": command.returncode,
+        "stderr": command.stderr.strip()[:500],
+    }
+    state_result = permissions._powershell(permissions._WINDOWS_ACL_STATE, path)
+    assert state_result.returncode == 0, {
+        "stage": "powershell-state",
+        "returncode": state_result.returncode,
+        "stderr": state_result.stderr.strip()[:500],
+    }
+    try:
+        state = json.loads(state_result.stdout.strip())
+    except json.JSONDecodeError as exc:
+        pytest.fail(
+            repr(
+                {
+                    "stage": "state-json",
+                    "stdout": state_result.stdout.strip()[:500],
+                    "stderr": state_result.stderr.strip()[:500],
+                    "error": str(exc),
+                }
+            )
+        )
+    assert isinstance(state, dict), {"stage": "state-shape", "state": state}
 
 
 def test_private_file_and_directory_permissions(tmp_path: Path) -> None:
