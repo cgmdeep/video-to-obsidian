@@ -4,44 +4,13 @@ from __future__ import annotations
 
 import base64
 import os
+import re
 import subprocess
 from pathlib import Path
 
 
 class PrivatePermissionError(RuntimeError):
     """Raised when a sensitive local path cannot be made private."""
-
-
-_WINDOWS_SET_PRIVATE = r"""
-$ErrorActionPreference = 'Stop'
-$target = $env:VTO_PRIVATE_PATH
-if (-not (Test-Path -LiteralPath $target)) { throw 'private path does not exist' }
-$item = Get-Item -LiteralPath $target -Force
-$acl = Get-Acl -LiteralPath $target
-$acl.SetAccessRuleProtection($true, $false)
-foreach ($rule in @($acl.Access)) {
-    [void]$acl.RemoveAccessRuleSpecific($rule)
-}
-$inheritance = [System.Security.AccessControl.InheritanceFlags]::None
-if ($item.PSIsContainer) {
-    $inheritance = [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
-}
-$propagation = [System.Security.AccessControl.PropagationFlags]::None
-$allow = [System.Security.AccessControl.AccessControlType]::Allow
-$full = [System.Security.AccessControl.FileSystemRights]::FullControl
-$sids = @(
-    [System.Security.Principal.WindowsIdentity]::GetCurrent().User,
-    [System.Security.Principal.SecurityIdentifier]::new('S-1-5-18'),
-    [System.Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
-)
-foreach ($sid in $sids) {
-    $entry = [System.Security.AccessControl.FileSystemAccessRule]::new(
-        $sid, $full, $inheritance, $propagation, $allow
-    )
-    [void]$acl.AddAccessRule($entry)
-}
-Set-Acl -LiteralPath $target -AclObject $acl
-"""
 
 
 _WINDOWS_CHECK_PRIVATE = r"""
@@ -109,14 +78,63 @@ def _is_windows() -> bool:
     return os.name == "nt"
 
 
+def _windows_current_user_sid() -> str | None:
+    try:
+        result = subprocess.run(
+            ["whoami.exe", "/user", "/fo", "csv", "/nh"],
+            check=False,
+            capture_output=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    match = re.search(rb"S-1-(?:\d+-)+\d+", result.stdout)
+    return match.group(0).decode("ascii") if result.returncode == 0 and match else None
+
+
+def _run_icacls(arguments: list[str]) -> bool:
+    try:
+        result = subprocess.run(
+            ["icacls.exe", *arguments],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
+def _windows_set_private(target: Path) -> bool:
+    sid = _windows_current_user_sid()
+    if not sid:
+        return False
+    permission = "(OI)(CI)F" if target.is_dir() else "F"
+    grants = [
+        f"*{sid}:{permission}",
+        f"*S-1-5-18:{permission}",
+        f"*S-1-5-32-544:{permission}",
+    ]
+    arguments = [str(target), "/inheritance:r", "/grant:r", *grants]
+    if _run_icacls(arguments) and is_private_path(target):
+        return True
+    # A pre-existing explicit grant can survive /inheritance:r. Reset only this
+    # target to its parent ACL, then apply the bounded grants once more.
+    return (
+        _run_icacls([str(target), "/reset"])
+        and _run_icacls(arguments)
+        and is_private_path(target)
+    )
+
+
 def ensure_private_path(path: Path) -> None:
     """Restrict an existing file or directory to the user and OS administrators."""
     target = path.expanduser()
     if not target.exists():
         raise PrivatePermissionError("需要保护的本地路径不存在。")
     if _is_windows():
-        result = _powershell(_WINDOWS_SET_PRIVATE, target)
-        if result.returncode != 0:
+        if not _windows_set_private(target):
             raise PrivatePermissionError("无法限制本地配置权限；已停止以避免泄露凭据。")
         return
     try:

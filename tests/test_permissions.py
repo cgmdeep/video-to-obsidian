@@ -50,8 +50,8 @@ def test_windows_permission_failure_stops_secure_write(
     monkeypatch.setattr(permissions, "_is_windows", lambda: True)
     monkeypatch.setattr(
         permissions,
-        "_powershell",
-        lambda script, target: CompletedProcess([], 1, stdout="", stderr="denied"),
+        "_windows_set_private",
+        lambda target: False,
     )
 
     with pytest.raises(permissions.PrivatePermissionError):
