@@ -225,6 +225,52 @@ def test_manual_retry_after_kimi_failure_reuses_download_checkpoint(tmp_path: Pa
     assert sorted(item["outcome"] for item in history) == ["completed", "failed"]
 
 
+def test_manual_retry_after_kimi_failure_reuses_completed_transcript(tmp_path: Path) -> None:
+    fake = FakePipeline(
+        kimi_error=AppError(
+            "kimi_connection_failed",
+            "Kimi 连接中断",
+            retryable=True,
+            details={"kimi_attempts": 1},
+        )
+    )
+    settings = _settings(tmp_path, transcript=True)
+
+    with pytest.raises(AppError):
+        analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    assert fake.download_calls == 1
+    assert fake.transcript_calls == 1
+    fake.kimi_error = None
+    result = analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    assert result["ok"] is True
+    assert fake.download_calls == 1
+    assert fake.transcript_calls == 1
+    assert result["transcript_chars"] == len("逐字稿")
+    assert "## 逐字稿" in Path(result["saved_to"]).read_text(encoding="utf-8")
+
+
+def test_required_transcript_failure_stops_before_kimi_and_keeps_source(tmp_path: Path) -> None:
+    fake = FakePipeline(
+        transcript_error=AppError("asr_failed", "ASR暂时不可用", retryable=True)
+    )
+    settings = _settings(tmp_path, transcript=True)
+    settings = replace(
+        settings,
+        transcript=TranscriptSettings("remote", True),
+    )
+
+    with pytest.raises(AppError) as caught:
+        analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    assert caught.value.code == "asr_failed"
+    assert caught.value.details["source_checkpoint_exists"] is True
+    assert fake.download_calls == 1
+    assert fake.transcript_calls == 1
+    assert fake.kimi_calls == 0
+
+
 def test_runtime_artifacts_are_outside_vault(tmp_path: Path) -> None:
     fake = FakePipeline()
     settings = _settings(tmp_path)
