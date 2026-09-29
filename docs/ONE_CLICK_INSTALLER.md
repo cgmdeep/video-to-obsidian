@@ -57,7 +57,7 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] 统一 `onboarding-status --json`；
 - [x] 提供仅包含允许字段的 `support-report --json`，不输出本机路径、供应商身份、Key、Cookie、Bearer 或签名 URL；
 - [x] 安装、修复、卸载均返回稳定操作标识与错误码；
-- [ ] Windows ACL 实机验证。
+- [x] Windows ACL 实机与 GitHub Windows Runner 验证。
 
 自动化合同：参数错误返回 `64`，首次安装失败返回 `20`，修复失败返回 `21`，卸载失败返回 `30`；JSON 同时提供 `operation`、`status` 和稳定 `error_code`。
 
@@ -90,7 +90,7 @@ Bot Channel 必须在这个专用工作区中创建。
 ### P5：发布
 
 - [x] CI 生成单文件 `VideoToObsidian.Setup.exe`；
-- [x] 干净 Windows 验收后创建未签名 GitHub Pre-release（当前为 `v0.1.0-alpha.6`）；
+- [x] 干净 Windows 验收后创建未签名 GitHub Pre-release（当前为 `v0.1.0-alpha.7`）；
 - [x] 官网、README、安装指南与发行说明均明确 Alpha 未签名和 SmartScreen 风险；
 - [x] 当前 Pre-release 同时提供 SHA256、SBOM、版本说明与卸载说明；
 - [ ] 真实 usage 与费用拆分：ZCode 路由和视频分析分开记录。

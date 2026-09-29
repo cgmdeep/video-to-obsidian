@@ -235,6 +235,14 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 
 工程侧先用自动测试锁定提示词合同，再于 2026-09-29 用离线合成固定集、67 分钟公开多人辩论和偏好冲突候选完成 3 次单次付费验收。人工判定与用量证据见 [`QUALITY_ACCEPTANCE.md`](QUALITY_ACCEPTANCE.md)。该结论不代表对来源视频中的厂商宣传数据做了独立事实核查。
 
+### 2026-09-30 Windows 私有 ACL 修复验收
+
+- ROG Windows 11 实机发现视知库配置和 ZCode 模型配置继承了额外本地组的读取权限；全程未读取文件内容或凭据值。
+- 修复后 `%APPDATA%\VideoToObsidian`、`%LOCALAPPDATA%\VideoToObsidian` 的受管配置/状态目录及 `%USERPROFILE%\.zcode\v2\config.json` 均关闭 ACL 继承，仅保留当前用户、SYSTEM、本机管理员及 Windows 对象所有者语义；额外本地组不再可读。
+- ZCode 修复后仍保持运行并识别 4 个可用模型通道；临时文件演练和真实配置修复均未触发付费模型调用。
+- commit `61b31ff4aae14af6de5af9fcef00f1d68bf0406b`；CI [`#36596818838`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36596818838) 与 Security [`#36596818669`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36596818669) 全部通过。
+- 121 项核心测试中包含真实 Windows 3.11/3.12 ACL 集成检查；权限读取使用 `icacls /save` 的 SDDL，不依赖可能无法自动加载的 PowerShell Security 模块。
+
 付费固定集使用 [`QUALITY_ACCEPTANCE.md`](QUALITY_ACCEPTANCE.md) 和可重复的离线生成器 `scripts/build-quality-fixture.ps1`。ROG 生成的 `quality-fixed-set-v1.mp4` 为 1 个 H.264 视频流加 1 个 AAC 音频流，1280×720、85.966 秒、969,584 字节，SHA256 `bdbd8234162f2bd1de463e834eda1d80415c09884c8f4e9e00e26e8a42645d3c`。五段预先冻结多人观点、反讽、音画数字冲突和“引用不等于本人立场”的判据；生成阶段 `paid_call_performed=false`，后续 K2.7 输出已通过全部冻结判据。
 
 ## 失败与恢复
