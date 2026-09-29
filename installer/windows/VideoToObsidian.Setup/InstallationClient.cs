@@ -79,7 +79,7 @@ internal sealed class InstallationClient
         );
         await RunCheckedAsync(runtimePython, new[] { "-m", "pip", "check" });
 
-        await EnsureWingetPackageAsync(winget, "Mozilla.Firefox", "Firefox", report);
+        await EnsureFirefoxAsync(winget, report);
         await EnsureObsidianAsync(winget, report);
         await EnsureWingetPackageAsync(
             winget,
@@ -268,6 +268,113 @@ internal sealed class InstallationClient
         );
     }
 
+    private static async Task EnsureFirefoxAsync(string winget, Action<string> report)
+    {
+        if (FindFirefoxExecutable() is not null)
+        {
+            return;
+        }
+
+        report("正在检查 Firefox…");
+        var list = await TryCaptureAsync(
+            winget,
+            new[] { "list", "--id", "Mozilla.Firefox", "--exact" },
+            TimeSpan.FromMinutes(2)
+        );
+        if (list.ExitCode == 0
+            && list.Stdout.Contains("Mozilla.Firefox", StringComparison.OrdinalIgnoreCase)
+            && FindFirefoxExecutable() is not null)
+        {
+            return;
+        }
+
+        report("正在安装 Firefox…");
+        var installArguments = new[]
+        {
+            "install",
+            "--id",
+            "Mozilla.Firefox",
+            "--exact",
+            "--source",
+            "winget",
+            "--silent",
+            "--accept-package-agreements",
+            "--accept-source-agreements",
+        };
+        var install = await TryCaptureAsync(
+            winget,
+            installArguments,
+            TimeSpan.FromMinutes(10)
+        );
+        if (install.ExitCode != 0 || FindFirefoxExecutable() is null)
+        {
+            report("Windows 软件源暂时不可用，正在刷新后重试 Firefox…");
+            await TryCaptureAsync(
+                winget,
+                new[] { "source", "update", "--name", "winget" },
+                TimeSpan.FromMinutes(3)
+            );
+            install = await TryCaptureAsync(
+                winget,
+                installArguments,
+                TimeSpan.FromMinutes(10)
+            );
+        }
+        if (install.ExitCode == 0 && FindFirefoxExecutable() is not null)
+        {
+            return;
+        }
+
+        report("Windows 软件源仍不可用，正在从 Mozilla 官方下载 Firefox…");
+        var installer = Path.Combine(
+            Path.GetTempPath(),
+            $"VideoToObsidian-Firefox-{Guid.NewGuid():N}.exe"
+        );
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+            using var response = await http.GetAsync(
+                "https://download.mozilla.org/?product=firefox-latest-ssl&os=win64&lang=zh-CN",
+                HttpCompletionOption.ResponseHeadersRead
+            );
+            response.EnsureSuccessStatusCode();
+            await using (var source = await response.Content.ReadAsStreamAsync())
+            await using (var target = File.Create(installer))
+            {
+                await source.CopyToAsync(target);
+            }
+            await RunCheckedAsync(
+                installer,
+                new[] { "-ms" },
+                TimeSpan.FromMinutes(10)
+            );
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(installer);
+            }
+            catch
+            {
+                // The OS may still hold the installer briefly; leaving a temp file is safer
+                // than turning an otherwise successful installation into a failure.
+            }
+        }
+
+        if (FindFirefoxExecutable() is null)
+        {
+            var detail = string.IsNullOrWhiteSpace(install.Stderr)
+                ? install.Stdout
+                : install.Stderr;
+            throw new InvalidOperationException(
+                string.IsNullOrWhiteSpace(detail)
+                    ? "Firefox 安装完成后仍无法定位。"
+                    : $"Firefox 安装完成后仍无法定位。Windows 软件源最后返回：{detail.Trim()}"
+            );
+        }
+    }
+
     private static async Task EnsureObsidianAsync(string winget, Action<string> report)
     {
         report("正在检查 Obsidian…");
@@ -386,6 +493,21 @@ internal sealed class InstallationClient
         {
             return;
         }
+        var firefox = FindFirefoxExecutable();
+        if (firefox is null)
+        {
+            throw new InvalidOperationException("Firefox 已安装但未找到可执行文件。");
+        }
+        report("正在创建视知库专用登录空间…");
+        await RunCheckedAsync(
+            firefox,
+            new[] { "-CreateProfile", "VideoToObsidian" },
+            TimeSpan.FromMinutes(2)
+        );
+    }
+
+    private static string? FindFirefoxExecutable()
+    {
         var candidates = new[]
         {
             Path.Combine(
@@ -404,17 +526,7 @@ internal sealed class InstallationClient
                 "firefox.exe"
             ),
         };
-        var firefox = candidates.FirstOrDefault(File.Exists);
-        if (firefox is null)
-        {
-            throw new InvalidOperationException("Firefox 已安装但未找到可执行文件。");
-        }
-        report("正在创建视知库专用登录空间…");
-        await RunCheckedAsync(
-            firefox,
-            new[] { "-CreateProfile", "VideoToObsidian" },
-            TimeSpan.FromMinutes(2)
-        );
+        return candidates.FirstOrDefault(File.Exists);
     }
 
     private static async Task RunCheckedAsync(

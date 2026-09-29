@@ -1,6 +1,6 @@
 # v0.1.0 Alpha 发布门槛
 
-`v0.1.0-alpha.2` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
+`v0.1.0-alpha.3` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
 
 ## 已完成
 
@@ -63,6 +63,13 @@
 - `VideoToObsidian.Setup.exe`：71,678,488 字节；
 - SHA256：`c51446235f997c0f8c8e98c49fcda70f2a916fbf7582d4ec01862aec9a6dc0e0`；
 - 结果：首次安装、原地修复、默认安全卸载、重装与私有数据卸载均通过；Vault、专用工作区、Firefox Profile 和无关 MCP 在应保留的阶段均保留；全程无 Secret 输出且无付费调用。
+
+### 2026-09-29 alpha.2 候选阻断记录
+
+- 标签 `v0.1.0-alpha.2` 的发布流水线在 Firefox 准备阶段被闸门阻断，没有生成 GitHub Release；
+- 原因是干净 Windows Runner 的 `winget` 源临时返回 `No package found matching input criteria`；
+- `alpha.3` 增加 `winget` 源刷新、受控重试和 Mozilla 官方下载降级后重新执行完整发布验收；
+- 官网不得引用 `alpha.2` 标签或失败流水线中的临时构建物。
 
 ## 不进入 v0.1
 
