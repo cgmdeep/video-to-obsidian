@@ -41,7 +41,7 @@
                         <TextBlock Text="Obsidian 知识库" />
                         <TextBox x:Name="VaultPathBox" Margin="0,6,0,8" />
                         <StackPanel Orientation="Horizontal">
-                            <Button x:Name="PrepareButton" Content="一键准备本机" Click="PrepareButton_Click" />
+                            <Button x:Name="PrepareButton" Content="安装 / 修复本机" Click="PrepareButton_Click" />
                             <Button Content="用 Obsidian 打开" Click="OpenVaultButton_Click" Background="#353948" />
                         </StackPanel>
                     </StackPanel>
@@ -83,7 +83,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Background="{StaticResource CardBrush}" CornerRadius="14" Padding="20">
+                <Border Background="{StaticResource CardBrush}" CornerRadius="14" Padding="20" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock Text="5. 免费检查" FontSize="20" FontWeight="SemiBold" />
                         <TextBlock x:Name="StatusText" Text="正在检查…" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,8,0,8" />
@@ -91,6 +91,16 @@
                             <Button Content="重新检查" Click="RefreshButton_Click" />
                             <Button Content="导出脱敏诊断报告" Click="ExportDiagnosticsButton_Click" Background="#353948" />
                         </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="{StaticResource CardBrush}" CornerRadius="14" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="维护" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="安全卸载只移除视知库核心和本项目的 ZCode 连接；Obsidian 笔记、登录空间、Kimi Key 和其他软件都会保留。"
+                                   TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
+                        <Button Content="安全卸载（保留笔记）" Click="UninstallButton_Click"
+                                HorizontalAlignment="Left" Background="#353948" />
                     </StackPanel>
                 </Border>
             </StackPanel>

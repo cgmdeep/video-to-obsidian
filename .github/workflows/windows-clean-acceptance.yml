@@ -10,7 +10,7 @@ jobs:
   clean-install:
     name: Prepare a fresh Windows user environment
     runs-on: windows-latest
-    timeout-minutes: 35
+    timeout-minutes: 55
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -125,6 +125,13 @@ jobs:
             throw 'The clean environment doctor unexpectedly reported a paid call.'
           }
           Copy-Item $Report artifacts/windows-x64/clean-prepare.json
+      - name: Verify repair and uninstall lifecycle
+        timeout-minutes: 25
+        shell: pwsh
+        run: |
+          ./scripts/test-windows-lifecycle.ps1 `
+            -Setup artifacts/windows-x64/VideoToObsidian.Setup.exe `
+            -ArtifactsDirectory artifacts/windows-x64
       - name: Upload acceptance evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -132,5 +139,5 @@ jobs:
           name: windows-clean-acceptance
           path: |
             artifacts/windows-x64/VideoToObsidian.Setup.exe
-            artifacts/windows-x64/clean-prepare.json
+            artifacts/windows-x64/*.json
           if-no-files-found: warn

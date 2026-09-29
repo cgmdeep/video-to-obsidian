@@ -99,7 +99,7 @@ public partial class MainWindow : Window
         var firefox = candidates.FirstOrDefault(File.Exists);
         if (firefox is null)
         {
-            MessageBox.Show("请先点击“一键准备本机”，安装并创建专用 Firefox 登录空间。", "视知库");
+            MessageBox.Show("请先点击“安装 / 修复本机”，安装并创建专用 Firefox 登录空间。", "视知库");
             return;
         }
         Process.Start(
@@ -139,7 +139,7 @@ public partial class MainWindow : Window
         var vaultPath = VaultPathBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(vaultPath) || !Directory.Exists(vaultPath))
         {
-            MessageBox.Show("请先点击“一键准备本机”创建知识库。", "视知库");
+            MessageBox.Show("请先点击“安装 / 修复本机”创建知识库。", "视知库");
             return;
         }
         var uri = "obsidian://open?path=" + Uri.EscapeDataString(vaultPath);
@@ -149,6 +149,34 @@ public partial class MainWindow : Window
     private async void RefreshButton_Click(object sender, RoutedEventArgs e)
     {
         await RefreshStatusAsync();
+    }
+
+    private async void UninstallButton_Click(object sender, RoutedEventArgs e)
+    {
+        var confirmation = MessageBox.Show(
+            "将移除视知库核心和本项目的 ZCode 连接。Obsidian 笔记、Kimi Key、Firefox 登录空间及其他软件都会保留。是否继续？",
+            "安全卸载视知库",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning
+        );
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return;
+        }
+        await GuardedAsync(async () =>
+        {
+            var result = await new UninstallationClient().UninstallAsync(
+                _workspacePath,
+                removePrivateData: false,
+                message => Dispatcher.Invoke(() => StatusText.Text = message)
+            );
+            if (!result.CoreRemoved || !result.ManagedMcpRemoved)
+            {
+                throw new InvalidOperationException("卸载结果未通过安全校验。");
+            }
+            StatusText.Text = "视知库核心已卸载；你的 Obsidian 笔记和登录配置仍然保留。";
+            MessageBox.Show("安全卸载完成，Obsidian 笔记未删除。", "视知库");
+        }, showSuccess: false);
     }
 
     private async void ExportDiagnosticsButton_Click(object sender, RoutedEventArgs e)
@@ -192,7 +220,7 @@ public partial class MainWindow : Window
     {
         if (!_preparation.IsInstalled)
         {
-            StatusText.Text = "尚未安装视知库核心。请先点击“一键准备本机”。";
+            StatusText.Text = "尚未安装视知库核心。请先点击“安装 / 修复本机”。";
             return;
         }
         await GuardedAsync(async () =>

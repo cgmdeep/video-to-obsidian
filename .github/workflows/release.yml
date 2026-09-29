@@ -58,7 +58,7 @@ jobs:
   windows-installer:
     name: Build and prepare on clean Windows
     runs-on: windows-latest
-    timeout-minutes: 35
+    timeout-minutes: 55
     steps:
       - name: Check out tagged source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -150,13 +150,20 @@ jobs:
             throw 'Free preparation reported secrets or a paid call.'
           }
           Copy-Item $Report artifacts/windows-x64/windows-clean-acceptance.json
+      - name: Verify repair and uninstall lifecycle
+        timeout-minutes: 25
+        shell: pwsh
+        run: |
+          ./scripts/test-windows-lifecycle.ps1 `
+            -Setup artifacts/windows-x64/VideoToObsidian.Setup.exe `
+            -ArtifactsDirectory artifacts/windows-x64
       - name: Upload Windows release assets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-windows-x64
           path: |
             artifacts/windows-x64/VideoToObsidian.Setup.exe
-            artifacts/windows-x64/windows-clean-acceptance.json
+            artifacts/windows-x64/*.json
           if-no-files-found: error
 
   publish:
