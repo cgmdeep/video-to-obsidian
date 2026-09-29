@@ -257,6 +257,7 @@ def _run(iterations: int, output: Path) -> dict[str, Any]:
                 }
             )
 
+    memory_after = _working_set_bytes()
     report: dict[str, Any] = {
         "schema_version": 1,
         "kind": "deterministic_fault_recovery_soak",
@@ -273,9 +274,13 @@ def _run(iterations: int, output: Path) -> dict[str, Any]:
         "simulated_kimi_attempts_total": sum(fixture.kimi_attempts.values()),
         "temporary_media_files_after_each_recovery": 0,
         "memory_before_bytes": memory_before,
-        "memory_after_bytes": _working_set_bytes(),
+        "memory_after_bytes": memory_after,
         "max_working_set_bytes": max(
-            [memory_before, *[int(item["working_set_bytes"]) for item in samples]]
+            [
+                memory_before,
+                memory_after,
+                *[int(item["working_set_bytes"]) for item in samples],
+            ]
         ),
         "samples": samples,
     }

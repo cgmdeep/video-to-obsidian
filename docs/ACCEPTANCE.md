@@ -7,7 +7,7 @@
 - [ ] 干净 Windows 11 设备或全新虚拟机；
 - [ ] 只下载一个 `VideoToObsidian.Setup.exe`，不预装 Python；
 - [x] 记录安装器来源 commit、文件字节数和 SHA256；
-- [ ] 当前目标 ZCode 版本及版本号；
+- [x] 当前目标 ZCode 版本及版本号（ROG 实机 `3.14.3.7762`）；
 - [x] 全新 Firefox `VideoToObsidian` Profile（干净 Runner 自动验收）；
 - [x] 全新 Obsidian Vault（干净 Runner 自动验收）；
 - [x] 标准版安装、重装和卸载（干净 Runner 自动验收）。
@@ -19,7 +19,7 @@
 - [ ] “用 Obsidian 打开”能打开本次选择的 Vault；
 - [ ] 用户能从界面复制 `文档\视知库助手` 路径并在 ZCode 打开；
 - [x] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
-- [ ] 无 Coding Plan 时，用户自有 Kimi Key 可以提供 ZCode 路由模型；
+- [x] 无 Coding Plan 时，用户自有 Kimi Key 可以提供 ZCode 路由模型（ROG `has_coding_plan_provider=false`，Moonshot 通道可用，微信已完成免费 `doctor` 调用）；
 - [x] 微信发送“检查系统”能获得免费诊断回复；
 - [ ] “导出脱敏诊断报告”在桌面生成 JSON，且报告不含 Key、Cookie、Bearer 或签名 URL；
 - [x] 安装器给出的下一步不要求用户理解 Python、MCP、Cookie 文件或终端命令（图形界面只展示打开 Vault、登录平台、打开 ZCode 工作区、连接微信和发送“检查系统”等用户动作）。
@@ -280,9 +280,11 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 
 ### 2026-09-30 上游故障恢复 30 轮确定性巡检
 
-- `scripts/run-fault-recovery-soak.py` 在完全隔离的临时 Vault 与运行目录中连续执行 30 个不同身份；每轮先注入一次 Kimi HTTP 503，再按产品边界人工重试一次，最后重复提交验证完成态缓存。
-- 30/30 均在首次失败后保留来源检查点，恢复时没有再次下载；每个身份下载 1 次、模拟 Kimi 尝试 2 次，历史严格为一条 `failed` 和一条 `completed`，第三次提交全部 `cached=true`。
-- 每轮成功后来源检查点、代理、音频、`.part` 和 `.tmp` 文件均为 0；没有错误成功回执，也没有第二份正式笔记。进程工作集记录从 41,959,424 字节到 46,317,568 字节，峰值 46,317,568 字节。
+- `scripts/run-fault-recovery-soak.py` 在完全隔离的临时 Vault 与运行目录中连续执行 30 个不同身份；每轮先注入一次 Kimi HTTP 503，再按产品边界人工重试一次，最后重复提交验证完成态缓存。本地与 ROG Windows 11 均完成同一固定集。
+- ROG 先从公开 COS 下载 `v0.1.0-alpha.7` 安装器；文件 71,691,693 字节、SHA256 `b03b99201c01c49016fd92ecdc770ebbf0d2077750b7ba9795614cbb451e399e`，与官网及 GitHub Release 一致。原地修复返回 `ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`，核心版本由 `0.1.0a5` 升至 `0.1.0a7`。
+- ROG 30/30 均在首次失败后保留来源检查点，恢复时没有再次下载；每个身份下载 1 次、模拟 Kimi 尝试 2 次，历史严格为一条 `failed` 和一条 `completed`，第三次提交全部 `cached=true`。
+- 每轮成功后来源检查点、代理、音频、`.part` 和 `.tmp` 文件均为 0；没有错误成功回执，也没有第二份正式笔记。ROG 进程工作集从 36,855,808 字节到 38,260,736 字节，报告峰值 38,260,736 字节。
+- 升级后真实 Vault 复查为 96 个 Markdown、5 个受管来源笔记、5 个唯一稳定身份、0 个重复组、0 个不可读文件；ROG 的 ZCode `3.14.3.7762` 仍识别 4 个可用模型通道，其中 Moonshot 可用、Coding Plan 不存在。
 - 报告明确为 `external_network_used=false`、`paid_call_performed=false`；本轮只证明确定性故障注入下的检查点复用与清理，不冒充真实 Kimi 中断、平台登录失效或 20 人体验。
 
 ### 2026-09-29 ROG 安装器支持报告与 ZCode 打开合同

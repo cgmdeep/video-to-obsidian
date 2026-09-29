@@ -25,4 +25,6 @@ def test_fault_recovery_soak_is_offline_and_cleans_media(tmp_path: Path) -> None
     assert report["downloads_total"] == 3
     assert report["simulated_kimi_attempts_total"] == 6
     assert report["temporary_media_files_after_each_recovery"] == 0
+    assert report["max_working_set_bytes"] >= report["memory_before_bytes"]
+    assert report["max_working_set_bytes"] >= report["memory_after_bytes"]
     assert all(sample["cached_repeat"] is True for sample in report["samples"])
