@@ -16,6 +16,8 @@
 
 > 当前状态：`v0.1.0-alpha.5` 发布候选。Windows 干净 Runner 已完成单文件安装、原地修复、安全卸载、重装和受管私有目录清理验收；独立 Windows 11 ROG 已完成普通账户图形安装，以及抖音小视频与 B站 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库和 ZCode 官方微信 Bot 双平台输入验收。B站短视频、总结质量固定集与规模稳定性仍待验证，因此只能描述为未签名 Alpha，不能描述为生产可用。
 
+主线阶段、完成门槛与暂停项见 [`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md)。
+
 ## 设计目标
 
 - 使用用户自己的 Kimi API Key、抖音账号和B站账号。

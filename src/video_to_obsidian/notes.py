@@ -15,6 +15,7 @@ class NoteWriteError(RuntimeError):
 
 _INVALID_FILENAME = re.compile(r"[<>:\"/\\|?*\x00-\x1f]")
 _WHITESPACE = re.compile(r"\s+")
+_FRONTMATTER_LIMIT_BYTES = 64 * 1024
 
 
 def safe_title(title: str, *, max_length: int = 100) -> str:
@@ -86,11 +87,51 @@ def find_note_by_identity(vault_path: Path, platform: str, identity: str) -> Pat
     folder_name = {"douyin": "Douyin", "bilibili": "Bilibili"}.get(platform)
     if folder_name is None:
         raise NoteWriteError(f"不支持的平台：{platform}")
-    folder = vault_path.expanduser().resolve() / folder_name
-    if not folder.is_dir():
+    vault = vault_path.expanduser().resolve()
+    if not vault.is_dir():
         return None
-    suffix = f" {safe_identity(identity)}.md"
-    matches = [path for path in folder.iterdir() if path.is_file() and path.name.endswith(suffix)]
+
+    safe_id = safe_identity(identity)
+    suffix = f" {safe_id}.md"
+    bilibili_match = re.fullmatch(r"bilibili_(BV[A-Za-z0-9]+)_p(\d+)", identity)
+    source_uid = (
+        f"bilibili:{bilibili_match.group(1)}:p{int(bilibili_match.group(2)):02d}"
+        if bilibili_match
+        else f"douyin:{identity}"
+    )
+    identity_markers = {
+        f'identity: "{identity}"',
+        f"identity: {identity}",
+        f'source_uid: "{source_uid}"',
+        f"source_uid: {source_uid}",
+    }
+
+    matches: list[Path] = []
+    for path in vault.rglob("*.md"):
+        if not path.is_file() or any(part.startswith(".") for part in path.relative_to(vault).parts):
+            continue
+        if path.name.endswith(suffix):
+            matches.append(path)
+            continue
+        try:
+            with path.open("r", encoding="utf-8") as handle:
+                prefix = handle.read(_FRONTMATTER_LIMIT_BYTES)
+        except (OSError, UnicodeError):
+            continue
+        if not prefix.startswith("---\n"):
+            continue
+        frontmatter_end = prefix.find("\n---", 4)
+        if frontmatter_end == -1:
+            continue
+        frontmatter = prefix[:frontmatter_end]
+        if 'generated_by: "video-to-obsidian"' not in frontmatter and (
+            "generated_by: video-to-obsidian" not in frontmatter
+        ):
+            continue
+        if any(marker in frontmatter for marker in identity_markers):
+            matches.append(path)
+
+    matches = sorted(set(matches))
     if len(matches) > 1:
         raise NoteWriteError(f"发现多个相同稳定身份的笔记：{identity}")
     return matches[0] if matches else None
@@ -128,4 +169,3 @@ def write_candidate(
     finally:
         temp_path.unlink(missing_ok=True)
     return target
-
