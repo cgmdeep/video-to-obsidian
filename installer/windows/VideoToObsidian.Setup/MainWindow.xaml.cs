@@ -225,7 +225,6 @@ public partial class MainWindow : Window
         }
         await GuardedAsync(async () =>
         {
-            await _backend.RunJsonAsync(new[] { "ensure-zcode-model", "--json" });
             using var document = await _backend.RunJsonAsync(
                 new[] { "onboarding-status", "--workspace", _workspacePath, "--json" }
             );
@@ -234,11 +233,27 @@ public partial class MainWindow : Window
             var actions = root.GetProperty("next_actions")
                 .EnumerateArray()
                 .Select(item => item.GetString())
-                .Where(item => !string.IsNullOrWhiteSpace(item));
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Select(item => FormatNextAction(item!))
+                .Distinct();
             StatusText.Text = ready
                 ? "本机已就绪。下一步：在 ZCode 专用工作区连接微信，发送‘检查系统’。"
                 : "尚需完成：" + string.Join("、", actions);
         }, showSuccess: false);
+    }
+
+    private static string FormatNextAction(string action)
+    {
+        return action switch
+        {
+            "initialize_app" => "点击“安装 / 修复本机”创建知识库",
+            "set_kimi_key" => "填写 Kimi API Key 并点击“安全保存并自动补齐”",
+            "install_or_repair_dependencies" => "点击“安装 / 修复本机”补齐依赖",
+            "bootstrap_workspace" => "点击“安装 / 修复本机”创建视知库助手工作区",
+            "configure_zcode_model" => "安装或打开 ZCode，并保存 Kimi Key 自动补齐模型",
+            "verify_bot_channel" => "在 ZCode 视知库助手工作区连接官方微信 Bot",
+            _ => "重新运行免费检查",
+        };
     }
 
     private async Task GuardedAsync(Func<Task> action, bool showSuccess = true)
