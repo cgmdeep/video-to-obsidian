@@ -1,6 +1,7 @@
 from dataclasses import replace
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -316,6 +317,33 @@ def test_metadata_failure_leaves_secret_free_submission_receipt(tmp_path: Path) 
     assert receipt["stage"] == "yt-dlp"
     assert receipt["paid_call_performed"] is False
     assert "BV1Uw826pE7J" not in receipts[0].read_text(encoding="utf-8")
+
+
+def test_low_disk_stops_before_download_and_paid_analysis(
+    tmp_path: Path, monkeypatch
+) -> None:
+    fake = FakePipeline()
+    settings = _settings(tmp_path)
+    monkeypatch.setattr(
+        "video_to_obsidian.pipeline.shutil.disk_usage",
+        lambda _: SimpleNamespace(free=512 * 1024 * 1024),
+    )
+
+    with pytest.raises(AppError) as caught:
+        analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
+
+    assert caught.value.code == "insufficient_disk_space"
+    assert caught.value.retryable is False
+    assert caught.value.details["phase"] == "download_preflight"
+    assert caught.value.details["required_bytes"] == 1024 * 1024 * 1024
+    assert caught.value.details["available_bytes"] == 512 * 1024 * 1024
+    assert fake.download_calls == 0
+    assert fake.kimi_calls == 0
+    receipt_path = next((settings.paths.state / "submissions").glob("*.json"))
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["paid_call_performed"] is False
+    assert receipt["error"]["code"] == "insufficient_disk_space"
+    assert receipt["error"]["details"]["required_bytes"] == 1024 * 1024 * 1024
 
 
 def test_optional_transcript_failure_does_not_block_note(tmp_path: Path) -> None:

@@ -49,6 +49,23 @@ class SingleVideoDependencies:
 
 
 BilibiliDependencies = SingleVideoDependencies
+MIN_DOWNLOAD_FREE_BYTES = 1024 * 1024 * 1024
+
+
+def _ensure_free_space(path: Path, minimum_bytes: int, *, phase: str) -> None:
+    target = path.expanduser()
+    target.mkdir(parents=True, exist_ok=True)
+    available = int(shutil.disk_usage(target).free)
+    if available < minimum_bytes:
+        raise AppError(
+            "insufficient_disk_space",
+            "可用磁盘空间不足，已在下载和 Kimi 调用前停止。",
+            details={
+                "phase": phase,
+                "required_bytes": int(minimum_bytes),
+                "available_bytes": available,
+            },
+        )
 
 
 def default_bilibili_dependencies(settings: Settings) -> SingleVideoDependencies:
@@ -366,7 +383,11 @@ def _analyze_single_video_locked(
         checkpoint_dir = settings.paths.cache / "checkpoints" / identity
         source = _checkpoint_source(manifest)
         if source is None:
-            checkpoint_dir.mkdir(parents=True, exist_ok=True)
+            _ensure_free_space(
+                checkpoint_dir,
+                MIN_DOWNLOAD_FREE_BYTES,
+                phase="download_preflight",
+            )
             with tempfile.TemporaryDirectory(prefix=f"{identity}-download-") as temporary:
                 downloaded = deps.download(resolved, metadata_object, Path(temporary), settings)
                 probe = deps.probe(downloaded)
@@ -617,6 +638,8 @@ def _receipt_error(exc: AppError) -> dict[str, Any]:
             "timeout_seconds",
             "command_kind",
             "retryable",
+            "required_bytes",
+            "available_bytes",
         )
         if key in exc.details
     }
