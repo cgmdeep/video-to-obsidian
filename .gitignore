@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 dist/
 build/
+artifacts/
 *.egg-info/
 .DS_Store
 
@@ -28,4 +29,3 @@ logs/
 *.wav
 *.part
 *.tmp
-
