@@ -106,6 +106,13 @@
 - `VideoToObsidian.Setup.exe`：71,691,693 字节，SHA256 `b03b99201c01c49016fd92ecdc770ebbf0d2077750b7ba9795614cbb451e399e`；
 - 本地重新下载全部发布资产后，`SHA256SUMS` 对 EXE、Python wheel/sdist、SPDX 2.3 SBOM 和干净 Runner 报告校验全部通过；发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.7>。
 
+### 2026-09-30 图形安装器动作证据
+
+- commit `07d75cb27a442835a3d446e177631a240f5880f3`；[`Windows clean acceptance #36611285887`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36611285887)、[`CI #36611164527`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36611164527) 与 [`Security #36611164388`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36611164388) 成功；
+- 真实编译后的 EXE 暴露 13 个必需动作和可展开的逐字稿增强选项；工作区路径复制动作在剪贴板上按完整路径校验；
+- 诊断导出动作真实创建桌面 JSON 并上传证据；报告不含 Secret 或本机路径，不发起付费调用；
+- 本轮同时继续通过首次准备、修复、默认卸载、重装、Windows Credential Manager 保留/删除和私有数据卸载；不替代真实平台扫码、ZCode 微信绑定或首条付费视频。
+
 ### 2026-09-29 alpha.2 候选阻断记录
 
 - 标签 `v0.1.0-alpha.2` 的发布流水线在 Firefox 准备阶段被闸门阻断，没有生成 GitHub Release；

@@ -21,7 +21,7 @@
 - [x] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
 - [x] 无 Coding Plan 时，用户自有 Kimi Key 可以提供 ZCode 路由模型（ROG `has_coding_plan_provider=false`，Moonshot 通道可用，微信已完成免费 `doctor` 调用）；
 - [x] 微信发送“检查系统”能获得免费诊断回复；
-- [ ] “导出脱敏诊断报告”在桌面生成 JSON，且报告不含 Key、Cookie、Bearer 或签名 URL；
+- [x] “导出脱敏诊断报告”在桌面生成 JSON，且报告不含 Key、Cookie、Bearer 或签名 URL（干净 Windows Runner 真实按钮验收）；
 - [x] 安装器给出的下一步不要求用户理解 Python、MCP、Cookie 文件或终端命令（图形界面只展示打开 Vault、登录平台、打开 ZCode 工作区、连接微信和发送“检查系统”等用户动作）。
 
 ## 免费检查
@@ -71,6 +71,15 @@
 - 最终安装包来自 commit `62925f6`，CI [#36524435554](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36524435554) 与安全检查通过；文件 71,680,234 字节，SHA256 `50368272a31a8b56efe0ed8281ace1752d2961357616121b05f6ee55be1d2548`；
 - 图形流程创建隔离运行时、无 Secret 配置、空中文 Vault、专用 ZCode 工作区和单一 MCP，并注册 `VideoToObsidian` Firefox Profile；默认 `save_video=false`、逐字稿关闭且不创建 `.obsidian`；
 - 首次联网准备还会下载 Python、Firefox、Obsidian 与 FFmpeg；弱网环境应预留约 1–2 GB 空间和 10–30 分钟，官网和下载页必须明确说明。扫码、真实 Key、真实视频和图形卸载仍按各自验收项单独确认。
+
+### 2026-09-30 Windows 图形安装器动作合同
+
+- commit `07d75cb27a442835a3d446e177631a240f5880f3`；[`Windows clean acceptance #36611285887`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36611285887)、[`CI #36611164527`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36611164527) 与 [`Security #36611164388`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36611164388) 全部通过；
+- 验收启动真实编译后的单文件 EXE，确认主窗口标题、13 个必需操作按钮，并通过标准 `ExpandCollapsePattern` 展开“高级设置（可选）”后找到“启用逐字稿增强版（实验性）”；
+- 通过真实按钮调用“复制工作区路径”，剪贴板内容与当前用户的受管 `Documents\视知库助手` 路径完全一致，并核对安装器确认文本；
+- 通过真实按钮调用“导出脱敏诊断报告”，桌面 JSON 已创建并作为 `windows-ui-diagnostics.json` 上传；顶层和内层报告均为 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`，对 Key/Cookie/Bearer/签名 URL 模式的二次扫描也无命中；
+- 干净 Runner 未注入 Kimi Key 且未安装 ZCode，所以报告如实显示 `ready_for_free_bot_test=false`，而配置、Python、ffmpeg/ffprobe、yt-dlp、Firefox、Obsidian、Vault、隔离 Profile 和受管工作区全部通过；
+- 图形动作验收后，同一 Runner 继续完成修复、默认卸载、重装和私有数据卸载。本轮不据此勾选抖音/B站扫码、Obsidian 协议打开、ZCode 工作区打开或微信绑定。
 
 ### ROG 验收节点守护
 
