@@ -33,6 +33,9 @@ public partial class App : Application
             var resultPath = e.Args[1];
             var wasInstalled = new InstallationClient().IsInstalled;
             var operation = wasInstalled ? "repair" : "install";
+            var vaultPath = wasInstalled
+                ? MachinePreparationClient.ConfiguredVaultPathOrDefault
+                : MachinePreparationClient.DefaultVaultPath;
             try
             {
                 WritePreparationReport(resultPath, new
@@ -45,7 +48,7 @@ public partial class App : Application
                     paid_call_performed = false,
                 });
                 await new MachinePreparationClient().PrepareAsync(
-                    MachinePreparationClient.DefaultVaultPath,
+                    vaultPath,
                     MachinePreparationClient.DefaultWorkspacePath,
                     phase => WritePreparationReport(resultPath, new
                     {
@@ -63,7 +66,7 @@ public partial class App : Application
                     operation,
                     ok = true,
                     status = "complete",
-                    vault_created = Directory.Exists(MachinePreparationClient.DefaultVaultPath),
+                    vault_created = Directory.Exists(vaultPath),
                     workspace_created = Directory.Exists(MachinePreparationClient.DefaultWorkspacePath),
                     contains_secrets = false,
                     paid_call_performed = false,

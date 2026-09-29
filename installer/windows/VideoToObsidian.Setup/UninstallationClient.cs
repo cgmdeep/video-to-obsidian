@@ -31,7 +31,8 @@ internal sealed class UninstallationClient
     )
     {
         var normalizedWorkspace = Path.GetFullPath(workspacePath);
-        var vaultExistedBefore = Directory.Exists(MachinePreparationClient.DefaultVaultPath);
+        var configuredVaultPath = MachinePreparationClient.ConfiguredVaultPathOrDefault;
+        var vaultExistedBefore = Directory.Exists(configuredVaultPath);
         var workspaceExistedBefore = Directory.Exists(normalizedWorkspace);
         var firefoxProfileExistedBefore = FirefoxProfileExists();
         var globalConfig = Path.Combine(
@@ -86,7 +87,7 @@ internal sealed class UninstallationClient
             CoreRemoved: !File.Exists(CoreExecutable),
             ManagedMcpRemoved: configs.All(path => !HasManagedServer(path)),
             VaultPreserved: vaultExistedBefore
-                == Directory.Exists(MachinePreparationClient.DefaultVaultPath),
+                == Directory.Exists(configuredVaultPath),
             WorkspacePreserved: workspaceExistedBefore == Directory.Exists(normalizedWorkspace),
             FirefoxProfilePreserved: firefoxProfileExistedBefore == FirefoxProfileExists(),
             PrivateDataRemoved: removePrivateData

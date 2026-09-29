@@ -18,6 +18,7 @@ $Runtime = Join-Path $env:LOCALAPPDATA 'VideoToObsidian\runtime\Scripts\video-to
 $PayloadRoot = Join-Path $env:LOCALAPPDATA 'VideoToObsidian\payload'
 $RoamingRoot = Join-Path $env:APPDATA 'VideoToObsidian'
 $LocalRoot = Join-Path $env:LOCALAPPDATA 'VideoToObsidian'
+$ConfigPath = Join-Path $RoamingRoot 'config.toml'
 $ProfilesIni = Join-Path $env:APPDATA 'Mozilla\Firefox\profiles.ini'
 $VaultSentinel = Join-Path $Vault 'lifecycle-vault-sentinel.txt'
 $WorkspaceSentinel = Join-Path $Workspace 'lifecycle-workspace-sentinel.txt'
@@ -69,6 +70,18 @@ if ($SourceReinstallServerNames -notcontains 'video-to-obsidian' -or $SourceRein
     throw 'Reinstall after source uninstall did not restore managed MCP while preserving unrelated configuration.'
 }
 
+# A real user may select a custom Vault and transcript profile during the first
+# installation. Headless repair must reuse both instead of silently reverting
+# to installer defaults.
+$CustomVault = Join-Path ([Environment]::GetFolderPath('MyDocuments')) '自定义视知库'
+New-Item -ItemType Directory -Force $CustomVault | Out-Null
+Set-Content (Join-Path $CustomVault 'custom-vault-sentinel.txt') 'preserve custom vault' -Encoding utf8
+$ConfigText = Get-Content $ConfigPath -Raw
+$CustomVaultJson = $CustomVault | ConvertTo-Json -Compress
+$ConfigText = $ConfigText -replace '(?m)^vault_path = .*$', "vault_path = $CustomVaultJson"
+$ConfigText = $ConfigText -replace '(?m)^profile = .*$', 'profile = "transcript"'
+Set-Content $ConfigPath $ConfigText -Encoding utf8
+
 $RepairReport = Join-Path $ArtifactsDirectory 'clean-repair.json'
 $Repair = Start-Process -FilePath $Setup -ArgumentList @('--prepare-machine', $RepairReport) -Wait -PassThru
 if ($Repair.ExitCode -ne 0 -or -not (Test-Path $RepairReport)) {
@@ -77,6 +90,9 @@ if ($Repair.ExitCode -ne 0 -or -not (Test-Path $RepairReport)) {
 $RepairPayload = Get-Content $RepairReport -Raw | ConvertFrom-Json
 if (-not $RepairPayload.ok -or $RepairPayload.operation -ne 'repair' -or -not (Test-Path $Runtime)) {
     throw 'Repair did not report success with the stable repair operation.'
+}
+if (-not (Test-Path (Join-Path $CustomVault 'custom-vault-sentinel.txt'))) {
+    throw 'Repair did not preserve the configured custom Vault.'
 }
 $AfterRepair = Get-Content $WorkspaceConfig -Raw | ConvertFrom-Json
 $RepairServerNames = @($AfterRepair.mcp.servers.PSObject.Properties.Name)

@@ -17,7 +17,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _workspacePath = MachinePreparationClient.DefaultWorkspacePath;
-        VaultPathBox.Text = MachinePreparationClient.DefaultVaultPath;
+        VaultPathBox.Text = MachinePreparationClient.ConfiguredVaultPathOrDefault;
         Loaded += async (_, _) => await RefreshStatusAsync();
     }
 
