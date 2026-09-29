@@ -56,3 +56,30 @@ def test_windows_permission_failure_stops_secure_write(
 
     with pytest.raises(permissions.PrivatePermissionError):
         permissions.ensure_private_path(path)
+
+
+def test_windows_private_acl_removes_unexpected_allow_sids(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    path = tmp_path / "config.json"
+    path.write_text("{}", encoding="utf-8")
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        permissions,
+        "_run_icacls",
+        lambda arguments: calls.append(arguments) is None,
+    )
+    monkeypatch.setattr(
+        permissions,
+        "_windows_acl_state",
+        lambda target: {
+            "protected": True,
+            "current_has_full_control": True,
+            "unexpected_allow_sids": ["S-1-5-32-545", "not-a-sid"],
+        },
+    )
+    monkeypatch.setattr(permissions, "is_private_path", lambda target: True)
+
+    assert permissions._windows_apply_private_acl(path, "S-1-5-21-1000") is True
+    assert calls[0][1:3] == ["/inheritance:r", "/grant:r"]
+    assert calls[1] == [str(path), "/remove:g", "*S-1-5-32-545"]

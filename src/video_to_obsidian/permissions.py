@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import os
 import re
 import subprocess
@@ -48,6 +49,43 @@ if ($acl.AreAccessRulesProtected -and $currentHasFullControl -and -not $unexpect
 }
 Write-Output 'false'
 exit 0
+"""
+
+_WINDOWS_ACL_STATE = r"""
+$ErrorActionPreference = 'Stop'
+$target = $env:VTO_PRIVATE_PATH
+if (-not (Test-Path -LiteralPath $target)) { exit 2 }
+$acl = Get-Acl -LiteralPath $target
+$current = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$allowed = @($current, 'S-1-5-18', 'S-1-5-32-544')
+$currentHasFullControl = $false
+$unexpected = [System.Collections.Generic.List[string]]::new()
+foreach ($rule in @($acl.Access)) {
+    if ($rule.AccessControlType -ne [System.Security.AccessControl.AccessControlType]::Allow) {
+        continue
+    }
+    try {
+        $sid = $rule.IdentityReference.Translate(
+            [System.Security.Principal.SecurityIdentifier]
+        ).Value
+    } catch {
+        continue
+    }
+    if ($allowed -notcontains $sid -and -not $unexpected.Contains($sid)) {
+        $unexpected.Add($sid)
+    }
+    if ($sid -eq $current) {
+        $full = [System.Security.AccessControl.FileSystemRights]::FullControl
+        if (($rule.FileSystemRights -band $full) -eq $full) {
+            $currentHasFullControl = $true
+        }
+    }
+}
+[ordered]@{
+    protected = [bool]$acl.AreAccessRulesProtected
+    current_has_full_control = $currentHasFullControl
+    unexpected_allow_sids = @($unexpected)
+} | ConvertTo-Json -Compress
 """
 
 
@@ -106,25 +144,56 @@ def _run_icacls(arguments: list[str]) -> bool:
     return result.returncode == 0
 
 
-def _windows_set_private(target: Path) -> bool:
-    sid = _windows_current_user_sid()
-    if not sid:
-        return False
+def _windows_acl_state(target: Path) -> dict[str, object] | None:
+    result = _powershell(_WINDOWS_ACL_STATE, target)
+    if result.returncode != 0:
+        return None
+    try:
+        state = json.loads(result.stdout.strip())
+    except (json.JSONDecodeError, TypeError):
+        return None
+    return state if isinstance(state, dict) else None
+
+
+def _windows_apply_private_acl(target: Path, sid: str) -> bool:
     permission = "(OI)(CI)F" if target.is_dir() else "F"
     grants = [
         f"*{sid}:{permission}",
         f"*S-1-5-18:{permission}",
         f"*S-1-5-32-544:{permission}",
     ]
-    arguments = [str(target), "/inheritance:r", "/grant:r", *grants]
-    if _run_icacls(arguments) and is_private_path(target):
+    if not _run_icacls([str(target), "/inheritance:r", "/grant:r", *grants]):
+        return False
+
+    state = _windows_acl_state(target)
+    if state is None:
+        return False
+    unexpected = state.get("unexpected_allow_sids", [])
+    if isinstance(unexpected, str):
+        unexpected = [unexpected]
+    if not isinstance(unexpected, list):
+        return False
+    removable = [
+        f"*{value}"
+        for value in unexpected
+        if isinstance(value, str) and re.fullmatch(r"S-1-(?:\d+-)+\d+", value)
+    ]
+    if removable and not _run_icacls([str(target), "/remove:g", *removable]):
+        return False
+    return is_private_path(target)
+
+
+def _windows_set_private(target: Path) -> bool:
+    sid = _windows_current_user_sid()
+    if not sid:
+        return False
+    if _windows_apply_private_acl(target, sid):
         return True
     # A pre-existing explicit grant can survive /inheritance:r. Reset only this
     # target to its parent ACL, then apply the bounded grants once more.
     return (
         _run_icacls([str(target), "/reset"])
-        and _run_icacls(arguments)
-        and is_private_path(target)
+        and _windows_apply_private_acl(target, sid)
     )
 
 
