@@ -24,8 +24,54 @@ $VaultSentinel = Join-Path $Vault 'lifecycle-vault-sentinel.txt'
 $WorkspaceSentinel = Join-Path $Workspace 'lifecycle-workspace-sentinel.txt'
 $SourceUninstall = Join-Path $PSScriptRoot 'uninstall.ps1'
 
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class VtoCredentialProbe
+{
+    [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CredRead(string target, int type, int flags, out IntPtr credential);
+
+    [DllImport("advapi32.dll")]
+    private static extern void CredFree(IntPtr buffer);
+
+    public static bool Exists(string target)
+    {
+        IntPtr credential;
+        var found = CredRead(target, 1, 0, out credential);
+        if (found && credential != IntPtr.Zero)
+        {
+            CredFree(credential);
+        }
+        return found;
+    }
+}
+'@
+
+function Test-KimiCredentialExists {
+    return [VtoCredentialProbe]::Exists('video-to-obsidian') -or
+        [VtoCredentialProbe]::Exists('KIMI_API_KEY@video-to-obsidian')
+}
+
 if (-not (Test-Path $Runtime) -or -not (Test-Path $WorkspaceConfig) -or -not (Test-Path $SourceUninstall)) {
     throw 'Lifecycle acceptance requires a completed preparation first.'
+}
+
+# Store a deliberately non-provider test value through the real keyring backend.
+# The probe only checks whether the generic credential target exists; it never
+# reads or prints the credential blob.
+$TestCredentialValue = 'lifecycle-dummy-value-not-a-provider-key'
+$SetKeyText = $TestCredentialValue | & $Runtime set-kimi-key --stdin --json
+if ($LASTEXITCODE -ne 0) {
+    throw 'Failed to create the lifecycle test credential.'
+}
+$SetKeyPayload = $SetKeyText | ConvertFrom-Json
+if (-not $SetKeyPayload.ok -or $SetKeyPayload.secret_displayed -or $SetKeyPayload.paid_call_performed) {
+    throw 'Lifecycle test credential creation returned an unsafe result.'
+}
+if (-not (Test-KimiCredentialExists)) {
+    throw 'Lifecycle test credential was not written to Windows Credential Manager.'
 }
 
 $WorkspacePayload = Get-Content $WorkspaceConfig -Raw | ConvertFrom-Json
@@ -43,6 +89,9 @@ Set-Content $WorkspaceSentinel 'preserve workspace' -Encoding utf8
 & $SourceUninstall -Confirm:$false
 if ((Test-Path $Runtime) -or (Test-Path $PayloadRoot)) {
     throw 'Source uninstall left installed core files behind.'
+}
+if (-not (Test-KimiCredentialExists)) {
+    throw 'Source uninstall unexpectedly deleted the preserved Kimi credential.'
 }
 if (-not (Test-Path $VaultSentinel) -or -not (Test-Path $WorkspaceSentinel) -or -not (Test-Path $ProfilesIni)) {
     throw 'Source uninstall removed user-owned content.'
@@ -115,6 +164,9 @@ if (-not $UninstallPayload.vault_preserved -or -not $UninstallPayload.workspace_
 if ((Test-Path $Runtime) -or (Test-Path $PayloadRoot)) {
     throw 'Default uninstall left installed core files behind.'
 }
+if (-not (Test-KimiCredentialExists)) {
+    throw 'Default uninstall unexpectedly deleted the preserved Kimi credential.'
+}
 if (-not (Test-Path $VaultSentinel) -or -not (Test-Path $WorkspaceSentinel) -or -not (Test-Path $ProfilesIni)) {
     throw 'Default uninstall removed user-owned content.'
 }
@@ -159,6 +211,9 @@ if (-not $PrivatePayload.ok -or -not $PrivatePayload.private_data_removed) {
 }
 if ((Test-Path $RoamingRoot) -or (Test-Path $LocalRoot)) {
     throw 'Private uninstall left managed private-data roots behind.'
+}
+if (Test-KimiCredentialExists) {
+    throw 'Private uninstall left the Kimi credential in Windows Credential Manager.'
 }
 if (-not (Test-Path $VaultSentinel) -or -not (Test-Path $WorkspaceSentinel) -or -not (Test-Path $ProfilesIni)) {
     throw 'Private uninstall removed the Vault, workspace, or Firefox profile.'
