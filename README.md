@@ -34,6 +34,7 @@
 video-to-obsidian init --vault "/path/to/Video Knowledge Base"
 video-to-obsidian set-kimi-key
 video-to-obsidian doctor
+video-to-obsidian audit-vault --json
 video-to-obsidian route "完整的视频分享文本"
 video-to-obsidian mcp
 video-to-obsidian configure-zcode
@@ -47,6 +48,8 @@ video-to-obsidian configure-zcode-moonshot --json
 `set-kimi-key` 会在终端无回显地读取两次 Key，并保存到 Windows 凭据库或 macOS 钥匙串。无钥匙串的服务器可以显式向服务进程注入 `KIMI_API_KEY`。
 
 `doctor` 只检查配置、Vault、Kimi Key 是否存在，以及 Firefox、ffmpeg、ffprobe、yt-dlp、Obsidian 是否可用；只显示Key来源，不显示密钥值，也不会发起付费视频分析。
+
+`audit-vault` 只读扫描当前 Vault 的受管来源笔记，忽略 `.obsidian`、回收站和 Syncthing 历史版本，报告稳定身份重复组与不可读文件；不读取 Key、不联网，也不会发起付费分析。
 
 统一 MCP 当前暴露：
 

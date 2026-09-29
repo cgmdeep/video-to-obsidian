@@ -101,6 +101,13 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 此项只证明作者验收环境的可选跨设备同步。公开 Alpha 的基础承诺仍是写入用户选择的本地 Vault，不强制安装 Syncthing、NAS 或其他同步软件。
 - ROG 到 Moonshot、B站、抖音的 DNS 与 TCP 443 均通过；经 Tailscale 到 NAS 延迟约 28ms。
 
+#### 2026-09-29 真实 Vault 重复来源审计
+
+- commit `dd5a1aa0fe951ee7efb653ebd47a6cd75f1b064e` 新增只读 `audit-vault --json`；本地 105 项核心测试、CI [`#36546852557`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36546852557) 与 Security [`#36546852523`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36546852523) 均通过；
+- ROG 已按该 commit 更新核心，真实 Vault 审计结果：94 个有效 Markdown、3 个受管来源笔记、3 个唯一稳定身份、0 个重复组、0 个不可读文件，`paid_call_performed=false`；
+- 同期 Syncthing 再验收为 `idle`、`globalFiles=143`、`localFiles=143`、`needFiles=0`、`needBytes=0`、`pullErrors=0`，连接 1 台同步设备，证明审计时没有待拉取文件；
+- 诊断过程中发现磁盘上的 Syncthing XML 尾部格式异常，错误输出曾带出仅限 `127.0.0.1:8384` 的本地管理令牌；令牌已立即轮换，旧令牌被拒绝、新令牌通过，配置已由 Syncthing 重写并经 XML 解析验证有效。未暴露同步数据、设备密钥或公网可用凭据。
+
 ## 卸载与恢复
 
 - [x] 重复执行“安装 / 修复本机”的共享准备协调器不会重复创建环境或破坏配置；
