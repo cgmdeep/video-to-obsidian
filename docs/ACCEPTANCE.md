@@ -15,7 +15,7 @@
 ## 普通用户路径
 
 - [x] 双击安装器后，不克隆仓库、不打开 PowerShell 也能完成准备（ROG 临时普通账户图形验收）；
-- [ ] “登录抖音”“登录B站”均打开隔离的 `VideoToObsidian` Profile；
+- [x] “登录抖音”“登录B站”均打开隔离的 `VideoToObsidian` Profile（干净 Windows Runner 真实按钮与进程参数验收；不代表用户已扫码）；
 - [ ] “用 Obsidian 打开”能打开本次选择的 Vault；
 - [ ] 用户能从界面复制 `文档\视知库助手` 路径并在 ZCode 打开；
 - [x] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
@@ -80,6 +80,14 @@
 - 通过真实按钮调用“导出脱敏诊断报告”，桌面 JSON 已创建并作为 `windows-ui-diagnostics.json` 上传；顶层和内层报告均为 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`，对 Key/Cookie/Bearer/签名 URL 模式的二次扫描也无命中；
 - 干净 Runner 未注入 Kimi Key 且未安装 ZCode，所以报告如实显示 `ready_for_free_bot_test=false`，而配置、Python、ffmpeg/ffprobe、yt-dlp、Firefox、Obsidian、Vault、隔离 Profile 和受管工作区全部通过；
 - 图形动作验收后，同一 Runner 继续完成修复、默认卸载、重装和私有数据卸载。本轮不据此勾选抖音/B站扫码、Obsidian 协议打开、ZCode 工作区打开或微信绑定。
+
+### 2026-09-30 双平台登录按钮启动合同
+
+- commit `1ef4ac79a23afb6836c1f2427ea68b6d41e0a788`；[`Windows clean acceptance #36613474634`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36613474634)、[`CI #36613338185`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36613338185) 与 [`Security #36613338194`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36613338194) 全部通过；
+- 干净 Windows Runner 通过真实 UI Automation 分别点击“登录抖音”与“登录B站”，并在新启动的 Firefox 进程参数中同时验证 `-P VideoToObsidian` 和对应官方首页 URL；
+- 验收结束只清理 Runner 本轮新启动的 Firefox 进程，不读取 Profile、Cookie 或账号状态；证据为 `douyin_login_action=true`、`bilibili_login_action=true`、`isolated_firefox_profile=VideoToObsidian`；
+- 同一工作流继续完成首次准备、修复、默认卸载、重装和私有数据卸载；诊断报告仍为 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`；
+- 此项只证明“正确打开隔离登录空间”，不代表用户已扫码或平台会话可用；真实扫码仍是人工闸门。
 
 ### ROG 验收节点守护
 

@@ -113,6 +113,12 @@
 - 诊断导出动作真实创建桌面 JSON 并上传证据；报告不含 Secret 或本机路径，不发起付费调用；
 - 本轮同时继续通过首次准备、修复、默认卸载、重装、Windows Credential Manager 保留/删除和私有数据卸载；不替代真实平台扫码、ZCode 微信绑定或首条付费视频。
 
+### 2026-09-30 平台登录启动动作证据
+
+- commit `1ef4ac79a23afb6836c1f2427ea68b6d41e0a788`；[`Windows clean acceptance #36613474634`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36613474634)、[`CI #36613338185`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36613338185) 与 [`Security #36613338194`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36613338194) 成功；
+- 真实编译 EXE 中的“登录抖音”和“登录B站”被分别点击，新 Firefox 进程参数必须同时包含 `-P VideoToObsidian` 与对应官方 URL 才通过；
+- UI 证据 JSON 记录两个启动动作均为 `true`，同时保持无 Secret、无本机路径和无付费调用；真实扫码与会话有效性仍需用户人工确认。
+
 ### 2026-09-29 alpha.2 候选阻断记录
 
 - 标签 `v0.1.0-alpha.2` 的发布流水线在 Firefox 准备阶段被闸门阻断，没有生成 GitHub Release；
