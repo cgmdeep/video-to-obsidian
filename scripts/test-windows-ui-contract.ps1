@@ -140,6 +140,7 @@ function Close-InstallerMessageBox {
                     [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
                     [System.Windows.Automation.ControlType]::Button
                 ))
+            )
             if ($Dismiss) {
                 $Pattern = $null
                 if ($Dismiss.TryGetCurrentPattern(
