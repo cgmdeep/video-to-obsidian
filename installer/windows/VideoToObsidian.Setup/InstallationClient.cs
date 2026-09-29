@@ -393,7 +393,7 @@ internal sealed class InstallationClient
         }
 
         report("正在通过 Microsoft Store 安装 Obsidian…");
-        await RunCheckedAsync(
+        var storeInstall = await TryCaptureAsync(
             winget,
             new[]
             {
@@ -409,6 +409,111 @@ internal sealed class InstallationClient
             },
             TimeSpan.FromMinutes(10)
         );
+        if (storeInstall.ExitCode == 0)
+        {
+            return;
+        }
+
+        report("Microsoft Store 暂时不可用，正在尝试 Windows 软件源…");
+        var communityInstall = await TryCaptureAsync(
+            winget,
+            new[]
+            {
+                "install",
+                "--id",
+                "Obsidian.Obsidian",
+                "--exact",
+                "--source",
+                "winget",
+                "--silent",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+            },
+            TimeSpan.FromMinutes(10)
+        );
+        if (communityInstall.ExitCode == 0)
+        {
+            return;
+        }
+
+        report("Windows 软件源仍不可用，正在从 Obsidian 官方发行页下载…");
+        var installer = Path.Combine(
+            Path.GetTempPath(),
+            $"VideoToObsidian-Obsidian-{Guid.NewGuid():N}.exe"
+        );
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+            var releasesJson = await http.GetStringAsync(
+                "https://raw.githubusercontent.com/obsidianmd/obsidian-releases/master/desktop-releases.json"
+            );
+            using var releases = JsonDocument.Parse(releasesJson);
+            var latestVersion = releases.RootElement
+                .GetProperty("latestVersion")
+                .GetString();
+            if (string.IsNullOrWhiteSpace(latestVersion))
+            {
+                throw new InvalidOperationException("Obsidian 官方版本索引缺少 latestVersion。");
+            }
+            var downloadUrl =
+                $"https://github.com/obsidianmd/obsidian-releases/releases/download/v{latestVersion}/Obsidian-{latestVersion}.exe";
+            using var response = await http.GetAsync(
+                downloadUrl,
+                HttpCompletionOption.ResponseHeadersRead
+            );
+            response.EnsureSuccessStatusCode();
+            await using (var source = await response.Content.ReadAsStreamAsync())
+            await using (var target = File.Create(installer))
+            {
+                await source.CopyToAsync(target);
+            }
+            await RunCheckedAsync(
+                installer,
+                new[] { "/S", "/currentuser" },
+                TimeSpan.FromMinutes(10)
+            );
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(installer);
+            }
+            catch
+            {
+                // Do not fail a completed installation only because Windows still has the
+                // temporary installer open for a moment.
+            }
+        }
+
+        if (FindObsidianExecutable() is null)
+        {
+            throw new InvalidOperationException("Obsidian 安装完成后仍无法定位。");
+        }
+    }
+
+    private static string? FindObsidianExecutable()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Programs",
+                "Obsidian",
+                "Obsidian.exe"
+            ),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "Obsidian",
+                "Obsidian.exe"
+            ),
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                "Obsidian",
+                "Obsidian.exe"
+            ),
+        };
+        return candidates.FirstOrDefault(File.Exists);
     }
 
     private static async Task<string> ResolveWingetAsync()

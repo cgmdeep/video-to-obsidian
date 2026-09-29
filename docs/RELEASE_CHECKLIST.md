@@ -1,6 +1,6 @@
 # v0.1.0 Alpha 发布门槛
 
-`v0.1.0-alpha.4` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
+`v0.1.0-alpha.5` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
 
 ## 已完成
 
@@ -76,6 +76,12 @@
 - 标签 `v0.1.0-alpha.3` 的发布流水线在 Windows 编译阶段被闸门阻断，没有生成 GitHub Release；
 - Firefox 官方下载降级缺少显式 `System.Net.Http` 引用；
 - `alpha.4` 补齐引用后重新执行完整发布验收，官网不得引用 `alpha.3` 临时构建物。
+
+### 2026-09-29 alpha.4 候选阻断记录
+
+- 标签 `v0.1.0-alpha.4` 通过编译和载荷校验，但干净 Windows Runner 的 Microsoft Store 源在 Obsidian 安装阶段返回地区协议提示和 `No package found matching input criteria`；
+- 发布闸门在生成 Release 前终止，没有公开安装包；
+- `alpha.5` 为 Obsidian 增加 Microsoft Store、Windows 软件源、官方发行包三级降级，并重新执行完整验收。
 
 ## 不进入 v0.1
 
