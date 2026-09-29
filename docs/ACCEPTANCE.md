@@ -127,6 +127,13 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 首轮补充验收发现英文 Windows 的旧控制台编码无法输出核心的中文状态文本；修复仅在子 Python 命令期间临时强制 UTF-8，并在命令结束后恢复调用者环境；
 - 六份 JSON 报告均 `ok=true`、`contains_secrets=false`、`paid_call_performed=false`；本轮临时安装器为 71,684,315 字节，SHA256 `138b1be4954ec1aa8f0ca139c9f7dbbfcb6a5258ef0c52408d42effdb6407521`。
 
+### 2026-09-29 自定义 Vault 修复与重装验收
+
+- 修复 commit：`cc1a4dd79f97abeeb393ef6730e2bcef15a1e228`；CI、Security 与 [`Windows clean acceptance #36541939024`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36541939024) 均通过；
+- 首轮 ROG 升级暴露无界面修复仍使用默认 Vault，安全检查因此正确拒绝复用；首轮干净机固定集又暴露“默认卸载后重装”会忽略被保留的私有配置。两条路径现统一为：配置存在就沿用已配置 Vault 和档位，真正全新安装才使用默认值；
+- 干净 Windows Runner 已依次完成首次准备、将配置改为自定义 Vault 与 `transcript` 档位、修复、默认卸载、保留配置重装及私有数据卸载；自定义 Vault 哨兵、无关 MCP、工作区与 Firefox Profile 均按预期保留；
+- 验收安装器为 71,685,116 字节，SHA256 `263e4d804fa48c50e6a94225b66094023f1fc295282792e417d7fbc4e353e698`；同一文件已在 ROG 上完成零付费修复，报告 `ok=true`、`vault_created=true`、`workspace_created=true`、`contains_secrets=false`、`paid_call_performed=false`，原自定义 Vault 配置未被改写，ZCode 与受管 MCP 已恢复运行。
+
 ## 真实视频闭环
 
 分别选择公开视频，记录视频 URL 的稳定身份，不把 Cookie 或签名媒体地址写入本文件。
