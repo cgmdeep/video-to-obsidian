@@ -64,11 +64,13 @@ Obsidian 不需要一直运行；MCP 可以在应用关闭时写入 Markdown。
 - 普通 Markdown 通常约 4～14 KB，带逐字稿通常约 14.7～63.1 KB；
 - 建议临时空间至少为预计视频大小的 3 倍再加 1 GB；
 - Kimi 按 token 计费，不按视频条数或分钟固定计价；
+- 工具返回的 `video_analysis_usage` 只统计视频分析，兼容字段 `usage` 与它相同；
+- ZCode 路由模型发生在 MCP 工具之外，`zcode_routing_usage.available=false` 时应到 ZCode 或相应模型供应商查看，不能和视频分析费用混算或假定为零；
 - 每个工具调用最多进行一次 Kimi 分析；失败不会在服务内部盲目重试；
 - Kimi 失败时会保留下载、代理和逐字稿检查点，人工重试可复用；
 - 成功且未选择保存视频时会清理视频和代理。
 
-价格以 [Kimi 官方页面](https://platform.kimi.com/docs/pricing/chat) 为准。真实测试必须记录 API 返回的 `usage` 和账户扣费，不能只根据视频时长估算。
+价格以 [Kimi 官方页面](https://platform.kimi.com/docs/pricing/chat) 为准。真实测试必须分别记录视频分析 API 返回的 usage 与 ZCode 路由侧 usage/账单；拿不到路由侧数据时明确写“不可用”，不能只根据视频时长估算。
 
 ## 8. 诊断和卸载
 

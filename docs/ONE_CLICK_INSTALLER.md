@@ -99,7 +99,8 @@ Bot Channel 必须在这个专用工作区中创建。
 - [x] 干净 Windows 验收后创建未签名 GitHub Pre-release（当前为 `v0.1.0-alpha.7`）；
 - [x] 官网、README、安装指南与发行说明均明确 Alpha 未签名和 SmartScreen 风险；
 - [x] 当前 Pre-release 同时提供 SHA256、SBOM、版本说明与卸载说明；
-- [ ] 真实 usage 与费用拆分：ZCode 路由和视频分析分开记录。
+- [x] 工具结果用机器可读字段把视频分析 usage 与 ZCode 路由边界分开，助手规则禁止混算或把未知路由费用写成零；
+- [ ] 从 ZCode 或其模型供应商取得一条真实路由 usage/账单记录，与视频分析 usage 分栏留证。
 
 ## 安全规则
 

@@ -132,6 +132,18 @@ def test_standard_pipeline_writes_readable_note_and_skips_asr(tmp_path: Path) ->
     )
     assert fake.kimi_calls == 1
     assert fake.transcript_calls == 0
+    assert result["usage_scope"] == "video_analysis_only"
+    assert result["video_analysis_usage"] == {
+        "prompt_tokens": 100,
+        "completion_tokens": 200,
+    }
+    assert result["usage"] == result["video_analysis_usage"]
+    assert result["video_analysis_cached"] is False
+    assert result["zcode_routing_usage"] == {
+        "available": False,
+        "source": "zcode_model_provider",
+        "reason": "outside_mcp_tool_boundary",
+    }
     assert result["source_checkpoint_exists"] is False
     note = Path(result["saved_to"]).read_text(encoding="utf-8")
     assert "platform/bilibili" in note
@@ -151,6 +163,9 @@ def test_completed_request_is_cached_without_second_kimi_call(tmp_path: Path) ->
     second = analyze_bilibili("BV1Uw826pE7J", settings=settings, dependencies=fake.deps())
     assert first["cached"] is False
     assert second["cached"] is True
+    assert second["video_analysis_cached"] is True
+    assert second["video_analysis_usage"] == first["video_analysis_usage"]
+    assert second["zcode_routing_usage"]["available"] is False
     assert fake.kimi_calls == 1
     assert fake.download_calls == 1
 
@@ -189,6 +204,8 @@ def test_kimi_failure_preserves_source_checkpoint(tmp_path: Path) -> None:
     assert caught.value.code == "kimi_output_budget_exhausted"
     assert caught.value.retryable is False
     assert caught.value.details["source_checkpoint_exists"] is True
+    assert caught.value.details["usage_scope"] == "video_analysis_only"
+    assert caught.value.details["zcode_routing_usage_available"] is False
     assert fake.kimi_calls == 1
     history = list((settings.paths.state / "history").rglob("*.json"))
     assert len(history) == 1

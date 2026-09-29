@@ -250,6 +250,7 @@ def _result(manifest: dict[str, Any], *, cached: bool) -> dict[str, Any]:
     archived = str(manifest.get("archived_video") or "")
     if archived and not Path(archived).is_file():
         archived = ""
+    video_analysis_usage = (manifest.get("kimi_diagnostics") or {}).get("usage") or {}
     result: dict[str, Any] = {
         "ok": bool(note_path),
         "complete": manifest.get("status") == "completed" and bool(note_path),
@@ -274,7 +275,16 @@ def _result(manifest: dict[str, Any], *, cached: bool) -> dict[str, Any]:
         "note_bytes": note_path.stat().st_size if note_path else 0,
         "kimi_diagnostics": manifest.get("kimi_diagnostics") or {},
         "kimi_history_path": str(manifest.get("kimi_history_path") or ""),
-        "usage": (manifest.get("kimi_diagnostics") or {}).get("usage") or {},
+        # Keep the legacy alias while making the billing boundary explicit for ZCode.
+        "usage": video_analysis_usage,
+        "usage_scope": "video_analysis_only",
+        "video_analysis_usage": video_analysis_usage,
+        "video_analysis_cached": cached,
+        "zcode_routing_usage": {
+            "available": False,
+            "source": "zcode_model_provider",
+            "reason": "outside_mcp_tool_boundary",
+        },
         "preferences_applied": bool(manifest.get("preferences_applied", False)),
         "preference_chars": int(manifest.get("preference_chars") or 0),
         "source_checkpoint_exists": _checkpoint_source(manifest) is not None,
@@ -615,6 +625,8 @@ def _analyze_single_video_locked(
                     and Path(str(manifest.get("kimi_proxy_path"))).is_file()
                 ),
                 "archive_status": str(manifest.get("archive_status") or "not_requested"),
+                "usage_scope": "video_analysis_only",
+                "zcode_routing_usage_available": False,
             }
         )
         if manifest.get("archived_video") and Path(str(manifest["archived_video"])).is_file():

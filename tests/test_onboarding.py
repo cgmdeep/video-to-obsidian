@@ -26,7 +26,11 @@ def test_bootstrap_workspace_creates_managed_rules_and_workspace_mcp(tmp_path: P
     payload = bootstrap_workspace(target, command="python.exe")
 
     assert payload["paid_call_performed"] is False
-    assert (target / "AGENTS.md").read_text(encoding="utf-8").startswith(MANAGED_HEADER)
+    rules = (target / "AGENTS.md").read_text(encoding="utf-8")
+    assert rules.startswith(MANAGED_HEADER)
+    assert "video_analysis_usage" in rules
+    assert "zcode_routing_usage.available=false" in rules
+    assert "禁止猜测、混算" in rules
     config = json.loads((target / ".zcode/config.json").read_text(encoding="utf-8"))
     entry = config["mcp"]["servers"]["video-to-obsidian"]
     assert entry["command"] == "python.exe"
