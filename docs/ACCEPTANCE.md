@@ -18,9 +18,9 @@
 - [ ] “登录抖音”“登录B站”均打开隔离的 `VideoToObsidian` Profile；
 - [ ] “用 Obsidian 打开”能打开本次选择的 Vault；
 - [ ] 用户能从界面复制 `文档\视知库助手` 路径并在 ZCode 打开；
-- [ ] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
+- [x] ZCode 官方微信 Bot Channel 扫码成功，未安装企业微信或个人微信 Hook；
 - [ ] 无 Coding Plan 时，用户自有 Kimi Key 可以提供 ZCode 路由模型；
-- [ ] 微信发送“检查系统”能获得免费诊断回复；
+- [x] 微信发送“检查系统”能获得免费诊断回复；
 - [ ] “导出脱敏诊断报告”在桌面生成 JSON，且报告不含 Key、Cookie、Bearer 或签名 URL；
 - [ ] 安装器给出的下一步不要求用户理解 Python、MCP、Cookie 文件或终端命令。
 
@@ -124,6 +124,13 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 费用：按当日官网 K2.7 Code 输入 ¥6.50/MTok、输出 ¥27.00/MTok 计算约 ¥0.402；不是账单实扣值。
 - 输出：正式 Markdown 11,906 字节，已写入新 Vault 的 `Bilibili/`；任务状态 `completed/finished`，数值型 Kimi 调用历史文件存在。
 - 安全与清理：结果、manifest 和正式笔记的敏感模式扫描为阴性；成功后源视频和代理路径均不存在，检查点媒体数为 0；一次性验收计划任务及执行脚本已移除。
+
+### 2026-09-29 ZCode 官方微信入口双平台验收
+
+- 入口：用户在微信中向 ROG 上 ZCode 官方 Bot Channel “小Z”主动发送链接；两类消息均进入专用 `视知库助手` 工作区，未使用企业微信回调或个人微信 Hook。
+- 抖音：稳定身份 `douyin_7681133341692677414`，时长 205.98 秒；微信路由只调用一次 `analyze_douyin`，Kimi `kimi-k2.7-code` 输入 42,096 tokens、输出 2,577 tokens（其中 reasoning 1,251）；7,252 字节笔记已写入 `Douyin/`，`save_video=false`、逐字稿关闭、未归档原视频。同一链接首次少字母 `h` 时，工具在 19ms 内返回 `missing_video` 且 `retryable=false`，没有进入付费分析。
+- B站：稳定身份 `bilibili_BV12ftJ6rEkw_p01`；微信路由只调用一次 `analyze_bilibili`，命中 2026-09-28 已验证缓存，`cached=true`，未新增 Kimi 调用；11,906 字节笔记路径验证存在，原视频未保存。
+- 回执：两次都由 ZCode 将工具返回的标题、路径、用量、缓存/降级状态和原视频归档状态回传微信；未由路由模型二次观看或伪造视频结论。
 
 ### 2026-09-28 旧线稳定性能力迁移（仅源码回归）
 
