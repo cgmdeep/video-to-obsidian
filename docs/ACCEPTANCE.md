@@ -115,7 +115,7 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - [x] 源码中的 `scripts/uninstall.ps1` 能移除安装器核心和本项目 MCP；
 - [x] 默认卸载保留 Vault、专用工作区、Firefox Profile、Kimi Key 和检查点；
 - [x] 私有数据卸载会删除受管私有运行目录，但仍不删除 Vault；
-- [ ] 在存在专用测试 Key 的 Windows Credential Manager 上验证 Kimi Key 实际删除；
+- [x] 在存在专用测试 Key 的 Windows Credential Manager 上验证 Kimi Key 实际删除；
 - [x] 卸载后不触碰其他 ZCode 配置和 MCP；模型供应商不在卸载器修改范围内。
 
 ### 2026-09-29 干净 Windows 生命周期验收
@@ -126,6 +126,13 @@ ROG 只作为单用户验收和比赛演示节点，不作为多租户云后端�
 - 默认卸载后 `core_removed=true`、`managed_mcp_removed=true`，Vault、专用工作区与 Firefox Profile 均保留；预先注入的无关 MCP 在修复、卸载和重装后均存在；
 - 私有数据卸载后受管 roaming/local 目录均移除，Vault、工作区、Firefox Profile 和无关 MCP 仍保留；Runner 未注入真实 Key，因此不把该轮视为 Credential Manager 真实删除验收；
 - 边界：这是无人值守自动验收，不替代普通用户在 Windows 11 上的图形按钮、SmartScreen 和交互确认验收。
+
+### 2026-09-30 Windows Credential Manager 删除验收
+
+- commit `cd1b80d8a4205513cca28fa6efa08ed4fa038207`；[`Windows clean acceptance #36604306247`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36604306247)、[`CI #36604304737`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36604304737) 与 [`Security #36604304758`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36604304758) 全部通过。
+- 一次性干净 Windows Runner 通过真实 `set-kimi-key --stdin --json` 将明确标注为非供应商密钥的假测试值写入 Windows Credential Manager；验收代码只使用 `CredReadW` 判断受管目标是否存在，从不读取或输出凭据内容。
+- 仓库源码卸载和安装器默认卸载后，凭据目标均继续存在；重新安装、修复与其他 MCP 保留检查同时通过。
+- `--remove-private-data` 私有卸载通过产品自身的 `delete-kimi-key` 删除凭据，再移除运行时；卸载完成后 `video-to-obsidian` 与兼容复合目标均不存在，Vault、工作区、Firefox Profile 和无关 MCP 仍保留。
 
 ### 2026-09-29 源码卸载补充验收
 
