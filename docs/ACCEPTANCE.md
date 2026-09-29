@@ -114,6 +114,26 @@
 - Kimi 失败结果也声明视频分析 usage 边界，并明确 ZCode 路由 usage 不在 MCP 工具可见范围内；工作区规则要求去 ZCode 或相应模型供应商查看，禁止猜测、混算或把未知费用写成零；
 - 单元测试覆盖首次分析、缓存命中、Kimi 失败和生成的 ZCode 工作区规则；本轮没有调用真实模型或产生费用。真实路由 usage/账单分栏仍需从 ZCode 或其模型供应商取得后单独留证。
 
+### 2026-09-30 ROG 从生产镜像修复到 alpha.8
+
+- 从官网使用的 COS 生产地址下载 `VideoToObsidian.Setup.exe`；回读 SHA-256 为
+  `0fe876dee6cd6e584cd068d4df3bcd86e0f6995678077b57b1e163199a08d21f`，与
+  `v0.1.0-alpha.8` 发行清单一致；
+- 修复前备份配置与专用工作区配置，再执行安装器受管 `--prepare-machine` 路径；
+  返回 `operation=repair`、`ok=true`、`contains_secrets=false`、
+  `paid_call_performed=false`，核心版本升级为 `0.1.0a8`；
+- ZCode 专用工作区只有一个 `video-to-obsidian` 受管 MCP，命令指向新版受管运行时，
+  `enabled=true`、`timeoutMs=1200000`；
+- 新增 `scripts/run-windows-interactive-doctor.ps1`，远程维护时优先识别实际运行
+  ZCode 的交互用户，避免 SSH Session 0 或遗留验收账户造成 Credential Manager
+  假阴性。ROG 交互会话 11 项检查全部通过，`required_failed=[]`、
+  `contains_secrets=false`、`contains_local_paths=false`、
+  `paid_call_performed=false`；
+- 只读 Vault 审计仍为 96 个 Markdown、5 个受管身份、0 个重复来源组、
+  0 个不可读文件；
+- 本节是既有安装的生产镜像修复证据，不是陌生用户首装证据，不据此把 P1/P5
+  最后人工闸门标为完成。
+
 #### ROG 候选部署核验
 
 - 从 [`CI #36624790305`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36624790305) 下载 commit `82b0bdaaf3172cd0b27e5124312ee31ccd34cf57` 的 Windows 单文件候选包：71,693,314 字节，SHA256 `6973dea0153df8ed390595dfe806ea69e319f80a3082804abcf10a6f52b65fea`；传到 ROG 后字节数和 SHA256 完全一致；

@@ -20,7 +20,7 @@
 
 ## P1：普通用户首次使用闭环
 
-状态：单文件图形安装、受管工作区路径复制与 ZCode 启动传参、脱敏诊断导出、双平台隔离 Firefox 启动以及 Obsidian Vault 登记/配置保护/唤起动作已在干净 Windows Runner 通过真实按钮验收；新用户亲自输入 Key、完成双平台扫码、绑定 ZCode 微信并完成首条入库仍是最后人工闸门，执行口径见 [`FRESH_USER_ACCEPTANCE.md`](FRESH_USER_ACCEPTANCE.md)。
+状态：单文件图形安装、受管工作区路径复制与 ZCode 启动传参、脱敏诊断导出、双平台隔离 Firefox 启动以及 Obsidian Vault 登记/配置保护/唤起动作已在干净 Windows Runner 通过真实按钮验收；ROG 既有安装已从生产 COS 镜像安全修复到 alpha.8，交互会话免费体检 11 项全部通过，Vault 与工作区保持一致。新用户亲自输入 Key、完成双平台扫码、绑定 ZCode 微信并完成首条入库仍是最后人工闸门，执行口径见 [`FRESH_USER_ACCEPTANCE.md`](FRESH_USER_ACCEPTANCE.md)。
 
 - 安装、修复、卸载、打开 Vault、打开平台登录、复制 ZCode 工作区路径；
 - 无 Coding Plan 时可复用用户自己的 Kimi Key配置 ZCode 模型；
