@@ -11,6 +11,7 @@ from pathlib import Path
 from . import __version__
 from .config import ConfigError, initialize_settings, load_settings
 from .doctor import doctor_payload
+from .notes import NoteWriteError, audit_vault
 from .onboarding import (
     OnboardingError,
     bootstrap_workspace,
@@ -53,6 +54,10 @@ def _parser() -> argparse.ArgumentParser:
     doctor = sub.add_parser("doctor", help="免费环境体检")
     doctor.add_argument("--config", type=Path)
     doctor.add_argument("--json", action="store_true")
+
+    audit = sub.add_parser("audit-vault", help="免费检查 Vault 中的重复来源笔记")
+    audit.add_argument("--config", type=Path)
+    audit.add_argument("--json", action="store_true")
 
     route = sub.add_parser("route", help="只识别视频平台和分析档位")
     route.add_argument("share_text")
@@ -178,6 +183,17 @@ def main(argv: list[str] | None = None) -> int:
                 for item in payload["checks"]:
                     flag = "OK" if item["ok"] else ("FAIL" if item["required"] else "WARN")
                     print(f"[{flag}] {item['name']}: {item['detail']}")
+            return 0 if payload["ok"] else 1
+        if args.command == "audit-vault":
+            settings = load_settings(args.config)
+            payload = audit_vault(settings.vault_path)
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print(f"Vault Markdown：{payload['markdown_files']}")
+                print(f"受管来源笔记：{payload['managed_notes']}")
+                print(f"重复来源组：{len(payload['duplicate_groups'])}")
+                print(f"不可读文件：{payload['unreadable_files']}")
             return 0 if payload["ok"] else 1
         if args.command == "route":
             print(json.dumps(route_share_text(args.share_text, save_video=args.save_video).to_dict(), ensure_ascii=False, indent=2))
@@ -329,6 +345,7 @@ def main(argv: list[str] | None = None) -> int:
         SecretError,
         PreferenceError,
         OnboardingError,
+        NoteWriteError,
     ) as exc:
         print(f"错误：{exc}")
         return 2

@@ -6,7 +6,9 @@ import os
 import re
 import tempfile
 import unicodedata
+from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 
 class NoteWriteError(RuntimeError):
@@ -17,6 +19,86 @@ _INVALID_FILENAME = re.compile(r"[<>:\"/\\|?*\x00-\x1f]")
 _WHITESPACE = re.compile(r"\s+")
 _FRONTMATTER_LIMIT_BYTES = 64 * 1024
 _IGNORED_VAULT_DIRECTORIES = {".obsidian", ".trash", ".stversions", "#SyncVersion"}
+
+
+def _is_active_vault_markdown(vault: Path, path: Path) -> bool:
+    if not path.is_file() or path.is_symlink():
+        return False
+    try:
+        relative_parts = path.relative_to(vault).parts
+    except ValueError:
+        return False
+    return not any(
+        part.startswith(".") or part in _IGNORED_VAULT_DIRECTORIES
+        for part in relative_parts[:-1]
+    )
+
+
+def _managed_identity(frontmatter: str) -> str:
+    generated = re.search(
+        r'(?m)^generated_by:\s*["\']?video-to-obsidian["\']?\s*$',
+        frontmatter,
+    )
+    if generated is None:
+        return ""
+    for field in ("source_uid", "identity"):
+        match = re.search(
+            rf'(?m)^{field}:\s*["\']?([^"\'\r\n]+)["\']?\s*$',
+            frontmatter,
+        )
+        if match:
+            return match.group(1).strip()
+    return ""
+
+
+def audit_vault(vault_path: Path) -> dict[str, Any]:
+    """Read-only audit of managed source identities in an Obsidian Vault."""
+
+    vault = vault_path.expanduser().resolve()
+    if not vault.is_dir():
+        raise NoteWriteError(f"Vault 不存在：{vault}")
+
+    markdown_files = 0
+    managed: dict[str, list[str]] = defaultdict(list)
+    unreadable_files = 0
+    for path in vault.rglob("*.md"):
+        if not _is_active_vault_markdown(vault, path):
+            continue
+        markdown_files += 1
+        try:
+            with path.open("r", encoding="utf-8") as handle:
+                prefix = handle.read(_FRONTMATTER_LIMIT_BYTES)
+        except (OSError, UnicodeError):
+            unreadable_files += 1
+            continue
+        if not prefix.startswith("---\n"):
+            continue
+        frontmatter_end = prefix.find("\n---", 4)
+        if frontmatter_end == -1:
+            continue
+        identity = _managed_identity(prefix[:frontmatter_end])
+        if identity:
+            managed[identity].append(path.relative_to(vault).as_posix())
+
+    duplicate_groups = [
+        {
+            "identity": identity,
+            "count": len(paths),
+            "paths": sorted(paths),
+        }
+        for identity, paths in sorted(managed.items())
+        if len(paths) > 1
+    ]
+    return {
+        "ok": not duplicate_groups and unreadable_files == 0,
+        "paid_call_performed": False,
+        "vault": str(vault),
+        "markdown_files": markdown_files,
+        "managed_notes": sum(len(paths) for paths in managed.values()),
+        "managed_identities": len(managed),
+        "duplicate_groups": duplicate_groups,
+        "unreadable_files": unreadable_files,
+    }
 
 
 def safe_title(title: str, *, max_length: int = 100) -> str:
@@ -109,11 +191,7 @@ def find_note_by_identity(vault_path: Path, platform: str, identity: str) -> Pat
 
     matches: list[Path] = []
     for path in vault.rglob("*.md"):
-        relative_parts = path.relative_to(vault).parts
-        if not path.is_file() or any(
-            part.startswith(".") or part in _IGNORED_VAULT_DIRECTORIES
-            for part in relative_parts[:-1]
-        ):
+        if not _is_active_vault_markdown(vault, path):
             continue
         if path.name.endswith(suffix):
             matches.append(path)
@@ -129,9 +207,7 @@ def find_note_by_identity(vault_path: Path, platform: str, identity: str) -> Pat
         if frontmatter_end == -1:
             continue
         frontmatter = prefix[:frontmatter_end]
-        if 'generated_by: "video-to-obsidian"' not in frontmatter and (
-            "generated_by: video-to-obsidian" not in frontmatter
-        ):
+        if not _managed_identity(frontmatter):
             continue
         if any(marker in frontmatter for marker in identity_markers):
             matches.append(path)

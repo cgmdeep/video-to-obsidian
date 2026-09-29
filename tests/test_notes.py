@@ -4,10 +4,64 @@ import pytest
 
 from video_to_obsidian.notes import (
     NoteWriteError,
+    audit_vault,
     find_note_by_identity,
     note_filename,
     write_note,
 )
+
+
+def test_audit_vault_reports_duplicate_managed_identities(tmp_path: Path) -> None:
+    managed = (
+        "---\n"
+        'source_uid: "bilibili:BV12ftJ6rEkw:p01"\n'
+        'generated_by: "video-to-obsidian"\n'
+        "---\n\n正文\n"
+    )
+    (tmp_path / "旧笔记.md").write_text(managed, encoding="utf-8")
+    folder = tmp_path / "Bilibili"
+    folder.mkdir()
+    (folder / "新笔记.md").write_text(managed, encoding="utf-8")
+
+    payload = audit_vault(tmp_path)
+
+    assert payload["ok"] is False
+    assert payload["paid_call_performed"] is False
+    assert payload["markdown_files"] == 2
+    assert payload["managed_notes"] == 2
+    assert payload["managed_identities"] == 1
+    assert payload["duplicate_groups"] == [
+        {
+            "identity": "bilibili:BV12ftJ6rEkw:p01",
+            "count": 2,
+            "paths": ["Bilibili/新笔记.md", "旧笔记.md"],
+        }
+    ]
+
+
+def test_audit_vault_ignores_sync_backups_and_unmanaged_notes(tmp_path: Path) -> None:
+    managed = (
+        "---\n"
+        'identity: "douyin_7681133341692677414"\n'
+        "generated_by: video-to-obsidian\n"
+        "---\n\n正文\n"
+    )
+    (tmp_path / "正式笔记.md").write_text(managed, encoding="utf-8")
+    versions = tmp_path / "#SyncVersion"
+    versions.mkdir()
+    (versions / "历史版本.md").write_text(managed, encoding="utf-8")
+    (tmp_path / "用户笔记.md").write_text(
+        '---\nidentity: "douyin_7681133341692677414"\n---\n',
+        encoding="utf-8",
+    )
+
+    payload = audit_vault(tmp_path)
+
+    assert payload["ok"] is True
+    assert payload["markdown_files"] == 2
+    assert payload["managed_notes"] == 1
+    assert payload["managed_identities"] == 1
+    assert payload["duplicate_groups"] == []
 
 
 def test_human_readable_filename() -> None:

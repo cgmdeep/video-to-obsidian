@@ -1,5 +1,6 @@
 import io
 import json
+from types import SimpleNamespace
 
 import video_to_obsidian.cli as cli
 
@@ -39,3 +40,27 @@ def test_ensure_zcode_model_reports_missing_key_without_error(monkeypatch, capsy
     assert payload["reason"] == "kimi_key_missing"
     assert payload["secret_displayed"] is False
     assert payload["paid_call_performed"] is False
+
+
+def test_audit_vault_cli_is_free_and_uses_configured_vault(monkeypatch, capsys) -> None:
+    configured = SimpleNamespace(vault_path="C:/Vault")
+    monkeypatch.setattr(cli, "load_settings", lambda _: configured)
+    monkeypatch.setattr(
+        cli,
+        "audit_vault",
+        lambda vault: {
+            "ok": True,
+            "paid_call_performed": False,
+            "vault": str(vault),
+            "markdown_files": 3,
+            "managed_notes": 2,
+            "managed_identities": 2,
+            "duplicate_groups": [],
+            "unreadable_files": 0,
+        },
+    )
+    assert cli.main(["audit-vault", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["ok"] is True
+    assert payload["paid_call_performed"] is False
+    assert payload["duplicate_groups"] == []
