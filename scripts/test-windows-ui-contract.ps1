@@ -179,7 +179,7 @@ function Test-ObsidianOpenAction {
             if ($NewObsidian.Count -gt 0) {
                 $ProcessLaunched = $true
             }
-            if ($ProcessLaunched -and (Test-Path -LiteralPath $ObsidianConfig)) {
+            if (Test-Path -LiteralPath $ObsidianConfig) {
                 try {
                     $Obsidian = Get-Content `
                         -LiteralPath $ObsidianConfig `
@@ -200,15 +200,23 @@ function Test-ObsidianOpenAction {
                         $Obsidian.acceptance_sentinel -eq 'preserve' -and
                         $Sentinel.Value.path -eq $ExpectedUnrelatedVaultPath
                     $BackupCreated = Test-Path -LiteralPath $Backup
+                    $InstallerReady = $false
+                    try {
+                        $InstallerReady = $Root.Current.IsEnabled
+                    } catch {
+                        $InstallerReady = $false
+                    }
                     if (
                         $ManagedVaultRegistered -and
                         $UnrelatedConfigPreserved -and
-                        $BackupCreated
+                        $BackupCreated -and
+                        $InstallerReady
                     ) {
                         return [pscustomobject]@{
-                            opened = $true
+                            protocol_dispatched = $true
                             config_preserved = $true
                             backup_created = $true
+                            process_observed = $ProcessLaunched
                         }
                     }
                 } catch {
@@ -517,7 +525,7 @@ try {
         copy_workspace_action = $true
         diagnostic_export_action = $true
         diagnostic_artifact = 'windows-ui-diagnostics.json'
-        obsidian_open_action = $ObsidianOpenAction.opened
+        obsidian_open_action = $ObsidianOpenAction.protocol_dispatched
         obsidian_vault_registration = $true
         obsidian_config_preserved = $ObsidianOpenAction.config_preserved
         obsidian_config_backup = $ObsidianOpenAction.backup_created
