@@ -92,7 +92,7 @@ jobs:
             throw "Expected one VideoToObsidian.Setup.exe, found: $($Files.Name -join ', ')"
           }
           $Version = [Diagnostics.FileVersionInfo]::GetVersionInfo($Files[0].FullName)
-          if ($Version.FileVersion -ne '0.1.0.1' -or $Version.ProductVersion -notlike '0.1.0-alpha.1*') {
+          if ($Version.FileVersion -ne '0.1.0.2' -or $Version.ProductVersion -notlike '0.1.0-alpha.2*') {
             throw "Unexpected installer version: file=$($Version.FileVersion), product=$($Version.ProductVersion)"
           }
       - name: Verify embedded payload
