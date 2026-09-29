@@ -113,7 +113,7 @@
 - 标签提交的 CI workflow [`#36625891654`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36625891654) 与 Security workflow [`#36625891704`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36625891704) 均成功；Linux/Windows 测试矩阵分别报告 122–123 项通过；
 - `VideoToObsidian.Setup.exe`：71,693,307 字节，SHA256 `0fe876dee6cd6e584cd068d4df3bcd86e0f6995678077b57b1e163199a08d21f`；
 - 本地重新下载全部发布资产后，`SHA256SUMS` 对 EXE、Python wheel/sdist、SPDX 2.3 SBOM 和全部干净 Runner 报告校验通过；UI 证据为 schema 3、`ok=true`、13 个必需按钮，Obsidian Vault 登记/配置保留/备份、ZCode 工作区参数、抖音/B站登录启动动作均为 `true`；同时 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`；
-- 发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.8>。COS 对象已上传，公开访问权限与官网生产切换仍以官网部署记录为准，不在本节提前宣称完成。
+- 发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.8>。EXE、`SHA256SUMS` 与 SBOM 已上传腾讯云 COS 并单独设为公有读、私有写，公共回读通过 HTTP 200/206、71,693,307 字节、SHA-256、校验清单和 SPDX 2.3 JSON 验证；EdgeOne 生产部署 `dpyvum4kubwi` 已于 2026-09-30 成功，`shizhiku.cn`、`www`、下载、案例和证据页均返回 200 并显示同版发行事实。
 
 ### 2026-09-30 图形安装器动作证据
 
