@@ -90,3 +90,22 @@ def test_find_note_by_identity_rejects_duplicates_across_layouts(tmp_path: Path)
 
     with pytest.raises(NoteWriteError, match="多个相同稳定身份"):
         find_note_by_identity(tmp_path, "bilibili", identity)
+
+
+def test_find_note_by_identity_ignores_sync_version_backups(tmp_path: Path) -> None:
+    identity = "bilibili_BV1Uw826pE7J_p01"
+    managed = (
+        "---\n"
+        'identity: "bilibili_BV1Uw826pE7J_p01"\n'
+        'generated_by: "video-to-obsidian"\n'
+        "---\n\n正文\n"
+    )
+    platform_folder = tmp_path / "Bilibili"
+    platform_folder.mkdir()
+    active = platform_folder / f"正式笔记 {identity}.md"
+    active.write_text(managed, encoding="utf-8")
+    versions = tmp_path / "#SyncVersion"
+    versions.mkdir()
+    (versions / f"历史版本 {identity}.md").write_text(managed, encoding="utf-8")
+
+    assert find_note_by_identity(tmp_path, "bilibili", identity) == active

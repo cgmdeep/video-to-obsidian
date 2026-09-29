@@ -16,6 +16,7 @@ class NoteWriteError(RuntimeError):
 _INVALID_FILENAME = re.compile(r"[<>:\"/\\|?*\x00-\x1f]")
 _WHITESPACE = re.compile(r"\s+")
 _FRONTMATTER_LIMIT_BYTES = 64 * 1024
+_IGNORED_VAULT_DIRECTORIES = {".obsidian", ".trash", ".stversions", "#SyncVersion"}
 
 
 def safe_title(title: str, *, max_length: int = 100) -> str:
@@ -108,7 +109,11 @@ def find_note_by_identity(vault_path: Path, platform: str, identity: str) -> Pat
 
     matches: list[Path] = []
     for path in vault.rglob("*.md"):
-        if not path.is_file() or any(part.startswith(".") for part in path.relative_to(vault).parts):
+        relative_parts = path.relative_to(vault).parts
+        if not path.is_file() or any(
+            part.startswith(".") or part in _IGNORED_VAULT_DIRECTORIES
+            for part in relative_parts[:-1]
+        ):
             continue
         if path.name.endswith(suffix):
             matches.append(path)
