@@ -126,24 +126,31 @@ function Close-InstallerMessageBox {
             if ($Text -notmatch [regex]::Escape($ExpectedText)) {
                 continue
             }
-            $Dismiss = @('OK', '确定') | ForEach-Object {
-                Get-InstallerControl `
-                    -Root $Window `
-                    -Name $_ `
-                    -ControlType ([System.Windows.Automation.ControlType]::Button)
-            } | Where-Object { $_ } | Select-Object -First 1
-            if (-not $Dismiss) {
-                throw "Installer message box has no dismiss button: $ExpectedText"
-            }
-            $Pattern = $null
-            if (-not $Dismiss.TryGetCurrentPattern(
-                [System.Windows.Automation.InvokePattern]::Pattern,
-                [ref]$Pattern
+            $WindowPattern = $null
+            if ($Window.TryGetCurrentPattern(
+                [System.Windows.Automation.WindowPattern]::Pattern,
+                [ref]$WindowPattern
             )) {
-                throw "Installer message-box button does not expose InvokePattern: $ExpectedText"
+                ([System.Windows.Automation.WindowPattern]$WindowPattern).Close()
+                return
             }
-            ([System.Windows.Automation.InvokePattern]$Pattern).Invoke()
-            return
+            $Dismiss = $Window.FindFirst(
+                [System.Windows.Automation.TreeScope]::Descendants,
+                ([System.Windows.Automation.PropertyCondition]::new(
+                    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                    [System.Windows.Automation.ControlType]::Button
+                ))
+            if ($Dismiss) {
+                $Pattern = $null
+                if ($Dismiss.TryGetCurrentPattern(
+                    [System.Windows.Automation.InvokePattern]::Pattern,
+                    [ref]$Pattern
+                )) {
+                    ([System.Windows.Automation.InvokePattern]$Pattern).Invoke()
+                    return
+                }
+            }
+            throw "Installer message box cannot be dismissed: $ExpectedText"
         }
         Start-Sleep -Milliseconds 200
     }
