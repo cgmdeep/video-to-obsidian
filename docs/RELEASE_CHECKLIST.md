@@ -36,14 +36,15 @@
 - [x] 在 Windows 实机 ZCode 中，用用户自有 Moonshot Key 调用免费 `doctor`。
 - [x] 微信 Bot Channel 绑定到专用“视知库助手”工作区，不影响其他 ZCode 项目。
 - [x] 验证 Firefox 专用 Profile 名称能被下载适配器正确读取。
-- [x] 用一条小型抖音和一条 B站长视频完成真实下载；B站短视频仍待固定样本验证。
+- [x] 用一条小型抖音、一条约 20 分钟的 B站典型视频和一条 B站长视频完成真实下载。
 - [x] 经用户明确同意后，分别完成一次真实 K2.7 付费分析。
-- [ ] 验证无逐字稿标准版和远程 SenseVoice 增强版。
+- [x] 验证无逐字稿标准版：抖音与 B站真实样本均关闭逐字稿并成功入库。
+- [ ] 验证远程 SenseVoice 增强版。
 - [x] 自动固定集验证 Kimi 失败后人工重试复用下载检查点，不重复下载；真实服务中断仍待抽样。
 - [x] 自动固定集验证笔记、缓存、state、candidate和archive物理隔离。
 - [x] CI 使用 Gitleaks 扫描完整 Git 历史，并使用 pip-audit 审计依赖。
 - [x] 仓库已切换为 Public，GitHub Private Vulnerability Reporting API 报告 `enabled: true`，公开 Security Policy 页面可访问。
-- [ ] 完成真实付费样本后，在验收记录中填写 usage、当日单价与实际扣费；README 不写死每条价格。
+- [x] 完成真实付费样本后，在验收记录中填写 usage、当日官方单价与费用估算；README 不写死每条价格，也不把估算冒充账单实扣值。
 - [ ] 核验 README 中模型名称、充值规则和外部安装说明在发布当天仍有效。
 - [ ] 标签构建生成版本化 EXE、`SHA256SUMS`、SPDX SBOM、发行说明和干净 Runner 报告。
 
