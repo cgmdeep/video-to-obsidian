@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_release_versions_are_aligned() -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    assert project["project"]["version"] == __version__ == "0.1.0a3"
+    assert project["project"]["version"] == __version__ == "0.1.0a4"
 
     csproj = ET.parse(
         ROOT
@@ -22,6 +22,6 @@ def test_release_versions_are_aligned() -> None:
         / "VideoToObsidian.Setup.csproj"
     ).getroot()
     values = {child.tag: child.text for group in csproj.findall("PropertyGroup") for child in group}
-    assert values["Version"] == "0.1.0-alpha.3"
-    assert values["FileVersion"] == "0.1.0.3"
-    assert values["InformationalVersion"] == "0.1.0-alpha.3"
+    assert values["Version"] == "0.1.0-alpha.4"
+    assert values["FileVersion"] == "0.1.0.4"
+    assert values["InformationalVersion"] == "0.1.0-alpha.4"
