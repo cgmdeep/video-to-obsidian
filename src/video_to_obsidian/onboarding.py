@@ -9,12 +9,12 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import stat
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .permissions import ensure_private_path, is_private_path
 from .zcode import build_updated_config
 
 
@@ -404,9 +404,7 @@ def inspect_zcode_models(path: Path) -> dict[str, Any]:
 
     public = [status.public_payload() for status in statuses]
     usable = [status for status in statuses if status.usable_candidate]
-    permissions_private: bool | None = None
-    if os.name != "nt":
-        permissions_private = stat.S_IMODE(target.stat().st_mode) & 0o077 == 0
+    permissions_private = is_private_path(target)
     return {
         "ok": bool(usable),
         "config_exists": True,
@@ -418,6 +416,36 @@ def inspect_zcode_models(path: Path) -> dict[str, Any]:
             item.is_coding_plan and item.usable_candidate for item in statuses
         ),
         "permissions_private": permissions_private,
+        "paid_call_performed": False,
+    }
+
+
+def harden_zcode_model_permissions(path: Path) -> dict[str, Any]:
+    """Restrict an existing ZCode model file and our recovery copy without reading secrets."""
+    target = path.expanduser()
+    if not target.is_file():
+        return {
+            "ok": True,
+            "changed": False,
+            "reason": "zcode_not_initialized",
+            "permissions_private": None,
+            "secret_displayed": False,
+            "paid_call_performed": False,
+        }
+    was_private = is_private_path(target)
+    ensure_private_path(target)
+    backup = target.with_suffix(target.suffix + ".before-video-to-obsidian.bak")
+    if backup.is_file():
+        ensure_private_path(backup)
+    private = is_private_path(target)
+    if not private:
+        raise OnboardingError("无法验证 ZCode 模型配置的私有权限。")
+    return {
+        "ok": True,
+        "changed": not was_private,
+        "reason": "permissions_private",
+        "permissions_private": True,
+        "secret_displayed": False,
         "paid_call_performed": False,
     }
 
@@ -488,11 +516,9 @@ def configure_zcode_moonshot(
     backup = target.with_suffix(target.suffix + ".before-video-to-obsidian.bak")
     if not backup.exists():
         shutil.copy2(target, backup)
-    if os.name != "nt":
-        os.chmod(backup, 0o600)
+    ensure_private_path(backup)
     _atomic_json(target, updated)
-    if os.name != "nt":
-        os.chmod(target, 0o600)
+    ensure_private_path(target)
     return {
         "ok": True,
         "configured_provider": "Moonshot",
@@ -510,6 +536,8 @@ def ensure_zcode_model(
 ) -> dict[str, Any]:
     """Preserve any usable provider; add Moonshot only when ZCode has none."""
 
+    if path.expanduser().is_file():
+        harden_zcode_model_permissions(path)
     status = inspect_zcode_models(path)
     if status["ok"]:
         return {

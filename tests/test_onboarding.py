@@ -14,6 +14,7 @@ from video_to_obsidian.onboarding import (
     build_moonshot_model_config,
     configure_zcode_moonshot,
     ensure_zcode_model,
+    harden_zcode_model_permissions,
     inspect_zcode_models,
     inspect_workspace,
     onboarding_status,
@@ -153,6 +154,36 @@ def test_model_status_reports_private_permissions(tmp_path: Path) -> None:
     payload = inspect_zcode_models(path)
     if os.name != "nt":
         assert payload["permissions_private"] is False
+
+
+def test_harden_model_permissions_does_not_return_secret(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(
+        json.dumps({"provider": {"private": {"options": {"apiKey": "secret-value-123"}}}}),
+        encoding="utf-8",
+    )
+    os.chmod(path, 0o644)
+
+    payload = harden_zcode_model_permissions(path)
+
+    assert payload["ok"] is True
+    assert payload["permissions_private"] is True
+    assert payload["secret_displayed"] is False
+    assert payload["paid_call_performed"] is False
+    assert "secret-value-123" not in json.dumps(payload)
+    assert json.loads(path.read_text(encoding="utf-8"))["provider"]["private"]["options"]["apiKey"] == "secret-value-123"
+
+
+def test_harden_missing_model_config_is_safe_noop(tmp_path: Path) -> None:
+    payload = harden_zcode_model_permissions(tmp_path / "missing.json")
+    assert payload == {
+        "ok": True,
+        "changed": False,
+        "reason": "zcode_not_initialized",
+        "permissions_private": None,
+        "secret_displayed": False,
+        "paid_call_performed": False,
+    }
 
 
 def test_ensure_model_preserves_existing_provider(tmp_path: Path) -> None:

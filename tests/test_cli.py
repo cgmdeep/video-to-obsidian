@@ -59,6 +59,29 @@ def test_ensure_zcode_model_reports_missing_key_without_error(monkeypatch, capsy
     assert payload["paid_call_performed"] is False
 
 
+def test_installer_can_harden_zcode_permissions_without_paid_call(
+    monkeypatch, capsys
+) -> None:
+    monkeypatch.setattr(
+        cli,
+        "harden_zcode_model_permissions",
+        lambda path: {
+            "ok": True,
+            "changed": True,
+            "reason": "permissions_private",
+            "permissions_private": True,
+            "secret_displayed": False,
+            "paid_call_performed": False,
+        },
+    )
+
+    assert cli.main(["harden-zcode-model-permissions", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["permissions_private"] is True
+    assert payload["secret_displayed"] is False
+    assert payload["paid_call_performed"] is False
+
+
 def test_audit_vault_cli_is_free_and_uses_configured_vault(monkeypatch, capsys) -> None:
     configured = SimpleNamespace(vault_path="C:/Vault")
     monkeypatch.setattr(cli, "load_settings", lambda _: configured)

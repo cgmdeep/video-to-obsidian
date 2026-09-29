@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from .config import Settings
+from .permissions import ensure_private_path
 
 
 MAX_PREFERENCES_BYTES = 32 * 1024
@@ -52,6 +53,7 @@ def write_preferences(settings: Settings, text: str) -> Path:
             os.fsync(handle.fileno())
         os.chmod(temp_path, 0o600)
         os.replace(temp_path, path)
+        ensure_private_path(path)
     finally:
         temp_path.unlink(missing_ok=True)
     return path

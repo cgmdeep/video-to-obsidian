@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .permissions import ensure_private_path
+
 
 class ConfigError(ValueError):
     """Raised when public configuration is missing or invalid."""
@@ -216,6 +218,7 @@ def update_profile(profile: str, *, config_path: Path | None = None) -> tuple[Pa
         # every supported platform.
         os.chmod(temp_path, file_mode)
         os.replace(temp_path, target)
+        ensure_private_path(target)
     finally:
         temp_path.unlink(missing_ok=True)
     load_settings(target)
@@ -256,6 +259,16 @@ def initialize_settings(
             raise ConfigError(
                 "现有配置的 Vault 或档位与本次安装不同，拒绝静默复用。"
             )
+        ensure_private_path(target.parent)
+        ensure_private_path(target)
+        for directory in (
+            existing.paths.cache,
+            existing.paths.state,
+            existing.paths.candidates,
+            existing.paths.archive,
+        ):
+            directory.mkdir(parents=True, exist_ok=True)
+            ensure_private_path(directory)
         return target
 
     vault.mkdir(parents=True, exist_ok=True)
@@ -268,6 +281,7 @@ def initialize_settings(
         runtime_paths.archive,
     ):
         directory.mkdir(parents=True, exist_ok=True)
+        ensure_private_path(directory)
 
     transcript_mode = "off" if profile == "standard" else "local"
     text = "\n".join(
@@ -299,6 +313,7 @@ def initialize_settings(
         ]
     )
     target.parent.mkdir(parents=True, exist_ok=True)
+    ensure_private_path(target.parent)
     fd, temporary = tempfile.mkstemp(prefix=".config-", suffix=".toml", dir=target.parent)
     temp_path = Path(temporary)
     try:
@@ -307,6 +322,7 @@ def initialize_settings(
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temp_path, target)
+        ensure_private_path(target)
     finally:
         temp_path.unlink(missing_ok=True)
     return target

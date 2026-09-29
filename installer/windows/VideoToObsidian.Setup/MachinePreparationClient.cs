@@ -131,6 +131,11 @@ internal sealed class MachinePreparationClient
         await _backend.RunJsonAsync(
             new[] { "bootstrap-workspace", "--workspace", normalizedWorkspace, "--json" }
         );
+
+        report("正在检查本地模型配置权限…");
+        await _backend.RunJsonAsync(
+            new[] { "harden-zcode-model-permissions", "--json" }
+        );
     }
 
     private static string? ReadConfiguredString(string key)

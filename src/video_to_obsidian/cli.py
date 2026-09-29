@@ -18,6 +18,7 @@ from .onboarding import (
     build_support_report,
     configure_zcode_moonshot,
     ensure_zcode_model,
+    harden_zcode_model_permissions,
     inspect_zcode_models,
     inspect_workspace,
     onboarding_status,
@@ -28,6 +29,7 @@ from .preferences import (
     read_preferences,
     write_preferences,
 )
+from .permissions import PrivatePermissionError
 from .routing import RoutingError, route_share_text
 from .zcode import ZCodeConfigError
 from .secrets import (
@@ -119,6 +121,17 @@ def _parser() -> argparse.ArgumentParser:
         default=Path.home() / ".zcode" / "v2" / "config.json",
     )
     ensure_model.add_argument("--json", action="store_true")
+
+    harden_models = sub.add_parser(
+        "harden-zcode-model-permissions",
+        help="不读取凭据内容，仅收紧 ZCode 模型配置权限",
+    )
+    harden_models.add_argument(
+        "--config",
+        type=Path,
+        default=Path.home() / ".zcode" / "v2" / "config.json",
+    )
+    harden_models.add_argument("--json", action="store_true")
 
     onboarding = sub.add_parser(
         "onboarding-status", help="为安装向导输出统一免费状态"
@@ -310,6 +323,13 @@ def main(argv: list[str] | None = None) -> int:
                 }
                 print(messages[payload["reason"]])
             return 0
+        if args.command == "harden-zcode-model-permissions":
+            payload = harden_zcode_model_permissions(args.config)
+            if args.json:
+                print(json.dumps(payload, ensure_ascii=False, indent=2))
+            else:
+                print("本地模型配置权限已检查并收紧。")
+            return 0
         if args.command == "onboarding-status":
             payload = onboarding_status(
                 doctor=doctor_payload(args.config),
@@ -397,6 +417,7 @@ def main(argv: list[str] | None = None) -> int:
         PreferenceError,
         OnboardingError,
         NoteWriteError,
+        PrivatePermissionError,
     ) as exc:
         print(f"错误：{exc}")
         return 2
