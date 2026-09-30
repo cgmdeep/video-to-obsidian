@@ -14,6 +14,23 @@
 - AI 助手可以观察状态、收集脱敏报告和排错，但不得读取 Key、Cookie、验证码、浏览器数据库或签名媒体 URL；
 - 真实视频分析前单独确认费用。本轮免费阶段不得调用 Kimi 视频分析。
 
+## 2026-09-30 预备状态
+
+- ROG 上的专用普通账户 `VTOAcceptance` 已确认与主账户隔离；旧测试环境为
+  `alpha.1`，不能冒充本轮 `alpha.8` 首装证据。
+- 重置前已在 ROG 本机生成受限访问的恢复包；另将被保留的 Documents、Firefox、
+  Obsidian 和 ZCode 用户状态移出活动位置。恢复包没有导出 Credential Manager
+  凭据值，也没有把 Firefox Cookie 复制到项目目录或 Git。
+- `v0.1.0-alpha.8` 安装器从官网使用的 COS 生产地址重新下载，实测
+  71,693,307 字节，SHA-256 为
+  `0fe876dee6cd6e584cd068d4df3bcd86e0f6995678077b57b1e163199a08d21f`。
+- 安装器的 `private-uninstall` 在该账户交互会话返回 `ok=true`、
+  `status=complete`、`private_data_removed=true`，未调用付费模型；随后复查受管
+  roaming/local 根、Documents 活动条目、Firefox Profile、Obsidian 状态和 ZCode
+  状态均为空。
+- 正式下载页已在该账户的浏览器会话打开。以上只证明环境已重置并具备首装条件；
+  浏览器下载、图形安装、Key 输入和扫码仍必须按下面清单逐项留证。
+
 ## A. 免费阶段
 
 1. 从生产官网下载安装器，记录浏览器完成下载；核对文件大小和 SHA-256。
