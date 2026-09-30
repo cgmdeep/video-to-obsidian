@@ -32,7 +32,7 @@ from .preferences import (
 )
 from .permissions import PrivatePermissionError
 from .routing import RoutingError, route_share_text
-from .zcode import ZCodeConfigError
+from .zcode import DEFAULT_TIMEOUT_MS, ZCodeConfigError
 from .secrets import (
     SecretError,
     delete_kimi_api_key,
@@ -86,14 +86,14 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path.home() / ".zcode" / "cli" / "config.json",
     )
-    zcode.add_argument("--timeout-ms", type=int, default=1_200_000)
+    zcode.add_argument("--timeout-ms", type=int, default=DEFAULT_TIMEOUT_MS)
     zcode.add_argument("--replace-existing", action="store_true")
 
     workspace = sub.add_parser(
         "bootstrap-workspace", help="创建专用视知库 ZCode 工作区"
     )
     workspace.add_argument("--workspace", type=Path, required=True)
-    workspace.add_argument("--timeout-ms", type=int, default=1_200_000)
+    workspace.add_argument("--timeout-ms", type=int, default=DEFAULT_TIMEOUT_MS)
     workspace.add_argument("--json", action="store_true")
 
     model_status = sub.add_parser(

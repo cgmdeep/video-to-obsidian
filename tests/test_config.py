@@ -51,6 +51,49 @@ def test_existing_matching_config_can_be_reused_safely(tmp_path: Path) -> None:
     assert config.read_bytes() == original
 
 
+def test_repair_upgrades_legacy_kimi_timeout_without_losing_settings(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    config = initialize_settings(
+        vault, config_path=tmp_path / "config.toml", runtime_root=tmp_path / "private"
+    )
+    legacy = config.read_text(encoding="utf-8").replace(
+        "kimi_timeout_seconds = 2700",
+        "kimi_timeout_seconds = 1200 # legacy installer default",
+    )
+    config.write_text(legacy, encoding="utf-8")
+
+    initialize_settings(
+        vault,
+        config_path=config,
+        runtime_root=tmp_path / "private",
+        reuse_existing=True,
+    )
+
+    migrated = config.read_text(encoding="utf-8")
+    assert "kimi_timeout_seconds = 2700 # legacy installer default" in migrated
+    assert load_settings(config).kimi_timeout_seconds == 2700
+
+
+def test_repair_preserves_custom_kimi_timeout(tmp_path: Path) -> None:
+    vault = tmp_path / "vault"
+    config = initialize_settings(
+        vault, config_path=tmp_path / "config.toml", runtime_root=tmp_path / "private"
+    )
+    custom = config.read_text(encoding="utf-8").replace(
+        "kimi_timeout_seconds = 2700", "kimi_timeout_seconds = 1800"
+    )
+    config.write_text(custom, encoding="utf-8")
+
+    initialize_settings(
+        vault,
+        config_path=config,
+        runtime_root=tmp_path / "private",
+        reuse_existing=True,
+    )
+
+    assert load_settings(config).kimi_timeout_seconds == 1800
+
+
 def test_existing_different_config_is_not_reused(tmp_path: Path) -> None:
     config = tmp_path / "config.toml"
     initialize_settings(

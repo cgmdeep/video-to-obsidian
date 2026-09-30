@@ -12,7 +12,11 @@ from typing import Any
 
 
 SERVER_NAME = "video-to-obsidian"
-DEFAULT_TIMEOUT_MS = 1_200_000
+# A single tool call includes download/proxy preparation plus one Kimi video
+# analysis.  Twenty minutes was too short for real 20–30 minute videos even
+# when the upstream call was healthy, so keep the MCP boundary comfortably
+# above the model's own timeout.
+DEFAULT_TIMEOUT_MS = 3_600_000
 
 
 class ZCodeConfigError(RuntimeError):
@@ -115,4 +119,3 @@ def update_file(
 
 def remove_from_file(path: Path) -> Path:
     return _write_with_backup(path, build_removed_config(_read(path)))
-

@@ -22,7 +22,7 @@ def test_adds_one_stdio_server_without_touching_others() -> None:
     assert updated["mcp"]["servers"]["other"] == original["mcp"]["servers"]["other"]
     entry = updated["mcp"]["servers"][SERVER_NAME]
     assert entry["type"] == "stdio"
-    assert entry["timeoutMs"] == 1_200_000
+    assert entry["timeoutMs"] == 3_600_000
     assert "env" not in entry
     assert original.get("mcp", {}).get("servers", {}).get(SERVER_NAME) is None
 
@@ -61,4 +61,3 @@ def test_remove_only_our_entry() -> None:
     updated = build_removed_config(payload)
     assert SERVER_NAME not in updated["mcp"]["servers"]
     assert "other" in updated["mcp"]["servers"]
-

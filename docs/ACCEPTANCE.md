@@ -123,7 +123,7 @@
   返回 `operation=repair`、`ok=true`、`contains_secrets=false`、
   `paid_call_performed=false`，核心版本升级为 `0.1.0a8`；
 - ZCode 专用工作区只有一个 `video-to-obsidian` 受管 MCP，命令指向新版受管运行时，
-  `enabled=true`、`timeoutMs=1200000`；
+  `enabled=true`、`timeoutMs=3600000`；
 - 新增 `scripts/run-windows-interactive-doctor.ps1`，远程维护时优先识别实际运行
   ZCode 的交互用户，避免 SSH Session 0 或遗留验收账户造成 Credential Manager
   假阴性。ROG 交互会话 11 项检查全部通过，`required_failed=[]`、

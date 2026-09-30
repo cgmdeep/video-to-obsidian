@@ -20,6 +20,10 @@ class ConfigError(ValueError):
     """Raised when public configuration is missing or invalid."""
 
 
+DEFAULT_KIMI_TIMEOUT_SECONDS = 2_700
+LEGACY_KIMI_TIMEOUT_SECONDS = 1_200
+
+
 @dataclass(frozen=True)
 class AppPaths:
     config_file: Path
@@ -141,7 +145,7 @@ def load_settings(config_path: Path | None = None) -> Settings:
         vision_max_tokens=int(data.get("vision_max_tokens", 16384)),
         deep_max_tokens=int(data.get("deep_max_tokens", 16000)),
         download_timeout_seconds=int(data.get("download_timeout_seconds", 1800)),
-        kimi_timeout_seconds=int(data.get("kimi_timeout_seconds", 1200)),
+        kimi_timeout_seconds=int(data.get("kimi_timeout_seconds", DEFAULT_KIMI_TIMEOUT_SECONDS)),
         firefox_profile=_required_string(data, "firefox_profile"),
         transcript=TranscriptSettings(
             mode=transcript_mode,
@@ -225,6 +229,49 @@ def update_profile(profile: str, *, config_path: Path | None = None) -> tuple[Pa
     return target, True
 
 
+def _upgrade_legacy_kimi_timeout(target: Path, settings: Settings) -> bool:
+    """Migrate only the timeout value shipped by older managed installers.
+
+    A different value is treated as an explicit user choice.  Keeping this
+    migration in the reuse/repair path means existing alpha installations get
+    the fix without losing Vault, profile, paths, comments, or line endings.
+    """
+
+    if settings.kimi_timeout_seconds != LEGACY_KIMI_TIMEOUT_SECONDS:
+        return False
+    with target.open("r", encoding="utf-8", newline="") as handle:
+        original = handle.read()
+    pattern = re.compile(
+        rf"(?m)^(\s*kimi_timeout_seconds\s*=\s*){LEGACY_KIMI_TIMEOUT_SECONDS}(\s*(?:#.*)?)$"
+    )
+    candidate, replacements = pattern.subn(
+        rf"\g<1>{DEFAULT_KIMI_TIMEOUT_SECONDS}\g<2>", original
+    )
+    if replacements != 1:
+        raise ConfigError("旧版 Kimi 超时配置无法安全迁移，已取消改写。")
+    try:
+        parsed = tomllib.loads(candidate)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError("Kimi 超时配置迁移会产生无效配置，已取消。") from exc
+    if int(parsed.get("kimi_timeout_seconds", 0)) != DEFAULT_KIMI_TIMEOUT_SECONDS:
+        raise ConfigError("Kimi 超时配置迁移校验失败，已取消。")
+
+    file_mode = stat.S_IMODE(target.stat().st_mode)
+    fd, temporary = tempfile.mkstemp(prefix=".config-timeout-", suffix=".toml", dir=target.parent)
+    temp_path = Path(temporary)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
+            handle.write(candidate)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temp_path, file_mode)
+        os.replace(temp_path, target)
+        ensure_private_path(target)
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return True
+
+
 def initialize_settings(
     vault_path: Path,
     *,
@@ -259,6 +306,8 @@ def initialize_settings(
             raise ConfigError(
                 "现有配置的 Vault 或档位与本次安装不同，拒绝静默复用。"
             )
+        _upgrade_legacy_kimi_timeout(target, existing)
+        existing = load_settings(target)
         ensure_private_path(target.parent)
         ensure_private_path(target)
         for directory in (
@@ -297,7 +346,7 @@ def initialize_settings(
             "vision_max_tokens = 16384",
             "deep_max_tokens = 16000",
             "download_timeout_seconds = 1800",
-            "kimi_timeout_seconds = 1200",
+            f"kimi_timeout_seconds = {DEFAULT_KIMI_TIMEOUT_SECONDS}",
             'firefox_profile = "VideoToObsidian"',
             "",
             "[transcript]",

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from .permissions import ensure_private_path, is_private_path
-from .zcode import build_updated_config
+from .zcode import DEFAULT_TIMEOUT_MS, build_updated_config
 
 
 WORKSPACE_SCHEMA = 1
@@ -157,7 +157,7 @@ def bootstrap_workspace(
     *,
     command: str,
     args: list[str] | None = None,
-    timeout_ms: int = 1_200_000,
+    timeout_ms: int = DEFAULT_TIMEOUT_MS,
 ) -> dict[str, Any]:
     root = workspace.expanduser().resolve()
     marker = root / WORKSPACE_MARKER
@@ -188,7 +188,10 @@ def bootstrap_workspace(
         command=command,
         args=args,
         timeout_ms=timeout_ms,
-        replace_existing=False,
+        # The marker proves this is our managed workspace.  Repair/install may
+        # therefore migrate our own MCP entry (for example a timeout increase)
+        # without allowing an unmanaged directory to be overwritten.
+        replace_existing=marker.is_file(),
     )
     _atomic_text(agents_path, _workspace_agents())
     _atomic_text(readme_path, _workspace_readme())

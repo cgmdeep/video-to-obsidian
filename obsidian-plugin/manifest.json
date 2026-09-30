@@ -1,7 +1,7 @@
 {
   "id": "shizhiku-local",
   "name": "视知库·知识激活",
-  "version": "0.1.0-alpha.13",
+  "version": "0.1.0-alpha.14",
   "minAppVersion": "1.5.0",
   "description": "在本机使用已保存的 Kimi Key，把选中的视频笔记生成问答、对比、知识卡和行动清单。",
   "author": "cgmdeep",

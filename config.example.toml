@@ -9,7 +9,7 @@ kimi_base_url = "https://api.moonshot.cn/v1"
 vision_max_tokens = 16384
 deep_max_tokens = 16000
 download_timeout_seconds = 1800
-kimi_timeout_seconds = 1200
+kimi_timeout_seconds = 2700
 firefox_profile = "VideoToObsidian"
 
 [transcript]

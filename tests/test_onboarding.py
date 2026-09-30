@@ -34,7 +34,7 @@ def test_bootstrap_workspace_creates_managed_rules_and_workspace_mcp(tmp_path: P
     config = json.loads((target / ".zcode/config.json").read_text(encoding="utf-8"))
     entry = config["mcp"]["servers"]["video-to-obsidian"]
     assert entry["command"] == "python.exe"
-    assert entry["timeoutMs"] == 1_200_000
+    assert entry["timeoutMs"] == 3_600_000
     assert "env" not in entry
 
 
@@ -44,6 +44,16 @@ def test_bootstrap_workspace_is_idempotent(tmp_path: Path) -> None:
     second = bootstrap_workspace(target, command="python.exe")
     assert first == second
     assert inspect_workspace(target)["ok"] is True
+
+
+def test_bootstrap_workspace_repair_upgrades_managed_timeout(tmp_path: Path) -> None:
+    target = tmp_path / "workspace"
+    bootstrap_workspace(target, command="python.exe", timeout_ms=1_200_000)
+
+    bootstrap_workspace(target, command="python.exe")
+
+    config = json.loads((target / ".zcode/config.json").read_text(encoding="utf-8"))
+    assert config["mcp"]["servers"]["video-to-obsidian"]["timeoutMs"] == 3_600_000
 
 
 def test_bootstrap_workspace_refuses_unmanaged_nonempty_directory(tmp_path: Path) -> None:
