@@ -37,7 +37,7 @@
                 <Border Background="{StaticResource CardBrush}" CornerRadius="14" Padding="20" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock Text="1. 准备本机" FontSize="20" FontWeight="SemiBold" />
-                        <TextBlock Text="自动创建 Obsidian 知识库和专用 ZCode 工作区。" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" />
+                        <TextBlock Text="自动创建 Obsidian 知识库和专用 ZCode 工作区；为完成首次登记，运行中的 Obsidian 会保存后重启。" Foreground="{StaticResource MutedBrush}" Margin="0,5,0,10" TextWrapping="Wrap" />
                         <TextBlock Text="Obsidian 知识库" />
                         <TextBox x:Name="VaultPathBox" Margin="0,6,0,8" />
                         <Expander Header="高级设置（可选）" Margin="0,2,0,10">

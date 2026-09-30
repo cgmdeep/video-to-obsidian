@@ -96,7 +96,7 @@ Bot Channel 必须在这个专用工作区中创建。
 ### P5：发布
 
 - [x] CI 生成单文件 `VideoToObsidian.Setup.exe`；
-- [x] 干净 Windows 验收后创建未签名 GitHub Pre-release（当前候选为 `v0.1.0-alpha.10`）；
+- [x] 干净 Windows 验收后创建未签名 GitHub Pre-release（当前候选为 `v0.1.0-alpha.11`）；
 - [x] 官网、README、安装指南与发行说明均明确 Alpha 未签名和 SmartScreen 风险；
 - [x] 当前 Pre-release 同时提供 SHA256、SBOM、版本说明与卸载说明；
 - [x] 工具结果用机器可读字段把视频分析 usage 与 ZCode 路由边界分开，助手规则禁止混算或把未知路由费用写成零；

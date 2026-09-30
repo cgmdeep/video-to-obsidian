@@ -39,7 +39,7 @@ public partial class MainWindow : Window
                 Dispatcher.Invoke(() => StatusText.Text = message);
             });
             await RefreshStatusAsync();
-            OpenPreparedDestinations();
+            await OpenPreparedDestinationsAsync();
         });
     }
 
@@ -60,7 +60,7 @@ public partial class MainWindow : Window
             await _backend.RunJsonAsync(new[] { "ensure-zcode-model", "--json" });
             KimiKeyBox.Clear();
             await RefreshStatusAsync();
-            OpenPreparedDestinations();
+            await OpenPreparedDestinationsAsync();
         });
     }
 
@@ -148,16 +148,10 @@ public partial class MainWindow : Window
             OpenZCodeInstallButton_Click(sender, e);
             return;
         }
-        Process.Start(
-            new ProcessStartInfo(executable)
-            {
-                UseShellExecute = true,
-                Arguments = $"\"{_workspacePath}\"",
-            }
-        );
+        StartZCodeWorkspace(executable, _workspacePath);
     }
 
-    private void OpenPreparedDestinations()
+    private async Task OpenPreparedDestinationsAsync()
     {
         var opened = new List<string>();
         var warnings = new List<string>();
@@ -167,9 +161,7 @@ public partial class MainWindow : Window
         {
             try
             {
-                var vaultId = ObsidianVaultRegistry.EnsureRegistered(vaultPath);
-                var uri = "obsidian://open?vault=" + Uri.EscapeDataString(vaultId);
-                Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+                await RestartAndOpenObsidianVaultAsync(vaultPath);
                 opened.Add("Obsidian 知识库");
             }
             catch (Exception exception) when (
@@ -179,6 +171,8 @@ public partial class MainWindow : Window
                 or ArgumentException
                 or NotSupportedException
                 or PathTooLongException
+                or InvalidOperationException
+                or System.ComponentModel.Win32Exception
             )
             {
                 warnings.Add("Obsidian 未自动打开，可点击“打开 Obsidian 知识库”重试");
@@ -191,13 +185,7 @@ public partial class MainWindow : Window
         {
             try
             {
-                Process.Start(
-                    new ProcessStartInfo(zcode)
-                    {
-                        UseShellExecute = true,
-                        Arguments = $"\"{_workspacePath}\"",
-                    }
-                );
+                StartZCodeWorkspace(zcode, _workspacePath);
                 opened.Add("ZCode 专用工作区");
             }
             catch (Exception exception) when (
@@ -221,6 +209,82 @@ public partial class MainWindow : Window
             summary += " " + string.Join("；", warnings) + "。";
         }
         StatusText.Text = summary;
+    }
+
+    private static void StartZCodeWorkspace(string executable, string workspacePath)
+    {
+        Process.Start(
+            new ProcessStartInfo(executable)
+            {
+                UseShellExecute = true,
+                Arguments = $"--open-workspace \"{workspacePath}\"",
+            }
+        );
+    }
+
+    private static async Task RestartAndOpenObsidianVaultAsync(string vaultPath)
+    {
+        var processes = Process.GetProcessesByName("Obsidian");
+        try
+        {
+            foreach (var process in processes)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.CloseMainWindow();
+                    }
+                }
+                catch (InvalidOperationException) { }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
+
+            var deadline = DateTime.UtcNow.AddSeconds(5);
+            while (DateTime.UtcNow < deadline && processes.Any(IsStillRunning))
+            {
+                await Task.Delay(200);
+            }
+
+            foreach (var process in processes.Where(IsStillRunning))
+            {
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(3000);
+                }
+                catch (InvalidOperationException) { }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
+        }
+        finally
+        {
+            foreach (var process in processes)
+            {
+                process.Dispose();
+            }
+        }
+
+        var vaultId = ObsidianVaultRegistry.EnsureRegistered(vaultPath);
+        var uri = "obsidian://open?vault=" + Uri.EscapeDataString(vaultId);
+        Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+    }
+
+    private static bool IsStillRunning(Process process)
+    {
+        try
+        {
+            process.Refresh();
+            return !process.HasExited;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
     }
 
     private static string? FindZCodeExecutable()
@@ -252,7 +316,7 @@ public partial class MainWindow : Window
         MessageBox.Show("工作区路径已复制。请在 ZCode 的“打开工作区”中选择该目录。", "视知库");
     }
 
-    private void OpenVaultButton_Click(object sender, RoutedEventArgs e)
+    private async void OpenVaultButton_Click(object sender, RoutedEventArgs e)
     {
         var vaultPath = VaultPathBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(vaultPath) || !Directory.Exists(vaultPath))
@@ -262,22 +326,22 @@ public partial class MainWindow : Window
         }
         try
         {
-            var vaultId = ObsidianVaultRegistry.EnsureRegistered(vaultPath);
-            var uri = "obsidian://open?vault=" + Uri.EscapeDataString(vaultId);
-            Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+            await RestartAndOpenObsidianVaultAsync(vaultPath);
         }
         catch (Exception exception) when (
             exception is IOException
             or UnauthorizedAccessException
             or JsonException
-            or ArgumentException
-            or NotSupportedException
-            or PathTooLongException
-        )
+                or ArgumentException
+                or NotSupportedException
+                or PathTooLongException
+                or InvalidOperationException
+                or System.ComponentModel.Win32Exception
+            )
         {
             MessageBox.Show(
-                $"无法安全登记 Obsidian 知识库：{exception.Message}\n"
-                    + "未覆盖你的原配置。请关闭 Obsidian 后重试，或在 Obsidian 中手动选择该目录。",
+                $"无法安全重启并登记 Obsidian 知识库：{exception.Message}\n"
+                    + "未覆盖你的原配置。请保存并关闭 Obsidian 后重试，或在 Obsidian 中手动选择该目录。",
                 "视知库",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning

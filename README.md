@@ -14,7 +14,7 @@
 
 也可以直接把完整分享文本粘贴到 ZCode。
 
-> 当前状态：`v0.1.0-alpha.10` 已发布为未签名 Pre-release，Release、CI 与 Security 均通过。Windows 干净 Runner 已完成单文件安装、原地修复、安全卸载、重装、受管私有目录清理、私有 ACL、Obsidian Vault 登记与 ZCode 工作区启动参数验收；本版新增安装完成与保存 Key 后自动打开 Obsidian 知识库和 ZCode 专用工作区。独立 Windows 11 ROG 已完成普通账户图形安装、真实配置权限修复，以及抖音小视频、B站约 20 分钟典型视频和 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库和 ZCode 官方微信 Bot 双平台输入验收。多说话人、反讽/引用、音画冲突与偏好优先级固定集已完成有界的 3 次付费验收；戏仿/夸张/反问、20 人体验、真实平台登录失效和付费服务中断仍待补齐，因此不能描述为生产可用。
+> 当前状态：`v0.1.0-alpha.11` 正在进行未签名 Pre-release 发布验收，只修复 xos 暴露的两个 P0：登记新 Vault 前退出并重启 Obsidian，以及使用 ZCode 当前要求的 `--open-workspace` 参数加载专用工作区。Windows 干净 Runner 已完成单文件安装、原地修复、安全卸载、重装、受管私有目录清理、私有 ACL、Obsidian Vault 登记与 ZCode 工作区启动参数验收。独立 Windows 11 ROG 已完成普通账户图形安装、真实配置权限修复，以及抖音小视频、B站约 20 分钟典型视频和 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库和 ZCode 官方微信 Bot 双平台输入验收。多说话人、反讽/引用、音画冲突与偏好优先级固定集已完成有界的 3 次付费验收；戏仿/夸张/反问、20 人体验、真实平台登录失效和付费服务中断仍待补齐，因此不能描述为生产可用。
 
 官网 [shizhiku.cn](https://shizhiku.cn/) 提供 COS 国内镜像和 GitHub 备用下载；安装包大小与 SHA-256 以当前 Release 的 `SHA256SUMS` 为准。
 
