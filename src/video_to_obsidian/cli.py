@@ -11,6 +11,7 @@ from pathlib import Path
 from . import __version__
 from .config import ConfigError, initialize_settings, load_settings, update_profile
 from .doctor import doctor_payload
+from .errors import AppError
 from .notes import NoteWriteError, audit_vault
 from .onboarding import (
     OnboardingError,
@@ -66,6 +67,12 @@ def _parser() -> argparse.ArgumentParser:
     audit = sub.add_parser("audit-vault", help="免费检查 Vault 中的重复来源笔记")
     audit.add_argument("--config", type=Path)
     audit.add_argument("--json", action="store_true")
+
+    knowledge = sub.add_parser(
+        "knowledge-run", help="从标准输入读取已选笔记并生成衍生知识"
+    )
+    knowledge.add_argument("--config", type=Path)
+    knowledge.add_argument("--json", action="store_true")
 
     route = sub.add_parser("route", help="只识别视频平台和分析档位")
     route.add_argument("share_text")
@@ -246,6 +253,24 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"重复来源组：{len(payload['duplicate_groups'])}")
                 print(f"不可读文件：{payload['unreadable_files']}")
             return 0 if payload["ok"] else 1
+        if args.command == "knowledge-run":
+            from .knowledge import run_knowledge_request
+            from .kimi import KimiVideoClient
+
+            try:
+                raw = sys.stdin.read()
+                payload = json.loads(raw)
+            except (OSError, json.JSONDecodeError) as exc:
+                raise AppError(
+                    "invalid_knowledge_request", "知识激活请求不是有效 JSON。"
+                ) from exc
+            if not isinstance(payload, dict):
+                raise AppError("invalid_knowledge_request", "知识激活请求结构无效。")
+            result = run_knowledge_request(
+                payload, client=KimiVideoClient(load_settings(args.config))
+            )
+            print(json.dumps(result, ensure_ascii=False))
+            return 0
         if args.command == "route":
             print(json.dumps(route_share_text(args.share_text, save_video=args.save_video).to_dict(), ensure_ascii=False, indent=2))
             return 0
@@ -418,7 +443,11 @@ def main(argv: list[str] | None = None) -> int:
         OnboardingError,
         NoteWriteError,
         PrivatePermissionError,
+        AppError,
     ) as exc:
-        print(f"错误：{exc}")
+        if isinstance(exc, AppError) and getattr(args, "json", False):
+            print(json.dumps(exc.payload(), ensure_ascii=False))
+        else:
+            print(f"错误：{exc}")
         return 2
     return 2

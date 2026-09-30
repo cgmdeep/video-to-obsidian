@@ -1,6 +1,6 @@
 # v0.1.0 Alpha 发布门槛
 
-`v0.1.0-alpha.11` 是针对 xos 图形复验 P0 的未签名 GitHub Pre-release 候选，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
+`v0.1.0-alpha.12` 是补齐本地 Obsidian “知识激活”助手的未签名 GitHub Pre-release 候选，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
 
 ## 已完成
 
@@ -138,7 +138,7 @@
 - Release workflow [`#36676663404`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36676663404)、CI [`#36676288507`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36676288507) 与 Security [`#36676288491`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36676288491) 均成功；126 项核心测试通过、1 项跳过，标签源码测试、Python 包、单文件安装器、首次准备、图形合同、修复/卸载生命周期和发布资产上传全部通过；
 - `VideoToObsidian.Setup.exe`：71,695,349 字节，SHA256 `92058f99aada21dd107caaba9d4cf1829e93130fb2d7c20314a36bb817031f3c`；本地重新下载后与 Release `SHA256SUMS` 及 GitHub 资产摘要一致，SPDX 2.3 SBOM 含 18 个 packages；
 - xos 实机安装后，Obsidian 于本轮退出并以新 Vault ID 重新启动；ZCode 以 `--open-workspace` 和受管工作区路径启动，工作区四个托管入口文件同时重新生成；
-- 发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.11>。同版 EXE、`SHA256SUMS` 与 SBOM 已上传 COS；对象公开回读与 EdgeOne 生产切换继续作为发布闸门。
+- 发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.11>。同版 EXE、`SHA256SUMS` 与 SBOM 已上传 COS 并分别设为公有读、私有写；公共回读通过 HTTP 200/206、71,695,349 字节、SHA-256、校验清单和 SPDX 2.3 JSON（18 packages）验证。EdgeOne 生产切换与官网路径回读继续作为发布闸门。
 
 ### 2026-09-30 图形安装器动作证据
 

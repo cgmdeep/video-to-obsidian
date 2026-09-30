@@ -130,7 +130,7 @@ jobs:
             throw "Published setup failed embedded payload verification (exit $($Process.ExitCode))."
           }
           $Report = Get-Content $Verification -Raw | ConvertFrom-Json
-          if (-not $Report.has_selenium -or -not $Report.sha256) {
+          if (-not $Report.has_selenium -or -not $Report.has_obsidian_plugin -or -not $Report.sha256) {
             throw "Published setup contains an invalid embedded wheel."
           }
       - name: Upload Windows onboarding

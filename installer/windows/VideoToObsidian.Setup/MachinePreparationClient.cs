@@ -1,4 +1,6 @@
 using System.IO;
+using System.Reflection;
+using System.Text;
 using System.Text.Json;
 
 namespace VideoToObsidian.Setup;
@@ -127,6 +129,9 @@ internal sealed class MachinePreparationClient
             }
         );
 
+        report("正在安装 Obsidian 知识激活助手…");
+        InstallObsidianPlugin(normalizedVault);
+
         report("正在创建微信助手专用工作区…");
         await _backend.RunJsonAsync(
             new[] { "bootstrap-workspace", "--workspace", normalizedWorkspace, "--json" }
@@ -136,6 +141,60 @@ internal sealed class MachinePreparationClient
         await _backend.RunJsonAsync(
             new[] { "harden-zcode-model-permissions", "--json" }
         );
+    }
+
+    internal static void InstallObsidianPlugin(string vaultPath)
+    {
+        const string pluginId = "shizhiku-local";
+        var obsidianDirectory = Path.Combine(vaultPath, ".obsidian");
+        var pluginDirectory = Path.Combine(obsidianDirectory, "plugins", pluginId);
+        Directory.CreateDirectory(pluginDirectory);
+
+        var assembly = Assembly.GetExecutingAssembly();
+        foreach (var filename in new[] { "main.js", "manifest.json", "styles.css" })
+        {
+            var resourceName = $"ObsidianPlugin/{filename}";
+            using var resource = assembly.GetManifestResourceStream(resourceName)
+                ?? throw new InvalidOperationException($"安装包缺少 Obsidian 插件资源：{filename}");
+            var target = Path.Combine(pluginDirectory, filename);
+            var temporary = target + ".tmp";
+            using (var output = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                resource.CopyTo(output);
+                output.Flush(true);
+            }
+            File.Move(temporary, target, true);
+        }
+
+        var enabledPath = Path.Combine(obsidianDirectory, "community-plugins.json");
+        var enabled = new List<string>();
+        if (File.Exists(enabledPath))
+        {
+            try
+            {
+                enabled = JsonSerializer.Deserialize<List<string>>(
+                    File.ReadAllText(enabledPath, Encoding.UTF8)
+                ) ?? new List<string>();
+            }
+            catch (JsonException exception)
+            {
+                throw new InvalidOperationException(
+                    "Obsidian 社区插件配置无效，为避免覆盖用户设置已停止。",
+                    exception
+                );
+            }
+        }
+        if (!enabled.Contains(pluginId, StringComparer.Ordinal))
+        {
+            enabled.Add(pluginId);
+        }
+        var enabledTemporary = enabledPath + ".tmp";
+        File.WriteAllText(
+            enabledTemporary,
+            JsonSerializer.Serialize(enabled, new JsonSerializerOptions { WriteIndented = true }),
+            new UTF8Encoding(false)
+        );
+        File.Move(enabledTemporary, enabledPath, true);
     }
 
     private static string? ReadConfiguredString(string key)

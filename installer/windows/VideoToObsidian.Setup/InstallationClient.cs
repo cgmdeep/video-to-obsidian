@@ -218,12 +218,27 @@ internal sealed class InstallationClient
         {
             throw new InvalidOperationException("内嵌 wheel 缺少 Selenium 依赖。");
         }
+        var pluginResources = assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith("ObsidianPlugin/", StringComparison.Ordinal))
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+        var expectedPluginResources = new[]
+        {
+            "ObsidianPlugin/main.js",
+            "ObsidianPlugin/manifest.json",
+            "ObsidianPlugin/styles.css",
+        };
+        if (!pluginResources.SequenceEqual(expectedPluginResources, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException("安装包中的 Obsidian 插件资源不完整。");
+        }
         var report = new
         {
             schema_version = 1,
             resource = resources[0],
             sha256 = Convert.ToHexString(SHA256.HashData(bytes)),
             has_selenium = true,
+            has_obsidian_plugin = true,
             contains_secrets = false,
         };
         var parent = Path.GetDirectoryName(Path.GetFullPath(destination));

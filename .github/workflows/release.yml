@@ -111,7 +111,7 @@ jobs:
             throw "Published setup failed embedded payload verification (exit $($Process.ExitCode))."
           }
           $Payload = Get-Content $Report -Raw | ConvertFrom-Json
-          if (-not $Payload.has_selenium -or -not $Payload.sha256) {
+          if (-not $Payload.has_selenium -or -not $Payload.has_obsidian_plugin -or -not $Payload.sha256) {
             throw 'Published setup contains an invalid embedded wheel.'
           }
       - name: Run full free first-time preparation
@@ -151,6 +151,13 @@ jobs:
           }
           if (-not $Payload.vault_created -or -not $Payload.workspace_created) {
             throw 'Installer did not create both the default Vault and workspace.'
+          }
+          $Vault = Join-Path ([Environment]::GetFolderPath('MyDocuments')) '视知库'
+          $Plugin = Join-Path $Vault '.obsidian\plugins\shizhiku-local'
+          foreach ($Name in @('main.js', 'manifest.json', 'styles.css')) {
+            if (-not (Test-Path (Join-Path $Plugin $Name))) {
+              throw "Installer did not install Obsidian knowledge plugin asset: $Name"
+            }
           }
           if ($Payload.contains_secrets -or $Payload.paid_call_performed) {
             throw 'Free preparation reported secrets or a paid call.'

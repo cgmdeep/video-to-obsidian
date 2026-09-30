@@ -39,7 +39,7 @@ Firefox Profile：VideoToObsidian
 1. 不得打印、回显、提交或写入日志的内容：API Key、Cookie、Bearer、浏览器数据库和签名媒体 URL。
 2. 不得从网络下载共享 Cookie。
 3. 不得把配置密钥、运行状态、缓存或视频写入 Vault。
-4. 不得编辑用户现有 `.obsidian`。
+4. 除用户在安装/修复向导中明确选定的 Vault 外，不得编辑任何 `.obsidian`。向导只能原子更新 `.obsidian/plugins/shizhiku-local` 和对 `community-plugins.json` 增量加入本插件 ID；必须保留其他插件和设置，配置无效时拒绝覆盖。
 5. 不得覆盖没有本项目稳定身份标记的 Markdown。
 6. 不得修改 ZCode 中无关的 MCP 或模型供应商配置。只有用户明确选择“无 Coding Plan，
    复用 Kimi Key”时，才可通过 `configure-zcode-moonshot` 增量添加受管 Moonshot 供应商；

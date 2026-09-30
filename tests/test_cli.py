@@ -159,3 +159,24 @@ def test_support_report_cli_is_bounded_and_free(monkeypatch, capsys) -> None:
     assert payload["paid_call_performed"] is False
     assert "private-user" not in serialized
     assert "private-provider" not in serialized
+
+
+def test_knowledge_cli_reads_json_from_stdin_without_echoing_key(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(cli.sys, "stdin", io.StringIO('{"operation":"ask","sources":[]}'))
+    monkeypatch.setattr(cli, "load_settings", lambda _: SimpleNamespace())
+    monkeypatch.setattr(
+        "video_to_obsidian.kimi.KimiVideoClient", lambda _: SimpleNamespace()
+    )
+    monkeypatch.setattr(
+        "video_to_obsidian.knowledge.run_knowledge_request",
+        lambda payload, client: {
+            "ok": True,
+            "status": "succeeded",
+            "secret_displayed": False,
+            "paid_call_performed": True,
+        },
+    )
+    assert cli.main(["knowledge-run", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["ok"] is True
+    assert result["secret_displayed"] is False

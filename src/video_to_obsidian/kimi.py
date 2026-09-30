@@ -391,3 +391,67 @@ class KimiVideoClient:
             tuple(warnings),
             completed.diagnostics,
         )
+
+    def analyze_text(self, prompt: str, *, mode: str = "standard") -> KimiResult:
+        """Make one text-only call for local knowledge activation."""
+        if not self.api_key:
+            raise AppError("missing_kimi_key", "未配置 Kimi API Key，无法生成衍生知识。")
+        if mode not in {"standard", "deep"}:
+            raise AppError("unsupported_mode", "分析强度只能是 standard 或 deep。")
+        model = self.settings.deep_model if mode == "deep" else self.settings.default_model
+        max_tokens = self.settings.deep_max_tokens if mode == "deep" else self.settings.vision_max_tokens
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_completion_tokens": max_tokens,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+        content_parts: list[str] = []
+        reasoning_chars = 0
+        refusal_chars = 0
+        finish_reason = ""
+        usage: dict[str, Any] = {}
+        for chunk in self.transport.stream_chat(payload):
+            numeric = _numeric_only(chunk.get("usage"))
+            if isinstance(numeric, dict) and numeric:
+                usage = numeric
+            choices = chunk.get("choices")
+            if not isinstance(choices, list) or not choices:
+                continue
+            choice = choices[0]
+            if not isinstance(choice, dict):
+                raise AppError("kimi_invalid_response", "Kimi choice 结构无效。")
+            if choice.get("finish_reason") is not None:
+                finish_reason = str(choice.get("finish_reason") or "")
+            delta = choice.get("delta") if isinstance(choice.get("delta"), dict) else {}
+            content = delta.get("content")
+            if content is not None and not isinstance(content, str):
+                raise AppError("kimi_invalid_response", "Kimi 正文不是文本格式。")
+            if content:
+                content_parts.append(content)
+            reasoning_chars += sum(
+                _text_length(delta.get(key))
+                for key in ("reasoning_content", "reasoning", "reasoning_details")
+            )
+            refusal_chars += _text_length(delta.get("refusal"))
+        body = "".join(content_parts).strip()
+        diagnostics = {
+            "retryable": False,
+            "kimi_attempts": 1,
+            "finish_reason": finish_reason,
+            "usage": usage,
+            "content_chars": len(body),
+            "reasoning_chars": reasoning_chars,
+            "refusal_chars": refusal_chars,
+            "model": model,
+            "max_completion_tokens": max_tokens,
+        }
+        lowered_reason = finish_reason.lower()
+        if refusal_chars or lowered_reason in {"content_filter", "safety", "refusal"}:
+            raise AppError("kimi_model_refused", "Kimi 未提供可用正文。", details=diagnostics)
+        if lowered_reason == "length":
+            raise AppError("kimi_output_budget_exhausted", "Kimi 输出预算耗尽。", details=diagnostics)
+        if len(body) < 80:
+            raise AppError("kimi_empty_response", "Kimi 没有返回足够的衍生知识正文。", details=diagnostics)
+        return KimiResult(body, (), (), diagnostics)

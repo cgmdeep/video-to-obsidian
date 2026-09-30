@@ -100,8 +100,15 @@ jobs:
           if (-not (Test-Path $ProfilesIni) -or (Get-Content $ProfilesIni -Raw) -notmatch '(?m)^Name=VideoToObsidian$') {
             throw 'Installer did not create the isolated VideoToObsidian Firefox profile.'
           }
-          if (Test-Path (Join-Path $Vault '.obsidian')) {
-            throw 'Standard preparation must not create .obsidian or install community plugins.'
+          $Plugin = Join-Path $Vault '.obsidian\plugins\shizhiku-local'
+          foreach ($Name in @('main.js', 'manifest.json', 'styles.css')) {
+            if (-not (Test-Path (Join-Path $Plugin $Name))) {
+              throw "Standard preparation did not install Obsidian knowledge plugin asset: $Name"
+            }
+          }
+          $Enabled = Get-Content (Join-Path $Vault '.obsidian\community-plugins.json') -Raw | ConvertFrom-Json
+          if ($Enabled -notcontains 'shizhiku-local') {
+            throw 'Standard preparation did not enable the Obsidian knowledge plugin.'
           }
           $ZCodePath = Join-Path $Workspace '.zcode\config.json'
           $ZCode = Get-Content $ZCodePath -Raw | ConvertFrom-Json

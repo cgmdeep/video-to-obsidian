@@ -20,6 +20,7 @@ $RoamingRoot = Join-Path $env:APPDATA 'VideoToObsidian'
 $LocalRoot = Join-Path $env:LOCALAPPDATA 'VideoToObsidian'
 $ConfigPath = Join-Path $RoamingRoot 'config.toml'
 $ProfilesIni = Join-Path $env:APPDATA 'Mozilla\Firefox\profiles.ini'
+$CommunityPlugins = Join-Path $Vault '.obsidian\community-plugins.json'
 $VaultSentinel = Join-Path $Vault 'lifecycle-vault-sentinel.txt'
 $WorkspaceSentinel = Join-Path $Workspace 'lifecycle-workspace-sentinel.txt'
 $SourceUninstall = Join-Path $PSScriptRoot 'uninstall.ps1'
@@ -80,6 +81,9 @@ $WorkspacePayload.mcp.servers | Add-Member -NotePropertyName 'unrelated-test-ser
     url = 'http://127.0.0.1:9/mcp'
 }) -Force
 $WorkspacePayload | ConvertTo-Json -Depth 20 | Set-Content $WorkspaceConfig -Encoding utf8
+$EnabledPlugins = @(Get-Content $CommunityPlugins -Raw | ConvertFrom-Json)
+$EnabledPlugins += 'unrelated-test-plugin'
+$EnabledPlugins | ConvertTo-Json | Set-Content $CommunityPlugins -Encoding utf8
 Set-Content $VaultSentinel 'preserve vault' -Encoding utf8
 Set-Content $WorkspaceSentinel 'preserve workspace' -Encoding utf8
 
@@ -117,6 +121,10 @@ $AfterSourceReinstall = Get-Content $WorkspaceConfig -Raw | ConvertFrom-Json
 $SourceReinstallServerNames = @($AfterSourceReinstall.mcp.servers.PSObject.Properties.Name)
 if ($SourceReinstallServerNames -notcontains 'video-to-obsidian' -or $SourceReinstallServerNames -notcontains 'unrelated-test-server') {
     throw 'Reinstall after source uninstall did not restore managed MCP while preserving unrelated configuration.'
+}
+$AfterSourceReinstallPlugins = @(Get-Content $CommunityPlugins -Raw | ConvertFrom-Json)
+if ($AfterSourceReinstallPlugins -notcontains 'shizhiku-local' -or $AfterSourceReinstallPlugins -notcontains 'unrelated-test-plugin') {
+    throw 'Reinstall did not preserve unrelated Obsidian plugins while restoring the managed plugin.'
 }
 
 # A real user may select a custom Vault and transcript profile during the first

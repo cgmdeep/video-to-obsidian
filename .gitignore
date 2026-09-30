@@ -8,6 +8,7 @@ build/
 artifacts/
 *.egg-info/
 .DS_Store
+node_modules/
 
 # Secrets and local configuration
 .env
