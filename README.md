@@ -14,9 +14,9 @@
 
 也可以直接把完整分享文本粘贴到 ZCode。
 
-> 当前状态：`v0.1.0-alpha.8` 是已公开的未签名 Pre-release。Windows 干净 Runner 已完成单文件安装、原地修复、安全卸载、重装、受管私有目录清理、私有 ACL、Obsidian Vault 登记与 ZCode 工作区启动参数验收；独立 Windows 11 ROG 已完成普通账户图形安装、真实配置权限修复，以及抖音小视频、B站约 20 分钟典型视频和 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库和 ZCode 官方微信 Bot 双平台输入验收。多说话人、反讽/引用、音画冲突与偏好优先级固定集已完成有界的 3 次付费验收；戏仿/夸张/反问、20 人体验、真实平台登录失效和付费服务中断仍待补齐，因此不能描述为生产可用。
+> 当前状态：`v0.1.0-alpha.9` 是已公开的未签名 Pre-release。Windows 干净 Runner 已完成单文件安装、原地修复、安全卸载、重装、受管私有目录清理、私有 ACL、Obsidian Vault 登记与 ZCode 工作区启动参数验收；独立 Windows 11 ROG 已完成普通账户图形安装、真实配置权限修复，以及抖音小视频、B站约 20 分钟典型视频和 37 分钟长视频的真实下载、Kimi K2.7 单次分析、Obsidian 入库和 ZCode 官方微信 Bot 双平台输入验收。多说话人、反讽/引用、音画冲突与偏好优先级固定集已完成有界的 3 次付费验收；戏仿/夸张/反问、20 人体验、真实平台登录失效和付费服务中断仍待补齐，因此不能描述为生产可用。
 
-官网 [shizhiku.cn](https://shizhiku.cn/) 已提供 `alpha.8` 的 COS 国内镜像和 GitHub 备用下载；安装包为 71,693,307 字节，SHA-256 为 `0fe876dee6cd6e584cd068d4df3bcd86e0f6995678077b57b1e163199a08d21f`。
+官网 [shizhiku.cn](https://shizhiku.cn/) 提供 COS 国内镜像和 GitHub 备用下载；安装包大小与 SHA-256 以当前 Release 的 `SHA256SUMS` 为准。
 
 主线阶段、完成门槛与暂停项见 [`docs/PRODUCT_ROADMAP.md`](docs/PRODUCT_ROADMAP.md)。
 

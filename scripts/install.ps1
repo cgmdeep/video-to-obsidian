@@ -37,7 +37,7 @@ function Install-WingetPackage([string]$Id, [string]$Name) {
         throw "安装 $Name 需要 Windows 11 自带的 winget。请先从 Microsoft Store 更新‘应用安装程序’。"
     }
     Write-Host "安装或更新 $Name（$Id）..."
-    & winget install --id $Id --exact --silent --accept-package-agreements --accept-source-agreements
+    & winget install --id $Id --exact --source winget --silent --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -ne 0) { throw "$Name 安装失败（winget exit $LASTEXITCODE）。" }
 }
 

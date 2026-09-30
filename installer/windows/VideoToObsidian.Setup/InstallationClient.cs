@@ -82,13 +82,20 @@ internal sealed class InstallationClient
 
         await EnsureFirefoxAsync(winget, report);
         await EnsureObsidianAsync(winget, report);
-        await EnsureWingetPackageAsync(
-            winget,
-            "Gyan.FFmpeg.Essentials",
-            "ffmpeg 精简组件",
-            report,
-            TimeSpan.FromMinutes(30)
-        );
+        if (await HasWorkingFfmpegAsync())
+        {
+            report("ffmpeg / ffprobe 已可用，跳过重复安装。");
+        }
+        else
+        {
+            await EnsureWingetPackageAsync(
+                winget,
+                "Gyan.FFmpeg.Essentials",
+                "ffmpeg 精简组件",
+                report,
+                TimeSpan.FromMinutes(30)
+            );
+        }
         await EnsureFirefoxProfileAsync(report);
     }
 
@@ -108,6 +115,8 @@ internal sealed class InstallationClient
                 "--id",
                 "Python.Python.3.12",
                 "--exact",
+                "--source",
+                "winget",
                 "--silent",
                 "--accept-package-agreements",
                 "--accept-source-agreements",
@@ -245,7 +254,7 @@ internal sealed class InstallationClient
         report($"正在检查 {displayName}…");
         var list = await TryCaptureAsync(
             winget,
-            new[] { "list", "--id", id, "--exact" },
+            new[] { "list", "--id", id, "--exact", "--source", "winget" },
             TimeSpan.FromMinutes(2)
         );
         if (list.ExitCode == 0 && list.Stdout.Contains(id, StringComparison.OrdinalIgnoreCase))
@@ -261,12 +270,33 @@ internal sealed class InstallationClient
                 "--id",
                 id,
                 "--exact",
+                "--source",
+                "winget",
                 "--silent",
                 "--accept-package-agreements",
                 "--accept-source-agreements",
             },
             installTimeout ?? TimeSpan.FromMinutes(10)
         );
+    }
+
+    private static async Task<bool> HasWorkingFfmpegAsync()
+    {
+        var ffmpeg = await TryCaptureAsync(
+            "ffmpeg",
+            new[] { "-version" },
+            TimeSpan.FromSeconds(30)
+        );
+        if (ffmpeg.ExitCode != 0)
+        {
+            return false;
+        }
+        var ffprobe = await TryCaptureAsync(
+            "ffprobe",
+            new[] { "-version" },
+            TimeSpan.FromSeconds(30)
+        );
+        return ffprobe.ExitCode == 0;
     }
 
     private static async Task EnsureFirefoxAsync(string winget, Action<string> report)
@@ -279,7 +309,15 @@ internal sealed class InstallationClient
         report("正在检查 Firefox…");
         var list = await TryCaptureAsync(
             winget,
-            new[] { "list", "--id", "Mozilla.Firefox", "--exact" },
+            new[]
+            {
+                "list",
+                "--id",
+                "Mozilla.Firefox",
+                "--exact",
+                "--source",
+                "winget",
+            },
             TimeSpan.FromMinutes(2)
         );
         if (list.ExitCode == 0
@@ -378,43 +416,12 @@ internal sealed class InstallationClient
 
     private static async Task EnsureObsidianAsync(string winget, Action<string> report)
     {
-        report("正在检查 Obsidian…");
-        foreach (var id in new[] { "XP8K51FR765RLD", "Obsidian.Obsidian" })
-        {
-            var list = await TryCaptureAsync(
-                winget,
-                new[] { "list", "--id", id, "--exact" },
-                TimeSpan.FromMinutes(2)
-            );
-            if (list.ExitCode == 0 && list.Stdout.Contains(id, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-        }
-
-        report("正在通过 Microsoft Store 安装 Obsidian…");
-        var storeInstall = await TryCaptureAsync(
-            winget,
-            new[]
-            {
-                "install",
-                "--id",
-                "XP8K51FR765RLD",
-                "--exact",
-                "--source",
-                "msstore",
-                "--silent",
-                "--accept-package-agreements",
-                "--accept-source-agreements",
-            },
-            TimeSpan.FromMinutes(10)
-        );
-        if (storeInstall.ExitCode == 0)
+        if (FindObsidianExecutable() is not null)
         {
             return;
         }
-
-        report("Microsoft Store 暂时不可用，正在尝试 Windows 软件源…");
+        report("正在检查 Obsidian…");
+        report("正在通过 Windows 软件源安装 Obsidian…");
         var communityInstall = await TryCaptureAsync(
             winget,
             new[]
