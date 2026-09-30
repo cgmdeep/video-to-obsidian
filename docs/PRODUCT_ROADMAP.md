@@ -26,7 +26,7 @@
 
 ## P0：可下载、可安装、可验证
 
-状态：进行中。`v0.1.0-alpha.10` 的三项发行资产已完成 COS 公有读与公共回读，但 xos 图形复验发现 P0，不能部署为最终官网版本；现在构建 `v0.1.0-alpha.11`，待同版公共回读后切换 EdgeOne。
+状态：进行中。`v0.1.0-alpha.11` 已完成标签 Release、干净 Runner 生命周期与 xos 图形复验；同版三项资产已上传 COS，待对象公共回读后切换 EdgeOne。
 
 - Windows 单文件安装器和版本化 GitHub Release；
 - 国内下载镜像使用 COS 的版本化对象路径，官网展示准确体积和 SHA256；
@@ -82,7 +82,7 @@
 
 ## P5：公开 Alpha
 
-状态：Windows `v0.1.0-alpha.11` 正在针对 xos 图形复验暴露的两个 P0 构建；正确的 ZCode `--open-workspace` 参数已在 xos 直接验证返回成功，Obsidian 将在登记前完成退出并重启。发布冻结前还差同版 Release、COS/官网切换，以及一轮完全按官网路径执行的 B站陌生用户首装闭环与缓存复验。完整双平台陌生用户路径改为上线后加固项。Mac 公开版由独立任务推进，不阻塞 Windows 验收。
+状态：Windows `v0.1.0-alpha.11` 已发布并在 xos 验证 Obsidian 强制重载新 Vault、ZCode 通过 `--open-workspace` 打开专用工作区。发布冻结前还差 COS/官网切换，以及一轮完全按官网路径执行的 B站陌生用户首装闭环与缓存复验。完整双平台陌生用户路径改为上线后加固项。Mac 公开版由独立任务推进，不阻塞 Windows 验收。
 
 - Windows 与 Mac 分别发布版本化安装包、SHA256、SBOM、已知限制和卸载说明；
 - 未签名版本明确 SmartScreen/Gatekeeper 风险；签名、公证和自动更新作为发布增强单独验收；
