@@ -39,6 +39,7 @@ public partial class MainWindow : Window
                 Dispatcher.Invoke(() => StatusText.Text = message);
             });
             await RefreshStatusAsync();
+            OpenPreparedDestinations();
         });
     }
 
@@ -59,6 +60,7 @@ public partial class MainWindow : Window
             await _backend.RunJsonAsync(new[] { "ensure-zcode-model", "--json" });
             KimiKeyBox.Clear();
             await RefreshStatusAsync();
+            OpenPreparedDestinations();
         });
     }
 
@@ -153,6 +155,72 @@ public partial class MainWindow : Window
                 Arguments = $"\"{_workspacePath}\"",
             }
         );
+    }
+
+    private void OpenPreparedDestinations()
+    {
+        var opened = new List<string>();
+        var warnings = new List<string>();
+
+        var vaultPath = VaultPathBox.Text.Trim();
+        if (Directory.Exists(vaultPath))
+        {
+            try
+            {
+                var vaultId = ObsidianVaultRegistry.EnsureRegistered(vaultPath);
+                var uri = "obsidian://open?vault=" + Uri.EscapeDataString(vaultId);
+                Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
+                opened.Add("Obsidian 知识库");
+            }
+            catch (Exception exception) when (
+                exception is IOException
+                or UnauthorizedAccessException
+                or JsonException
+                or ArgumentException
+                or NotSupportedException
+                or PathTooLongException
+            )
+            {
+                warnings.Add("Obsidian 未自动打开，可点击“打开 Obsidian 知识库”重试");
+            }
+        }
+
+        Directory.CreateDirectory(_workspacePath);
+        var zcode = FindZCodeExecutable();
+        if (zcode is not null)
+        {
+            try
+            {
+                Process.Start(
+                    new ProcessStartInfo(zcode)
+                    {
+                        UseShellExecute = true,
+                        Arguments = $"\"{_workspacePath}\"",
+                    }
+                );
+                opened.Add("ZCode 专用工作区");
+            }
+            catch (Exception exception) when (
+                exception is InvalidOperationException
+                or System.ComponentModel.Win32Exception
+            )
+            {
+                warnings.Add("ZCode 工作区未自动打开，可点击“在 ZCode 中打开”重试");
+            }
+        }
+        else
+        {
+            warnings.Add("尚未找到 ZCode；安装后点击“在 ZCode 中打开”即可载入专用工作区");
+        }
+
+        var summary = opened.Count > 0
+            ? "已自动打开：" + string.Join("、", opened) + "。"
+            : "本机准备已完成。";
+        if (warnings.Count > 0)
+        {
+            summary += " " + string.Join("；", warnings) + "。";
+        }
+        StatusText.Text = summary;
     }
 
     private static string? FindZCodeExecutable()
