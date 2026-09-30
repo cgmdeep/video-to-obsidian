@@ -34,3 +34,15 @@ def test_release_versions_are_aligned() -> None:
     assert values["FileVersion"] == file_version
     assert values["InformationalVersion"] == informational_version
     assert (ROOT / "docs" / "releases" / f"v{informational_version}.md").is_file()
+
+
+def test_obsidian_plugin_uses_utf8_json_and_narrow_safe_layout() -> None:
+    source = (ROOT / "obsidian-plugin" / "main.ts").read_text(encoding="utf-8")
+    styles = (ROOT / "obsidian-plugin" / "styles.css").read_text(encoding="utf-8")
+
+    assert 'PYTHONUTF8: "1"' in source
+    assert 'PYTHONIOENCODING: "utf-8"' in source
+    assert "overflow-x:hidden" in styles
+    assert "text-overflow:ellipsis" in styles
+    assert "white-space:pre-line" in styles
+    assert "overflow-wrap:anywhere" in styles

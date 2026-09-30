@@ -78,7 +78,14 @@ export default class ShizhikuPlugin extends Plugin {
 
   private invoke(input: string): Promise<RunResult> {
     return new Promise((resolve, reject) => {
-      const child = spawn(this.executable(), ["knowledge-run", "--json"], { windowsHide: true, shell: false, stdio: ["pipe", "pipe", "pipe"] });
+      const child = spawn(this.executable(), ["knowledge-run", "--json"], {
+        windowsHide: true,
+        shell: false,
+        stdio: ["pipe", "pipe", "pipe"],
+        // Windows otherwise decodes stdin and encodes stdout with the active
+        // ANSI code page.  The plugin contract is UTF-8 JSON on every machine.
+        env: { ...process.env, PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" }
+      });
       const stdout: Buffer[] = [];
       const stderr: Buffer[] = [];
       let size = 0;
@@ -98,7 +105,7 @@ export default class ShizhikuPlugin extends Plugin {
           if (code !== 0 || !result.ok) reject(new Error(result.error || "知识生成失败。")); else resolve(result);
         } catch (error) {
           const detail = Buffer.concat(stderr).toString("utf8").trim();
-          reject(new Error(detail || (error instanceof Error ? error.message : "无法解析本机核心返回。")));
+          reject(new Error(detail || (text ? "本机核心返回格式异常，请运行安装器的“安装 / 修复本机”。" : (error instanceof Error ? error.message : "无法解析本机核心返回。"))));
         }
       });
       child.stdin.end(input, "utf8");
