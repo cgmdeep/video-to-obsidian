@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from pathlib import PurePath
+from pathlib import PurePosixPath
 from typing import Any
 from uuid import uuid4
 
@@ -43,7 +43,9 @@ def _validate(operation: str, mode: str, sources: list[KnowledgeSource]) -> None
 
 
 def _wikilink(name: str) -> str:
-    path = str(PurePath(name))
+    # Obsidian vault paths always use forward slashes, including when the
+    # local core is running on Windows.
+    path = str(PurePosixPath(name.replace("\\", "/")))
     if path.lower().endswith(".md"):
         path = path[:-3]
     return f"[[{path}]]"
@@ -61,7 +63,7 @@ def _display_name(source: KnowledgeSource) -> str:
                 parsed = raw.strip("'\"")
             if isinstance(parsed, str) and parsed.strip():
                 return parsed.strip()
-    return PurePath(source.name).stem
+    return PurePosixPath(source.name.replace("\\", "/")).stem
 
 
 def build_prompt(operation: str, question: str, sources: list[KnowledgeSource]) -> str:
