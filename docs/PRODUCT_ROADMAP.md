@@ -4,7 +4,7 @@
 
 ## 上线冲刺模式（2026-09-30）
 
-当前不再扩展功能，先冻结一个可公开下载、可录制、可复现的 Windows Alpha。`v0.1.0-alpha.10` 候选已通过主线 Windows 编译与测试，补齐配置完成后自动打开 Obsidian 知识库和 ZCode 专用工作区；现在执行正式 Release、COS/官网切换和最终闭环冻结。
+当前不再扩展功能，先冻结一个可公开下载、可录制、可复现的 Windows Alpha。`v0.1.0-alpha.10` 已完成正式 Pre-release、主线 Windows 编译与测试，并补齐配置完成后自动打开 Obsidian 知识库和 ZCode 专用工作区；现在执行 COS/官网切换、xos 图形复验和最终闭环冻结。
 
 上线/录制前只保留以下最小闸门：
 
@@ -26,7 +26,7 @@
 
 ## P0：可下载、可安装、可验证
 
-状态：进行中。`v0.1.0-alpha.10` 候选的 CI 与 Security 已成功，等待标签 Release 后再上传同版 COS 国内镜像、完成公共回读并切换 EdgeOne 生产官网。
+状态：进行中。`v0.1.0-alpha.10` 的 Release、CI 与 Security 已成功，同版三项发行资产已上传 COS；等待对象公有读与公共回读后切换 EdgeOne 生产官网。
 
 - Windows 单文件安装器和版本化 GitHub Release；
 - 国内下载镜像使用 COS 的版本化对象路径，官网展示准确体积和 SHA256；
@@ -82,7 +82,7 @@
 
 ## P5：公开 Alpha
 
-状态：Windows `v0.1.0-alpha.10` 候选已通过主线测试和 Windows 构建；xos 已用 `alpha.9` 证明 `msstore` 绕行修复有效，`alpha.10` 还需复验自动打开两个工作区。发布冻结前还差同版 COS/官网切换，以及一轮完全按官网路径执行的 B站陌生用户首装闭环与缓存复验。完整双平台陌生用户路径改为上线后加固项。Mac 公开版由独立任务推进，不阻塞 Windows 验收。
+状态：Windows `v0.1.0-alpha.10` 已完成 Pre-release、主线测试和 Windows 构建；xos 已用 `alpha.9` 证明 `msstore` 绕行修复有效，`alpha.10` 还需复验自动打开两个工作区。发布冻结前还差同版 COS/官网切换，以及一轮完全按官网路径执行的 B站陌生用户首装闭环与缓存复验。完整双平台陌生用户路径改为上线后加固项。Mac 公开版由独立任务推进，不阻塞 Windows 验收。
 
 - Windows 与 Mac 分别发布版本化安装包、SHA256、SBOM、已知限制和卸载说明；
 - 未签名版本明确 SmartScreen/Gatekeeper 风险；签名、公证和自动更新作为发布增强单独验收；
