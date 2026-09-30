@@ -1,6 +1,6 @@
 # v0.1.0 Alpha 发布门槛
 
-`v0.1.0-alpha.8` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
+`v0.1.0-alpha.9` 是未签名 GitHub Pre-release，不是稳定版。发布流水线必须从标签重新测试、构建，在干净 Windows Runner 运行免费安装与卸载生命周期验收，并同时生成 SHA256 与 SBOM。真实付费样本、图形交互验收和规模稳定性中的未完成项必须继续作为 Release 已知限制公开，不得写成已通过。
 
 ## 已完成
 
@@ -46,7 +46,7 @@
 - [x] 仓库已切换为 Public，GitHub Private Vulnerability Reporting API 报告 `enabled: true`，公开 Security Policy 页面可访问。
 - [x] 完成真实付费样本后，在验收记录中填写 usage、当日官方单价与费用估算；README 不写死每条价格，也不把估算冒充账单实扣值。
 - [x] 2026-09-29 按 Kimi 与 ZCode 官方文档核验 README 中模型名称、K3 充值门槛、官方价格入口、ZCode 安装与 Bot Channel 入口仍有效。
-- [x] `v0.1.0-alpha.8` 标签构建生成版本化 EXE、`SHA256SUMS`、SPDX SBOM、发行说明和干净 Runner 报告。
+- [x] `v0.1.0-alpha.9` 标签构建生成版本化 EXE、`SHA256SUMS`、SPDX SBOM、发行说明和干净 Runner 报告。
 
 ### 2026-09-29 本地一致性与失败恢复固定集
 
@@ -114,6 +114,14 @@
 - `VideoToObsidian.Setup.exe`：71,693,307 字节，SHA256 `0fe876dee6cd6e584cd068d4df3bcd86e0f6995678077b57b1e163199a08d21f`；
 - 本地重新下载全部发布资产后，`SHA256SUMS` 对 EXE、Python wheel/sdist、SPDX 2.3 SBOM 和全部干净 Runner 报告校验通过；UI 证据为 schema 3、`ok=true`、13 个必需按钮，Obsidian Vault 登记/配置保留/备份、ZCode 工作区参数、抖音/B站登录启动动作均为 `true`；同时 `contains_secrets=false`、`contains_local_paths=false`、`paid_call_performed=false`；
 - 发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.8>。EXE、`SHA256SUMS` 与 SBOM 已上传腾讯云 COS 并单独设为公有读、私有写，公共回读通过 HTTP 200/206、71,693,307 字节、SHA-256、校验清单和 SPDX 2.3 JSON 验证；EdgeOne 生产部署 `dpyvum4kubwi` 已于 2026-09-30 成功，`shizhiku.cn`、`www`、下载、案例和证据页均返回 200 并显示同版发行事实。
+
+### 2026-09-30 alpha.9 正式发布证据
+
+- 标签提交：`e3e3c1b3a79560e7004d6219a1e603695e468f8e`；
+- Release workflow [`#36668652870`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36668652870)、CI [`#36668650189`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36668650189) 与 Security [`#36668650191`](https://github.com/cgmdeep/video-to-obsidian/actions/runs/36668650191) 均成功；标签源码测试、Python 包、单文件安装器、首次准备、图形合同、修复/卸载生命周期和发布资产上传全部通过；
+- `VideoToObsidian.Setup.exe`：71,693,592 字节，SHA256 `22431f0fbd2ed031aff742c91c9d03dc98cdf7bbd24f6fc35294446200c79ec4`；本地重新下载后与 Release `SHA256SUMS` 一致；
+- 该版固定所有 `winget` 依赖查询与安装使用社区 `winget` 源，避免故障 `msstore` 证书阻断，并在 `ffmpeg`/`ffprobe` 已可用时直接复用；
+- 发布页：<https://github.com/cgmdeep/video-to-obsidian/releases/tag/v0.1.0-alpha.9>。COS 与生产官网切换、xos 实机修复复验和最终陌生用户闭环仍按本清单继续记录，不能因 CI 成功而提前写成已完成。
 
 ### 2026-09-30 图形安装器动作证据
 
