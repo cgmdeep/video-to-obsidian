@@ -14,7 +14,7 @@
 
 也可以直接把完整分享文本粘贴到 ZCode。
 
-> 当前状态：`v0.1.0-alpha.11` 已完成发布、COS 回读与 xos 实机复验；复验后发现公开安装包未包含 Obsidian 右侧“知识激活”助手，因此暂不切换为最终官网版。`v0.1.0-alpha.12` 正在发布闸门中：它会在所选 Vault 自动安装本地助手，直接调用本机核心和用户自己的 Kimi Key，不依赖旧云服务。既有的双平台真实视频、长视频、缓存、质量固定集和 ZCode 官方微信 Bot 证据保留；`alpha.12` 还需干净 Windows 流水线、xos 图形安装和一次明确批准的真实衍生知识验收。
+> 当前公开版本是 Windows x64 未签名的 `v0.1.0-alpha.12`。GitHub Release、COS 国内镜像和 `shizhiku.cn` 生产官网已经切换到同一版本；安装器会创建或修复 Obsidian Vault、ZCode 专用工作区和本地“知识激活”助手。双平台真实视频、长视频、缓存、质量固定集和 ZCode 官方微信 Bot 已有证据；从生产官网开始的陌生用户首装、一次真实衍生知识调用和更大规模体验仍属于上线验收，不得声称稳定生产版。
 
 官网 [shizhiku.cn](https://shizhiku.cn/) 提供 COS 国内镜像和 GitHub 备用下载；安装包大小与 SHA-256 以当前 Release 的 `SHA256SUMS` 为准。
 
@@ -120,6 +120,8 @@ video-to-obsidian clear-summary-preferences
 仓库中的 `scripts/install.ps1` 仅作为开发者、AI 助手和故障恢复的高级入口，不是普通用户主流程。
 
 完整步骤、失败恢复和卸载方式见 [Windows 安装与扫码指南](docs/INSTALL_WINDOWS.md)。
+仓库或工作区没有自动出现时，使用 [Windows 手动恢复与 Agent 兜底](docs/RECOVERY_WINDOWS.md)，
+不要让 Agent 猜测配置或覆盖其他项目。
 
 当前 Alpha 首发以 Windows 11 x64 为优先验证平台。发布包见 [GitHub Releases](https://github.com/cgmdeep/video-to-obsidian/releases)，发布门槛见 [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)。
 

@@ -78,6 +78,10 @@ Obsidian 不需要一直运行；MCP 可以在应用关闭时写入 Markdown。
 
 普通用户优先看安装器底部“免费检查”。不再使用时，点击“安全卸载（保留笔记）”；默认只移除视知库核心和受管 MCP，保留 Vault、专用工作区、Firefox Profile、Kimi Key、检查点和第三方软件。
 
+若安装完成后 Obsidian 没有显示仓库、ZCode 没有显示专用工作区，或右侧没有“知识激活”，
+不要重复新建目录。先关闭 Obsidian 和 ZCode，再用当前安装器执行“安装 / 修复本机”。仍未恢复时，
+按 [Windows 手动恢复与 Agent 兜底](RECOVERY_WINDOWS.md) 手动打开，或把其中的受限任务文本交给本机 Agent。
+
 以下命令只供开发者、AI 助手或故障恢复使用，需要先获取源码：
 
 免费诊断：
